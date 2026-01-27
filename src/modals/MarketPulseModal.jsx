@@ -1,0 +1,10 @@
+import React from 'react';
+import { PieChart, X } from 'lucide-react';
+
+export default function MarketPulseModal({ isOpen, onClose, games }) {
+  if(!isOpen) return null;
+  const g=games.filter(x=>x.splits);
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"><div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto"><div className="p-4 border-b border-gray-800 flex justify-between items-center sticky top-0 bg-gray-900 z-10"><div className="flex items-center gap-2 text-emerald-400"><PieChart size={20} /><h3 className="font-bold text-lg">Market Pulse</h3></div><button onClick={onClose}><X size={20} /></button></div><div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">{g.map(x=>(<div key={x.id} className="bg-gray-800/50 p-4 rounded"><div className="flex justify-between mb-4"><span className="font-bold">{x.visitor} @ {x.home}</span><span className="text-gray-500">{x.spread}</span></div><div className="space-y-4"><div><div className="flex justify-between text-xs"><span>{x.visitor} <span className="text-gray-400">({x.splits.tickets.visitor}% T / {x.splits.money.visitor}% M)</span></span></div><div className="h-4 bg-gray-700 rounded overflow-hidden flex"><div style={{width:`${x.splits.tickets.visitor}%`}} className="bg-blue-500"/><div style={{width:`${x.splits.money.visitor}%`}} className="bg-emerald-500 -ml-full opacity-50"/></div></div><div><div className="flex justify-between text-xs"><span>{x.home} <span className="text-gray-400">({x.splits.tickets.home}% T / {x.splits.money.home}% M)</span></span></div><div className="h-4 bg-gray-700 rounded overflow-hidden flex"><div style={{width:`${x.splits.tickets.home}%`}} className="bg-blue-500"/><div style={{width:`${x.splits.money.home}%`}} className="bg-emerald-500 -ml-full opacity-50"/></div></div></div></div>))}</div></div></div>
+  );
+}

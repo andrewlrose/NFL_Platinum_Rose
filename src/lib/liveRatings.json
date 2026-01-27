@@ -1,0 +1,162 @@
+{
+    "ARI": {
+        "offEPA": -2.19,
+        "defEPA": 1.86,
+        "tempo": 1.01
+    },
+    "Falcons": {
+        "offEPA": 1.88,
+        "defEPA": 0.73,
+        "tempo": 1.05
+    },
+    "BAL": {
+        "offEPA": -1.85,
+        "defEPA": -1.66,
+        "tempo": 0.89
+    },
+    "Bills": {
+        "offEPA": 2.54,
+        "defEPA": 0.46,
+        "tempo": 0.99
+    },
+    "Panthers": {
+        "offEPA": -1.93,
+        "defEPA": 4.74,
+        "tempo": 1.05
+    },
+    "Bears": {
+        "offEPA": 3.78,
+        "defEPA": -2.58,
+        "tempo": 1.12
+    },
+    "Bengals": {
+        "offEPA": -3.2,
+        "defEPA": 6.69,
+        "tempo": 1.04
+    },
+    "CLE": {
+        "offEPA": -12.48,
+        "defEPA": -7.17,
+        "tempo": 1.0
+    },
+    "Cowboys": {
+        "offEPA": 5.49,
+        "defEPA": 10.96,
+        "tempo": 1.1
+    },
+    "Broncos": {
+        "offEPA": 1.14,
+        "defEPA": -4.52,
+        "tempo": 1.09
+    },
+    "Lions": {
+        "offEPA": 6.61,
+        "defEPA": -0.13,
+        "tempo": 1.04
+    },
+    "Packers": {
+        "offEPA": 10.64,
+        "defEPA": 0.32,
+        "tempo": 1.07
+    },
+    "HOU": {
+        "offEPA": -1.78,
+        "defEPA": -6.55,
+        "tempo": 1.14
+    },
+    "Colts": {
+        "offEPA": 5.93,
+        "defEPA": -1.29,
+        "tempo": 0.96
+    },
+    "Jaguars": {
+        "offEPA": -0.57,
+        "defEPA": -3.67,
+        "tempo": 1.03
+    },
+    "Chiefs": {
+        "offEPA": 7.11,
+        "defEPA": 4.84,
+        "tempo": 1.1
+    },
+    "Rams": {
+        "offEPA": 9.34,
+        "defEPA": -5.12,
+        "tempo": 0.94
+    },
+    "Chargers": {
+        "offEPA": 1.55,
+        "defEPA": -4.93,
+        "tempo": 1.02
+    },
+    "Raiders": {
+        "offEPA": -14.8,
+        "defEPA": -0.11,
+        "tempo": 0.87
+    },
+    "Dolphins": {
+        "offEPA": 2.28,
+        "defEPA": -0.87,
+        "tempo": 0.85
+    },
+    "Vikings": {
+        "offEPA": -13.15,
+        "defEPA": -1.31,
+        "tempo": 0.87
+    },
+    "Patriots": {
+        "offEPA": 9.39,
+        "defEPA": -2.59,
+        "tempo": 1.11
+    },
+    "Saints": {
+        "offEPA": -8.56,
+        "defEPA": -0.99,
+        "tempo": 0.93
+    },
+    "Giants": {
+        "offEPA": 1.29,
+        "defEPA": 8.21,
+        "tempo": 1.17
+    },
+    "Jets": {
+        "offEPA": -6.13,
+        "defEPA": 6.69,
+        "tempo": 0.94
+    },
+    "Eagles": {
+        "offEPA": 1.43,
+        "defEPA": -7.03,
+        "tempo": 0.96
+    },
+    "Steelers": {
+        "offEPA": -1.94,
+        "defEPA": 0.93,
+        "tempo": 0.96
+    },
+    "Seahawks": {
+        "offEPA": 2.9,
+        "defEPA": -10.45,
+        "tempo": 0.78
+    },
+    "49ers": {
+        "offEPA": 2.88,
+        "defEPA": 2.5,
+        "tempo": 1.2
+    },
+    "Buccaneers": {
+        "offEPA": 1.08,
+        "defEPA": 3.35,
+        "tempo": 1.02
+    },
+    "Titans": {
+        "offEPA": -12.22,
+        "defEPA": 7.62,
+        "tempo": 0.8
+    },
+    "Commanders": {
+        "offEPA": 2.94,
+        "defEPA": 8.81,
+        "tempo": 0.9
+    }
+}

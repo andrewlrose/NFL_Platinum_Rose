@@ -1,0 +1,92 @@
+// src/lib/vsinParser.js
+
+const NAME_MAP = {
+    "Falcons": "Falcons", "Buccaneers": "Buccaneers", "Chargers": "Chargers", "Chiefs": "Chiefs",
+    "Raiders": "Raiders", "Eagles": "Eagles", "Dolphins": "Dolphins", "Steelers": "Steelers",
+    "Bills": "Bills", "Patriots": "Patriots", "Jets": "Jets", "Jaguars": "Jaguars",
+    "Cardinals": "Cardinals", "Texans": "Texans", "Browns": "Browns", "Bears": "Bears",
+    "Commanders": "Commanders", "Giants": "Giants", "Packers": "Packers", "Broncos": "Broncos",
+    "Lions": "Lions", "Rams": "Rams", "Panthers": "Panthers", "Saints": "Saints",
+    "Titans": "Titans", "49ers": "49ers", "Vikings": "Vikings", "Cowboys": "Cowboys",
+    "Ravens": "Ravens", "Bengals": "Bengals", "Colts": "Colts", "Seahawks": "Seahawks"
+};
+
+export const parseVSiNDump = (text) => {
+    const updates = [];
+    
+    // VSiN Format: [Visitor] [Home] History [Spread] [Spread] [Handle%] [Handle%] ...
+    // Key Anchor: The word "History"
+    
+    const parts = text.split("History");
+    
+    // We iterate through the splits. 
+    // part[i] ends with the TEAMS for the NEXT game.
+    // part[i+1] starts with the STATS for those teams.
+    
+    for (let i = 0; i < parts.length - 1; i++) {
+        const teamChunk = parts[i];     // Ends with "Chargers Chiefs"
+        const statsChunk = parts[i+1];  // Starts with "+4.5 -4.5 63% 37%..."
+
+        // 1. EXTRACT TEAMS (Scan the end of teamChunk)
+        const foundTeams = [];
+        const words = teamChunk.replace(/[^a-zA-Z\s]/g, " ").split(/\s+/).filter(w => w);
+        
+        // Look backwards from the end of the chunk
+        for (let j = words.length - 1; j >= 0; j--) {
+            if (NAME_MAP[words[j]]) {
+                foundTeams.unshift(NAME_MAP[words[j]]); // Add to front
+                if (foundTeams.length === 2) break; // Found Visitor and Home
+            }
+        }
+
+        if (foundTeams.length < 2) continue; // Skip if we couldn't find 2 teams
+
+        const visitor = foundTeams[0];
+        const home = foundTeams[1];
+
+        // 2. EXTRACT STATS (Scan the start of statsChunk)
+        // VSiN Pattern: [Spread1] [Spread2] [HandleVis%] [HandleHome%]
+        // Regex to find the first pair of percentages
+        const statsMatch = statsChunk.match(/(\d+)%[\s]*(\d+)%/);
+
+        if (statsMatch) {
+            // VSiN usually lists HANDLE % first for spread
+            const visHandle = parseInt(statsMatch[1]);
+            const homeHandle = parseInt(statsMatch[2]);
+            
+            // Calculate Tickets (VSiN sometimes lists tickets second, or we infer)
+            // For now, let's map Handle to Cash and mirror it for Tickets to be safe, 
+            // or look for the next pair if available.
+            
+            // Let's try to find a second pair for Tickets
+            // Regex for: 63% 37% - 40% 60%
+            const complexMatch = statsChunk.match(/(\d+)%[\s]*(\d+)%[\s-]*(\d+)%[\s]*(\d+)%/);
+            
+            let homeTickets = 50;
+            
+            if (complexMatch) {
+                // If 4 percentages found: HandleVis, HandleHome, BetsVis, BetsHome
+                homeTickets = parseInt(complexMatch[4]); 
+            } else {
+                // Fallback: If only handle is provided, assume tickets are balanced-ish or inverse
+                homeTickets = 100 - homeHandle + (Math.random() * 10 - 5); 
+            }
+
+            console.log(`✅ VSiN Parsed: ${visitor} @ ${home} -> ${homeHandle}% Cash`);
+
+            updates.push({
+                visitor,
+                home,
+                splits: {
+                    spread: {
+                        cash: homeHandle,
+                        tickets: Math.round(homeTickets)
+                    },
+                    total: { tickets: 50, cash: 50 }
+                }
+            });
+        }
+    }
+
+    return updates;
+};

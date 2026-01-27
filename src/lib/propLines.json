@@ -1,0 +1,708 @@
+{
+    "S. Darnold": {
+        "Pass Yds": 232.5,
+        "Rush Yds": 1.5
+    },
+    "K. Cousins": {
+        "Pass Yds": 203.5,
+        "Rush Yds": 0.5
+    },
+    "J. Smith-Njigba": {
+        "Rec Yds": 94.5
+    },
+    "K. Pitts": {
+        "Rec Yds": 53.5
+    },
+    "D. Mooney": {
+        "Rec Yds": 43.5
+    },
+    "B. Robinson": {
+        "Rec Yds": 38.5,
+        "Rush Yds": 65.5
+    },
+    "A. Barner": {
+        "Rec Yds": 29.5
+    },
+    "C. Kupp": {
+        "Rec Yds": 28.5
+    },
+    "D. V": {
+        "Rec Yds": 21.5
+    },
+    "R. Shaheed": {
+        "Rec Yds": 20.5,
+        "Rush Yds": 3.5
+    },
+    "D. Drummond": {
+        "Rec Yds": 15.5
+    },
+    "K. III": {
+        "Rec Yds": 14.5,
+        "Rush Yds": 63.5
+    },
+    "E. Arroyo": {
+        "Rec Yds": 7.5
+    },
+    "T. Allgeier": {
+        "Rec Yds": 6.5,
+        "Rush Yds": 22.5
+    },
+    "Z. Charbonnet": {
+        "Rush Yds": 37.5
+    },
+    "C. Woerner": {
+        "Rec Yds": 0.5
+    },
+    "L. Jackson": {
+        "Pass Yds": 221.5,
+        "Rush Yds": 27.5
+    },
+    "A. Rodgers": {
+        "Pass Yds": 202.5,
+        "Rush Yds": 0.5
+    },
+    "Z. Flowers": {
+        "Rec Yds": 58.5
+    },
+    "D. Metcalf": {
+        "Rec Yds": 47.5
+    },
+    "M. Andrews": {
+        "Rec Yds": 33.5
+    },
+    "I. Likely": {
+        "Rec Yds": 25.5
+    },
+    "C. III": {
+        "Rec Yds": 23.5
+    },
+    "D. Washington": {
+        "Rec Yds": 22.5
+    },
+    "R. Bateman": {
+        "Rec Yds": 20.5
+    },
+    "K. Gainwell": {
+        "Rec Yds": 18.5,
+        "Rush Yds": 25.5
+    },
+    "P. Freiermuth": {
+        "Rec Yds": 18.5
+    },
+    "J. Smith": {
+        "Rec Yds": 16.5
+    },
+    "D. Hopkins": {
+        "Rec Yds": 14.5
+    },
+    "J. Warren": {
+        "Rec Yds": 11.5,
+        "Rush Yds": 51.5
+    },
+    "D. Henry": {
+        "Rec Yds": 8.5,
+        "Rush Yds": 79.5
+    },
+    "K. Mitchell": {
+        "Rush Yds": 13.5
+    },
+    "J. Burrow": {
+        "Pass Yds": 251.5,
+        "Rush Yds": 6.5
+    },
+    "J. Allen": {
+        "Pass Yds": 233.5,
+        "Rush Yds": 30.5
+    },
+    "J. Chase": {
+        "Rec Yds": 88.5
+    },
+    "T. Higgins": {
+        "Rec Yds": 54.5
+    },
+    "K. Shakir": {
+        "Rec Yds": 44.5
+    },
+    "D. Kincaid": {
+        "Rec Yds": 33.5
+    },
+    "G. Davis": {
+        "Rec Yds": 22.5
+    },
+    "M. Gesicki": {
+        "Rec Yds": 22.5
+    },
+    "K. Coleman": {
+        "Rec Yds": 21.5
+    },
+    "C. Brown": {
+        "Rec Yds": 19.5,
+        "Rush Yds": 52.5
+    },
+    "A. Iosivas": {
+        "Rec Yds": 14.5
+    },
+    "J. Cook": {
+        "Rec Yds": 13.5,
+        "Rush Yds": 100.5
+    },
+    "N. Fant": {
+        "Rec Yds": 9.5
+    },
+    "S. Perine": {
+        "Rec Yds": 5.5,
+        "Rush Yds": 31.5
+    },
+    "B. Cooks": {
+        "Rec Yds": 8.5
+    },
+    "T. Johnson": {
+        "Rec Yds": 12.5,
+        "Rush Yds": 7.5
+    },
+    "T. Shavers": {
+        "Rec Yds": 10.5
+    },
+    "R. Davis": {
+        "Rush Yds": 8.5
+    },
+    "C. Ward": {
+        "Pass Yds": 170.5,
+        "Rush Yds": 10.5
+    },
+    "S. Sanders": {
+        "Pass Yds": 161.5,
+        "Rush Yds": 8.5
+    },
+    "H. Jr.": {
+        "Rec Yds": 38.5
+    },
+    "J. Jeudy": {
+        "Rec Yds": 31.5
+    },
+    "E. Ayomanor": {
+        "Rec Yds": 24.5
+    },
+    "G. Helm": {
+        "Rec Yds": 23.5
+    },
+    "C. Dike": {
+        "Rec Yds": 23.5
+    },
+    "C. Okonkwo": {
+        "Rec Yds": 21.5
+    },
+    "V. Jefferson": {
+        "Rec Yds": 19.5
+    },
+    "T. Spears": {
+        "Rec Yds": 19.5,
+        "Rush Yds": 18.5
+    },
+    "C. Tillman": {
+        "Rec Yds": 17.5
+    },
+    "D. Njoku": {
+        "Rec Yds": 12.5
+    },
+    "T. Pollard": {
+        "Rec Yds": 7.5,
+        "Rush Yds": 48.5
+    },
+    "Q. Judkins": {
+        "Rec Yds": 6.5,
+        "Rush Yds": 81.5
+    },
+    "I. Bond": {
+        "Rec Yds": 7.5
+    },
+    "J. Ford": {
+        "Rec Yds": 6.5,
+        "Rush Yds": 11.5
+    },
+    "D. Jones": {
+        "Pass Yds": 228.5,
+        "Rush Yds": 4.5
+    },
+    "T. Lawrence": {
+        "Pass Yds": 216.5,
+        "Rush Yds": 14.5
+    },
+    "J. Meyers": {
+        "Rec Yds": 54.5
+    },
+    "A. Pierce": {
+        "Rec Yds": 53.5
+    },
+    "T. Warren": {
+        "Rec Yds": 52.5
+    },
+    "M. Jr.": {
+        "Rec Yds": 49.5
+    },
+    "B. Jr": {
+        "Rec Yds": 43.5
+    },
+    "B. Strange": {
+        "Rec Yds": 42.5
+    },
+    "J. Downs": {
+        "Rec Yds": 33.5
+    },
+    "J. Taylor": {
+        "Rec Yds": 18.5,
+        "Rush Yds": 93.5
+    },
+    "T. Jr.": {
+        "Rec Yds": 12.5,
+        "Rush Yds": 52.5
+    },
+    "B. Tuten": {
+        "Rush Yds": 26.5,
+        "Rec Yds": 0.5
+    },
+    "T. Tagovailoa": {
+        "Pass Yds": 210.5,
+        "Rush Yds": 1.5
+    },
+    "T. Taylor": {
+        "Pass Yds": 176.5,
+        "Rush Yds": 27.5
+    },
+    "J. Waddle": {
+        "Rec Yds": 65.5
+    },
+    "A. Mitchell": {
+        "Rec Yds": 48.5
+    },
+    "J. III": {
+        "Rec Yds": 37.5
+    },
+    "D. Waller": {
+        "Rec Yds": 34.5
+    },
+    "D. Achane": {
+        "Rec Yds": 31.5,
+        "Rush Yds": 82.5
+    },
+    "M. Taylor": {
+        "Rec Yds": 25.5
+    },
+    "M. Washington": {
+        "Rec Yds": 24.5
+    },
+    "B. Hall": {
+        "Rec Yds": 20.5,
+        "Rush Yds": 72.5
+    },
+    "G. Dulcich": {
+        "Rec Yds": 11.5
+    },
+    "O. II": {
+        "Rush Yds": 15.5,
+        "Rec Yds": 38.5
+    },
+    "N. Westbrook-Ikhine": {
+        "Rec Yds": 5.5
+    },
+    "J. Ruckert": {
+        "Rec Yds": 5.5
+    },
+    "J. Daniels": {
+        "Pass Yds": 211.5,
+        "Rush Yds": 36.5
+    },
+    "J. McCarthy": {
+        "Pass Yds": 185.5,
+        "Rush Yds": 16.5
+    },
+    "J. Jefferson": {
+        "Rec Yds": 63.5
+    },
+    "T. McLaurin": {
+        "Rec Yds": 53.5
+    },
+    "D. Sr.": {
+        "Rec Yds": 45.5,
+        "Rush Yds": 2.5
+    },
+    "J. Addison": {
+        "Rec Yds": 40.5
+    },
+    "Z. Ertz": {
+        "Rec Yds": 36.5
+    },
+    "T. Hockenson": {
+        "Rec Yds": 24.5
+    },
+    "A. Jones": {
+        "Rec Yds": 18.5,
+        "Rush Yds": 47.5
+    },
+    "J. Nailor": {
+        "Rec Yds": 15.5
+    },
+    "N. Brown": {
+        "Rec Yds": 13.5
+    },
+    "T. Burks": {
+        "Rec Yds": 12.5
+    },
+    "J. McNichols": {
+        "Rec Yds": 9.5,
+        "Rush Yds": 11.5
+    },
+    "C. Jr.": {
+        "Rush Yds": 44.5,
+        "Rec Yds": 0.5
+    },
+    "J. Mason": {
+        "Rush Yds": 33.5
+    },
+    "J. Croskey-Merritt": {
+        "Rush Yds": 18.5
+    },
+    "J. Oliver": {
+        "Rec Yds": 2.5
+    },
+    "J. Bates": {
+        "Rec Yds": 5.5
+    },
+    "B. Mayfield": {
+        "Pass Yds": 216.5,
+        "Rush Yds": 14.5
+    },
+    "T. Shough": {
+        "Pass Yds": 215.5,
+        "Rush Yds": 13.5
+    },
+    "C. Olave": {
+        "Rec Yds": 65.5
+    },
+    "E. Egbuka": {
+        "Rec Yds": 54.5
+    },
+    "J. Johnson": {
+        "Rec Yds": 40.5
+    },
+    "C. Godwin": {
+        "Rec Yds": 38.5
+    },
+    "D. Vele": {
+        "Rec Yds": 35.5
+    },
+    "C. Otton": {
+        "Rec Yds": 27.5
+    },
+    "D. Neal": {
+        "Rec Yds": 18.5,
+        "Rush Yds": 41.5
+    },
+    "M. Tipton": {
+        "Rec Yds": 17.5
+    },
+    "B. Irving": {
+        "Rec Yds": 17.5,
+        "Rush Yds": 69.5
+    },
+    "R. White": {
+        "Rec Yds": 11.5,
+        "Rush Yds": 13.5
+    },
+    "S. Shepard": {
+        "Rec Yds": 10.5
+    },
+    "T. Hill": {
+        "Rush Yds": 11.5
+    },
+    "E. Hull": {
+        "Rush Yds": 10.5
+    },
+    "S. Tucker": {
+        "Rush Yds": 9.5
+    },
+    "F. Moreau": {
+        "Rec Yds": 4.5
+    },
+    "B. Nix": {
+        "Pass Yds": 227.5,
+        "Rush Yds": 16.5
+    },
+    "G. Smith": {
+        "Pass Yds": 206.5,
+        "Rush Yds": 9.5
+    },
+    "B. Bowers": {
+        "Rec Yds": 60.5
+    },
+    "C. Sutton": {
+        "Rec Yds": 48.5
+    },
+    "T. Franklin": {
+        "Rec Yds": 39.5
+    },
+    "T. Tucker": {
+        "Rec Yds": 39.5
+    },
+    "P. Bryant": {
+        "Rec Yds": 31.5
+    },
+    "E. Engram": {
+        "Rec Yds": 30.5
+    },
+    "A. Jeanty": {
+        "Rec Yds": 23.5,
+        "Rush Yds": 53.5
+    },
+    "J. Bech": {
+        "Rec Yds": 22.5
+    },
+    "T. Lockett": {
+        "Rec Yds": 21.5
+    },
+    "R. Harvey": {
+        "Rec Yds": 14.5,
+        "Rush Yds": 51.5
+    },
+    "J. McLaughlin": {
+        "Rush Yds": 24.5
+    },
+    "A. Trautman": {
+        "Rec Yds": 6.5
+    },
+    "I. Thomas": {
+        "Rec Yds": 8.5
+    },
+    "T. Badie": {
+        "Rec Yds": 6.5
+    },
+    "R. Mostert": {
+        "Rush Yds": 3.5
+    },
+    "M. Stafford": {
+        "Pass Yds": 268.5
+    },
+    "J. Brissett": {
+        "Pass Yds": 254.5,
+        "Rush Yds": 10.5
+    },
+    "P. Nacua": {
+        "Rec Yds": 92.5
+    },
+    "T. McBride": {
+        "Rec Yds": 80.5
+    },
+    "M. Wilson": {
+        "Rec Yds": 71.5
+    },
+    "D. Adams": {
+        "Rec Yds": 55.5
+    },
+    "C. Parkinson": {
+        "Rec Yds": 27.5
+    },
+    "M. Carter": {
+        "Rec Yds": 17.5,
+        "Rush Yds": 17.5
+    },
+    "Z. Knight": {
+        "Rec Yds": 17.5,
+        "Rush Yds": 40.5
+    },
+    "E. Higgins": {
+        "Rec Yds": 16.5
+    },
+    "X. Smith": {
+        "Rec Yds": 14.5
+    },
+    "K. Williams": {
+        "Rec Yds": 10.5,
+        "Rush Yds": 62.5
+    },
+    "D. Allen": {
+        "Rec Yds": 10.5
+    },
+    "T. Ferguson": {
+        "Rec Yds": 9.5
+    },
+    "B. Corum": {
+        "Rush Yds": 35.5,
+        "Rec Yds": 0.5
+    },
+    "A. Baccellia": {
+        "Rec Yds": 23.5
+    },
+    "B. Knight": {
+        "Rec Yds": 17.5,
+        "Rush Yds": 38.5
+    },
+    "J. Love": {
+        "Pass Yds": 218.5,
+        "Rush Yds": 10.5
+    },
+    "C. Williams": {
+        "Pass Yds": 192.5,
+        "Rush Yds": 20.5
+    },
+    "C. Watson": {
+        "Rec Yds": 53.5
+    },
+    "L. III": {
+        "Rec Yds": 41.5
+    },
+    "D. Moore": {
+        "Rec Yds": 38.5
+    },
+    "C. Loveland": {
+        "Rec Yds": 36.5
+    },
+    "R. Doubs": {
+        "Rec Yds": 34.5
+    },
+    "J. Reed": {
+        "Rec Yds": 22.5
+    },
+    "O. Zaccheaus": {
+        "Rec Yds": 19.5
+    },
+    "J. Jacobs": {
+        "Rec Yds": 15.5,
+        "Rush Yds": 78.5
+    },
+    "C. Kmet": {
+        "Rec Yds": 15.5
+    },
+    "L. Musgrave": {
+        "Rec Yds": 10.5
+    },
+    "D. Swift": {
+        "Rec Yds": 10.5,
+        "Rush Yds": 50.5
+    },
+    "K. Monangai": {
+        "Rush Yds": 44.5,
+        "Rec Yds": 1.5
+    },
+    "E. Wilson": {
+        "Rush Yds": 19.5
+    },
+    "C. Brooks": {
+        "Rec Yds": 2.5
+    },
+    "J. Whyle": {
+        "Rec Yds": 4.5
+    },
+    "M. Golden": {
+        "Rec Yds": 15.5
+    },
+    "D. Wicks": {
+        "Rec Yds": 22.5
+    },
+    "P. Mahomes": {
+        "Pass Yds": 240.5,
+        "Rush Yds": 23.5
+    },
+    "C. Stroud": {
+        "Pass Yds": 231.5,
+        "Rush Yds": 13.5
+    },
+    "R. Rice": {
+        "Rec Yds": 69.5
+    },
+    "N. Collins": {
+        "Rec Yds": 66.5
+    },
+    "T. Kelce": {
+        "Rec Yds": 47.5
+    },
+    "D. Schultz": {
+        "Rec Yds": 41.5
+    },
+    "J. Higgins": {
+        "Rec Yds": 35.5
+    },
+    "X. Worthy": {
+        "Rec Yds": 35.5,
+        "Rush Yds": 4.5
+    },
+    "X. Hutchinson": {
+        "Rec Yds": 16.5
+    },
+    "C. Kirk": {
+        "Rec Yds": 14.5
+    },
+    "M. Brown": {
+        "Rec Yds": 14.5
+    },
+    "N. Gray": {
+        "Rec Yds": 9.5
+    },
+    "W. Marks": {
+        "Rec Yds": 8.5,
+        "Rush Yds": 49.5
+    },
+    "J. Smith-Schuster": {
+        "Rec Yds": 7.5
+    },
+    "I. Pacheco": {
+        "Rec Yds": 6.5,
+        "Rush Yds": 27.5
+    },
+    "K. Hunt": {
+        "Rec Yds": 6.5,
+        "Rush Yds": 34.5
+    },
+    "N. Chubb": {
+        "Rush Yds": 17.5
+    },
+    "C. Stover": {
+        "Rec Yds": 4.5
+    },
+    "J. Noel": {
+        "Rec Yds": 4.5
+    },
+    "J. Herbert": {
+        "Pass Yds": 213.5,
+        "Rush Yds": 20.5
+    },
+    "J. Hurts": {
+        "Pass Yds": 192.5,
+        "Rush Yds": 30.5
+    },
+    "A. Brown": {
+        "Rec Yds": 62.5
+    },
+    "D. Smith": {
+        "Rec Yds": 55.5
+    },
+    "L. McConkey": {
+        "Rec Yds": 52.5
+    },
+    "K. Allen": {
+        "Rec Yds": 37.5
+    },
+    "Q. Johnston": {
+        "Rec Yds": 32.5
+    },
+    "D. Goedert": {
+        "Rec Yds": 30.5
+    },
+    "S. Barkley": {
+        "Rec Yds": 16.5,
+        "Rush Yds": 70.5
+    },
+    "O. Hampton": {
+        "Rec Yds": 10.5,
+        "Rush Yds": 45.5
+    },
+    "T. Harris": {
+        "Rec Yds": 9.5
+    },
+    "J. Dotson": {
+        "Rec Yds": 7.5
+    },
+    "K. Vidal": {
+        "Rush Yds": 36.5,
+        "Rec Yds": 1.5
+    }
+}

@@ -1,0 +1,36 @@
+name: Update Weekly Schedule
+on:
+  schedule:
+    # Runs at 10:00 UTC every Tuesday (2:00 AM PST / 5:00 AM EST)
+    - cron: '0 10 * * 2'
+  workflow_dispatch: # Allows you to run it manually from the Actions tab for testing
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Fetch New Schedule
+        run: npm run update-schedule
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+          git add public/schedule.json
+          # Only commit if there are changes (prevents errors if schedule hasn't changed)
+          git commit -m "Auto-update schedule for the new week" || echo "No changes to commit"
+          git push

@@ -1,0 +1,795 @@
+{
+    "A. Brown": {
+        "Rec Yds": 53.1,
+        "team": "Eagles"
+    },
+    "A. Iosivas": {
+        "Rec Yds": 28.5,
+        "team": "Bengals"
+    },
+    "A. Jeanty": {
+        "Rush Yds": 43.3,
+        "team": "Raiders"
+    },
+    "A. Jones": {
+        "Rush Yds": 38.6,
+        "team": "Vikings"
+    },
+    "A. Kamara": {
+        "Rush Yds": 33.9,
+        "team": "Saints"
+    },
+    "A. Mitchell": {
+        "Rec Yds": 51.3,
+        "team": "Jets"
+    },
+    "A. Pierce": {
+        "Rec Yds": 52.7,
+        "team": "Colts"
+    },
+    "A.St. Brown": {
+        "Rec Yds": 58.7,
+        "team": "Lions"
+    },
+    "B. Bowers": {
+        "Rec Yds": 48.1,
+        "team": "Raiders"
+    },
+    "B. Corum": {
+        "Rush Yds": 28.2,
+        "team": "Rams"
+    },
+    "B. Hall": {
+        "Rush Yds": 58.5,
+        "team": "Jets"
+    },
+    "B. Irving": {
+        "Rush Yds": 51.7,
+        "team": "Buccaneers"
+    },
+    "B. Mayfield": {
+        "Pass Yds": 161.7,
+        "team": "Buccaneers"
+    },
+    "B. Nix": {
+        "Pass Yds": 207.9,
+        "team": "Broncos"
+    },
+    "B. Purdy": {
+        "Pass Yds": 170.8,
+        "team": "49ers"
+    },
+    "B. Robinson": {
+        "Rush Yds": 82.5,
+        "Rec Yds": 43.0,
+        "team": "Falcons"
+    },
+    "B. Strange": {
+        "Rec Yds": 50.1,
+        "team": "Jaguars"
+    },
+    "B. Thomas": {
+        "Rec Yds": 39.6,
+        "team": "Jaguars"
+    },
+    "B. Young": {
+        "Pass Yds": 164.4,
+        "team": "Panthers"
+    },
+    "C. Brown": {
+        "Rush Yds": 56.9,
+        "team": "Bengals"
+    },
+    "C. Godwin": {
+        "Rec Yds": 36.3,
+        "team": "Buccaneers"
+    },
+    "C. Hubbard": {
+        "Rush Yds": 29.9,
+        "team": "Panthers"
+    },
+    "C. Lamb": {
+        "Rec Yds": 73.7,
+        "team": "Cowboys"
+    },
+    "C. Loveland": {
+        "Rec Yds": 35.3,
+        "team": "Bears"
+    },
+    "C. McCaffrey": {
+        "Rush Yds": 52.8,
+        "Rec Yds": 42.4,
+        "team": "49ers"
+    },
+    "C. Moore": {
+        "Rec Yds": 26.0,
+        "team": "Commanders"
+    },
+    "C. Olave": {
+        "Rec Yds": 43.2,
+        "team": "Saints"
+    },
+    "C. Otton": {
+        "Rec Yds": 27.1,
+        "team": "Buccaneers"
+    },
+    "C. Ridley": {
+        "Rec Yds": 31.8,
+        "team": "Titans"
+    },
+    "C. Rodriguez": {
+        "Rush Yds": 41.1,
+        "team": "Commanders"
+    },
+    "C. Skattebo": {
+        "Rush Yds": 38.2,
+        "team": "Giants"
+    },
+    "C. Stroud": {
+        "Pass Yds": 190.3,
+        "team": "HOU"
+    },
+    "C. Sutton": {
+        "Rec Yds": 48.3,
+        "team": "Broncos"
+    },
+    "C. Watson": {
+        "Rec Yds": 51.7,
+        "team": "Packers"
+    },
+    "C. Wentz": {
+        "Pass Yds": 166.6,
+        "team": "Vikings"
+    },
+    "C. Williams": {
+        "Pass Yds": 186.2,
+        "Rush Yds": 23.9,
+        "team": "Bears"
+    },
+    "D. Achane": {
+        "Rush Yds": 67.7,
+        "Rec Yds": 26.2,
+        "team": "Dolphins"
+    },
+    "D. Adams": {
+        "Rec Yds": 48.1,
+        "team": "Rams"
+    },
+    "D. Douglas": {
+        "Rec Yds": 33.3,
+        "team": "Patriots"
+    },
+    "D. Henry": {
+        "Rush Yds": 60.2,
+        "team": "BAL"
+    },
+    "D. Jones": {
+        "Pass Yds": 195.9,
+        "team": "Colts"
+    },
+    "D. Kincaid": {
+        "Rec Yds": 48.3,
+        "team": "Bills"
+    },
+    "D. London": {
+        "Rec Yds": 81.0,
+        "team": "Falcons"
+    },
+    "D. Maye": {
+        "Pass Yds": 224.1,
+        "team": "Patriots"
+    },
+    "D. Metcalf": {
+        "Rec Yds": 39.2,
+        "team": "Steelers"
+    },
+    "D. Mills": {
+        "Pass Yds": 213.6,
+        "team": "HOU"
+    },
+    "D. Montgomery": {
+        "Rush Yds": 31.3,
+        "team": "Lions"
+    },
+    "D. Mooney": {
+        "Rec Yds": 31.4,
+        "team": "Falcons"
+    },
+    "D. Moore": {
+        "Rec Yds": 28.7,
+        "team": "Bears"
+    },
+    "D. Prescott": {
+        "Pass Yds": 218.4,
+        "team": "Cowboys"
+    },
+    "D. Samuel": {
+        "Rec Yds": 36.9,
+        "team": "Commanders"
+    },
+    "D. Schultz": {
+        "Rec Yds": 39.6,
+        "team": "HOU"
+    },
+    "D. Singletary": {
+        "Rush Yds": 24.2,
+        "team": "Giants"
+    },
+    "D. Slayton": {
+        "Rec Yds": 38.3,
+        "team": "Giants"
+    },
+    "D. Smith": {
+        "Rec Yds": 58.8,
+        "team": "Eagles"
+    },
+    "D. Swift": {
+        "Rush Yds": 63.6,
+        "team": "Bears"
+    },
+    "D. Waller": {
+        "Rec Yds": 42.2,
+        "team": "Dolphins"
+    },
+    "D. Wicks": {
+        "Rec Yds": 32.0,
+        "team": "Packers"
+    },
+    "E. Egbuka": {
+        "Rec Yds": 48.4,
+        "team": "Buccaneers"
+    },
+    "E. Engram": {
+        "Rec Yds": 28.4,
+        "team": "Broncos"
+    },
+    "E. Wilson": {
+        "Rush Yds": 26.4,
+        "team": "Packers"
+    },
+    "G. Kittle": {
+        "Rec Yds": 45.9,
+        "team": "49ers"
+    },
+    "G. Pickens": {
+        "Rec Yds": 71.9,
+        "team": "Cowboys"
+    },
+    "H. Fannin": {
+        "Rec Yds": 29.3,
+        "team": "CLE"
+    },
+    "H. Henry": {
+        "Rec Yds": 43.8,
+        "team": "Patriots"
+    },
+    "I. Likely": {
+        "Rec Yds": 29.4,
+        "team": "BAL"
+    },
+    "I. Pacheco": {
+        "Rush Yds": 26.4,
+        "team": "Chiefs"
+    },
+    "J. Addison": {
+        "Rec Yds": 26.0,
+        "team": "Vikings"
+    },
+    "J. Allen": {
+        "Pass Yds": 173.4,
+        "Rush Yds": 24.2,
+        "team": "Bills"
+    },
+    "J. Brissett": {
+        "Pass Yds": 215.2,
+        "team": "ARI"
+    },
+    "J. Burrow": {
+        "Pass Yds": 167.2,
+        "team": "Bengals"
+    },
+    "J. Chase": {
+        "Rec Yds": 63.2,
+        "team": "Bengals"
+    },
+    "J. Coker": {
+        "Rec Yds": 29.0,
+        "team": "Panthers"
+    },
+    "J. Conner": {
+        "Rush Yds": 25.0,
+        "team": "ARI"
+    },
+    "J. Cook": {
+        "Rush Yds": 82.0,
+        "team": "Bills"
+    },
+    "J. Croskey-Merritt": {
+        "Rush Yds": 27.3,
+        "team": "Commanders"
+    },
+    "J. Daniels": {
+        "Rush Yds": 31.3,
+        "team": "Commanders"
+    },
+    "J. Dart": {
+        "Rush Yds": 30.9,
+        "team": "Giants"
+    },
+    "J. Dobbins": {
+        "Rush Yds": 57.0,
+        "team": "Broncos"
+    },
+    "J. Downs": {
+        "Rec Yds": 25.8,
+        "team": "Colts"
+    },
+    "J. Ferguson": {
+        "Rec Yds": 37.1,
+        "team": "Cowboys"
+    },
+    "J. Fields": {
+        "Rush Yds": 31.0,
+        "team": "Jets"
+    },
+    "J. Flacco": {
+        "Pass Yds": 173.2,
+        "team": "CLE"
+    },
+    "J. Gibbs": {
+        "Rush Yds": 71.2,
+        "Rec Yds": 40.3,
+        "team": "Lions"
+    },
+    "J. Goff": {
+        "Pass Yds": 201.2,
+        "team": "Lions"
+    },
+    "J. Herbert": {
+        "Pass Yds": 173.5,
+        "Rush Yds": 20.7,
+        "team": "Chargers"
+    },
+    "J. Higgins": {
+        "Rec Yds": 34.6,
+        "team": "HOU"
+    },
+    "J. Hurts": {
+        "Pass Yds": 170.3,
+        "Rush Yds": 25.5,
+        "team": "Eagles"
+    },
+    "J. Jacobs": {
+        "Rush Yds": 56.5,
+        "team": "Packers"
+    },
+    "J. Jefferson": {
+        "Rec Yds": 50.4,
+        "team": "Vikings"
+    },
+    "J. Jennings": {
+        "Rec Yds": 36.9,
+        "team": "49ers"
+    },
+    "J. Jeudy": {
+        "Rec Yds": 35.9,
+        "team": "CLE"
+    },
+    "J. Johnson": {
+        "Rec Yds": 37.4,
+        "team": "Saints"
+    },
+    "J. Love": {
+        "Pass Yds": 203.2,
+        "team": "Packers"
+    },
+    "J. Mason": {
+        "Rush Yds": 30.4,
+        "team": "Vikings"
+    },
+    "J. Metchie": {
+        "Rec Yds": 27.5,
+        "team": "Jets"
+    },
+    "J. Meyers": {
+        "Rec Yds": 39.6,
+        "team": "Raiders"
+    },
+    "J. Nailor": {
+        "Rec Yds": 28.2,
+        "team": "Vikings"
+    },
+    "J. Reynolds": {
+        "Rec Yds": 25.2,
+        "team": "Jets"
+    },
+    "J. Smith-Njigba": {
+        "Rec Yds": 79.1,
+        "team": "Seahawks"
+    },
+    "J. Taylor": {
+        "Rush Yds": 94.6,
+        "team": "Colts"
+    },
+    "J. Tonges": {
+        "Rec Yds": 37.3,
+        "team": "49ers"
+    },
+    "J. Waddle": {
+        "Rec Yds": 54.4,
+        "team": "Dolphins"
+    },
+    "J. Warren": {
+        "Rush Yds": 55.9,
+        "team": "Steelers"
+    },
+    "J. Williams": {
+        "Rec Yds": 42.1,
+        "team": "Lions"
+    },
+    "K. Allen": {
+        "Rec Yds": 40.5,
+        "team": "Chargers"
+    },
+    "K. Bourne": {
+        "Rec Yds": 41.4,
+        "team": "49ers"
+    },
+    "K. Boutte": {
+        "Rec Yds": 33.6,
+        "team": "Patriots"
+    },
+    "K. Gainwell": {
+        "Rush Yds": 26.0,
+        "team": "Steelers"
+    },
+    "K. Hunt": {
+        "Rush Yds": 43.8,
+        "team": "Chiefs"
+    },
+    "K. Monangai": {
+        "Rush Yds": 40.9,
+        "team": "Bears"
+    },
+    "K. Pitts": {
+        "Rec Yds": 39.6,
+        "team": "Falcons"
+    },
+    "K. Shakir": {
+        "Rec Yds": 29.4,
+        "team": "Bills"
+    },
+    "K. Vidal": {
+        "Rush Yds": 51.6,
+        "team": "Chargers"
+    },
+    "K. Walker": {
+        "Rush Yds": 32.8,
+        "team": "Seahawks"
+    },
+    "K. Williams": {
+        "Rush Yds": 50.1,
+        "team": "Rams"
+    },
+    "L. Burden": {
+        "Rec Yds": 36.6,
+        "team": "Bears"
+    },
+    "L. Jackson": {
+        "Pass Yds": 172.7,
+        "Rush Yds": 24.5,
+        "team": "BAL"
+    },
+    "L. McCaffrey": {
+        "Rec Yds": 26.0,
+        "team": "Commanders"
+    },
+    "L. McConkey": {
+        "Rec Yds": 40.1,
+        "team": "Chargers"
+    },
+    "M. Brown": {
+        "Rec Yds": 26.6,
+        "team": "Chiefs"
+    },
+    "M. Davis": {
+        "Rush Yds": 22.5,
+        "team": "Cowboys"
+    },
+    "M. Evans": {
+        "Rec Yds": 29.5,
+        "team": "Buccaneers"
+    },
+    "M. Golden": {
+        "Rec Yds": 27.8,
+        "team": "Packers"
+    },
+    "M. Harrison": {
+        "Rec Yds": 51.5,
+        "team": "ARI"
+    },
+    "M. Hollins": {
+        "Rec Yds": 41.1,
+        "team": "Patriots"
+    },
+    "M. Jones": {
+        "Pass Yds": 226.8,
+        "team": "49ers"
+    },
+    "M. Mariota": {
+        "Pass Yds": 174.0,
+        "Rush Yds": 35.2,
+        "team": "Commanders"
+    },
+    "M. Nabers": {
+        "Rec Yds": 65.5,
+        "team": "Giants"
+    },
+    "M. Penix": {
+        "Pass Yds": 190.3,
+        "team": "Falcons"
+    },
+    "M. Pittman": {
+        "Rec Yds": 30.3,
+        "team": "Colts"
+    },
+    "M. Sanders": {
+        "Rush Yds": 25.0,
+        "team": "Cowboys"
+    },
+    "M. Stafford": {
+        "Pass Yds": 202.4,
+        "team": "Rams"
+    },
+    "Mi. Wilson": {
+        "Rec Yds": 37.1,
+        "team": "ARI"
+    },
+    "N. Chubb": {
+        "Rush Yds": 29.2,
+        "team": "HOU"
+    },
+    "N. Collins": {
+        "Rec Yds": 76.1,
+        "team": "HOU"
+    },
+    "O. Gadsden": {
+        "Rec Yds": 36.1,
+        "team": "Chargers"
+    },
+    "O. Hampton": {
+        "Rush Yds": 62.0,
+        "Rec Yds": 27.2,
+        "team": "Chargers"
+    },
+    "P. Bryant": {
+        "Rec Yds": 36.7,
+        "team": "Broncos"
+    },
+    "P. Freiermuth": {
+        "Rec Yds": 25.3,
+        "team": "Steelers"
+    },
+    "P. Mahomes": {
+        "Pass Yds": 227.8,
+        "Rush Yds": 26.1,
+        "team": "Chiefs"
+    },
+    "P. Nacua": {
+        "Rec Yds": 79.4,
+        "team": "Rams"
+    },
+    "P. Washington": {
+        "Rec Yds": 36.9,
+        "team": "Jaguars"
+    },
+    "Q. Johnston": {
+        "Rec Yds": 37.5,
+        "team": "Chargers"
+    },
+    "Q. Judkins": {
+        "Rush Yds": 57.7,
+        "team": "CLE"
+    },
+    "R. Doubs": {
+        "Rec Yds": 39.3,
+        "team": "Packers"
+    },
+    "R. Dowdle": {
+        "Rush Yds": 63.4,
+        "team": "Panthers"
+    },
+    "R. Flournoy": {
+        "Rec Yds": 33.2,
+        "team": "Cowboys"
+    },
+    "R. Odunze": {
+        "Rec Yds": 44.6,
+        "team": "Bears"
+    },
+    "R. Pearsall": {
+        "Rec Yds": 36.7,
+        "team": "49ers"
+    },
+    "R. Rice": {
+        "Rec Yds": 72.2,
+        "team": "Chiefs"
+    },
+    "R. Shaheed": {
+        "Rec Yds": 31.6,
+        "team": "Saints"
+    },
+    "R. Stevenson": {
+        "Rush Yds": 27.0,
+        "team": "Patriots"
+    },
+    "R. White": {
+        "Rush Yds": 29.2,
+        "team": "Buccaneers"
+    },
+    "S. Barkley": {
+        "Rush Yds": 48.9,
+        "team": "Eagles"
+    },
+    "S. Darnold": {
+        "Pass Yds": 160.2,
+        "team": "Seahawks"
+    },
+    "S. Diggs": {
+        "Rec Yds": 42.5,
+        "team": "Patriots"
+    },
+    "S. LaPorta": {
+        "Rec Yds": 40.0,
+        "team": "Lions"
+    },
+    "S. Perine": {
+        "Rush Yds": 26.8,
+        "team": "Bengals"
+    },
+    "S. Shepard": {
+        "Rec Yds": 27.0,
+        "team": "Buccaneers"
+    },
+    "S. Tucker": {
+        "Rush Yds": 30.8,
+        "team": "Buccaneers"
+    },
+    "T. Allgeier": {
+        "Rush Yds": 20.8,
+        "team": "Falcons"
+    },
+    "T. Atwell": {
+        "Rec Yds": 32.8,
+        "team": "Rams"
+    },
+    "T. Benson": {
+        "Rush Yds": 35.5,
+        "team": "ARI"
+    },
+    "T. Etienne": {
+        "Rush Yds": 54.4,
+        "team": "Jaguars"
+    },
+    "T. Franklin": {
+        "Rec Yds": 41.2,
+        "team": "Broncos"
+    },
+    "T. Henderson": {
+        "Rush Yds": 39.5,
+        "team": "Patriots"
+    },
+    "T. Higgins": {
+        "Rec Yds": 48.6,
+        "team": "Bengals"
+    },
+    "T. Hill": {
+        "Rec Yds": 60.0,
+        "team": "Dolphins"
+    },
+    "T. Hunter": {
+        "Rec Yds": 26.7,
+        "team": "Jaguars"
+    },
+    "T. Johnson": {
+        "Rec Yds": 30.2,
+        "team": "Giants"
+    },
+    "T. Kelce": {
+        "Rec Yds": 56.2,
+        "team": "Chiefs"
+    },
+    "T. Kraft": {
+        "Rec Yds": 55.2,
+        "team": "Packers"
+    },
+    "T. Lawrence": {
+        "Pass Yds": 169.1,
+        "team": "Jaguars"
+    },
+    "T. Lockett": {
+        "Rec Yds": 36.6,
+        "team": "Raiders"
+    },
+    "T. McBride": {
+        "Rec Yds": 48.9,
+        "team": "ARI"
+    },
+    "T. McLaurin": {
+        "Rec Yds": 47.3,
+        "team": "Commanders"
+    },
+    "T. McMillan": {
+        "Rec Yds": 52.5,
+        "team": "Panthers"
+    },
+    "T. Pollard": {
+        "Rush Yds": 36.5,
+        "team": "Titans"
+    },
+    "T. Shavers": {
+        "Rec Yds": 31.3,
+        "team": "Bills"
+    },
+    "T. Taylor": {
+        "Pass Yds": 150.2,
+        "Rush Yds": 26.7,
+        "team": "Jets"
+    },
+    "T. Thornton": {
+        "Rec Yds": 30.1,
+        "team": "Chiefs"
+    },
+    "T. Tracy": {
+        "Rush Yds": 35.3,
+        "team": "Giants"
+    },
+    "T. Tucker": {
+        "Rec Yds": 26.3,
+        "team": "Raiders"
+    },
+    "T. Warren": {
+        "Rec Yds": 49.9,
+        "team": "Colts"
+    },
+    "W. Marks": {
+        "Rush Yds": 40.2,
+        "team": "HOU"
+    },
+    "W. Robinson": {
+        "Rec Yds": 54.2,
+        "team": "Giants"
+    },
+    "X. Hutchinson": {
+        "Rec Yds": 25.8,
+        "team": "HOU"
+    },
+    "X. Smith": {
+        "Rec Yds": 28.7,
+        "team": "Rams"
+    },
+    "X. Worthy": {
+        "Rec Yds": 31.0,
+        "team": "Chiefs"
+    },
+    "Z. Charbonnet": {
+        "Rush Yds": 23.5,
+        "team": "Seahawks"
+    },
+    "Z. Ertz": {
+        "Rec Yds": 33.1,
+        "team": "Commanders"
+    },
+    "Z. Flowers": {
+        "Rec Yds": 49.2,
+        "team": "BAL"
+    },
+    "Z. Jones": {
+        "Rec Yds": 57.0,
+        "team": "ARI"
+    },
+    "Z. Knight": {
+        "Rush Yds": 27.1,
+        "team": "ARI"
+    }
+}

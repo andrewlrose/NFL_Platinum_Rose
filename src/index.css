@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optional: Smooth background transition */
+body {
+  @apply bg-[#0f0f0f] text-white;
+}
