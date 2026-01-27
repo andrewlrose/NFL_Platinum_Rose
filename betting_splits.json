@@ -1,7 +1,7 @@
 {
   "6": {
     "id": 6,
-    "updated_at": "2026-01-27 21:25:41",
+    "updated_at": "2026-01-27 22:29:07",
     "splits": {
       "ats": {
         "visitorTicket": 73,
@@ -18,8 +18,8 @@
       "ml": {
         "visitorTicket": 43,
         "homeTicket": 57,
-        "visitorMoney": 54,
-        "homeMoney": 46
+        "visitorMoney": 53,
+        "homeMoney": 47
       }
     }
   }
