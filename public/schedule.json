@@ -1,1 +1,12 @@
-[] 
+[
+    {
+        "id": "401999999",
+        "visitor": "SEA",
+        "home": "NE",
+        "visitorName": "Seattle Seahawks",
+        "homeName": "New England Patriots",
+        "time": "Sun Feb 8, 6:30 PM",
+        "spread": -1.5,
+        "total": 47.5
+    }
+]
