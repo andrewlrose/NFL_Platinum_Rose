@@ -1,17 +1,17 @@
 {
   "6": {
     "id": 6,
-    "updated_at": "2026-01-27 02:24:56",
+    "updated_at": "2026-01-27 04:11:41",
     "splits": {
       "ats": {
-        "visitorTicket": 75,
-        "homeTicket": 25,
+        "visitorTicket": 74,
+        "homeTicket": 26,
         "visitorMoney": 80,
         "homeMoney": 20
       },
       "total": {
-        "overTicket": 60,
-        "underTicket": 40,
+        "overTicket": 61,
+        "underTicket": 39,
         "overMoney": 62,
         "underMoney": 38
       },
