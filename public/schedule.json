@@ -1,12 +1,22 @@
 [
     {
-        "id": "401999999",
-        "visitor": "SEA",
-        "home": "NE",
-        "visitorName": "Seattle Seahawks",
-        "homeName": "New England Patriots",
-        "time": "Sun Feb 8, 6:30 PM",
-        "spread": -1.5,
-        "total": 47.5
+        "id": "401772986",
+        "visitor": "NE",
+        "home": "DEN",
+        "visitorName": "New England Patriots",
+        "homeName": "Denver Broncos",
+        "time": "Sun 3 PM",
+        "spread": 0,
+        "total": 0
+    },
+    {
+        "id": "401772987",
+        "visitor": "LAR",
+        "home": "SEA",
+        "visitorName": "Los Angeles Rams",
+        "homeName": "Seattle Seahawks",
+        "time": "Sun 6:30 PM",
+        "spread": 0,
+        "total": 0
     }
 ]
