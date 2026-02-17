@@ -2,7 +2,7 @@ name: Auto-Scrape Betting Splits
 
 on:
   schedule:
-    - cron: '0 * * * *' # Runs every hour
+    - cron: '0 0 1 * *' # Runs every hour
   workflow_dispatch: # Allows manual trigger button
 
 permissions:
