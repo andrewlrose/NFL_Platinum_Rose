@@ -5,6 +5,7 @@ import { INITIAL_EXPERTS, findExpert } from './lib/experts';
 import { TEAM_ALIASES, normalizeTeam, getTeamLogo, getDomeTeams } from './lib/teams';
 import { fetchLiveOdds } from './lib/oddsApi';
 import { fetchAllInjuries } from './lib/injuries';
+import { parseActionNetworkAuto } from './lib/actionParser';
 import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
 import Standings from './components/dashboard/Standings';
@@ -28,13 +29,36 @@ import EditBetModal from './components/modals/EditBetModal';
 import BankrollDashboard from './components/bankroll/BankrollDashboard';
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 import OddsCenter from './components/odds/OddsCenter'; 
+import PicksTracker from './components/picks-tracker/PicksTracker';
+import GUnitImportModal from './components/modals/GUnitImportModal';
+import ManualGradeModal from './components/modals/ManualGradeModal';
 
 // TEAM_ALIASES is now imported from './lib/teams'
 
 function App() {
+  // --- PERSISTENCE HELPERS ---
+  const loadFromStorage = (key, defaultValue) => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : defaultValue;
+    } catch (e) {
+      console.warn(`Failed to load ${key} from storage:`, e);
+      return defaultValue;
+    }
+  };
+
+  const saveToStorage = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.warn(`Failed to save ${key} to storage:`, e);
+    }
+  };
+
+  // --- STATE WITH PERSISTENCE ---
   const [schedule, setSchedule] = useState([]); // 🔥 Dynamic Schedule State
   const [stats, setStats] = useState([]);
-  const [splits, setSplits] = useState({});
+  const [splits, setSplits] = useState(() => loadFromStorage('nfl_splits', {}));
   const [injuries, setInjuries] = useState({}); // 🏥 Injury Reports
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -56,12 +80,57 @@ function App() {
   const [showPendingBets, setShowPendingBets] = useState(false);
   const [showEditBet, setShowEditBet] = useState(false);
   const [selectedBetForEdit, setSelectedBetForEdit] = useState(null); 
+  const [showGUnitImport, setShowGUnitImport] = useState(false);
+  const [showGradeModal, setShowGradeModal] = useState(false);
+  const [gradeGameData, setGradeGameData] = useState(null);
+  const [picksRefreshKey, setPicksRefreshKey] = useState(0);
 
-  const [myBets, setMyBets] = useState([]);
-  const [simResults, setSimResults] = useState({});
-  const [contestLines, setContestLines] = useState({}); 
-  const [expertConsensus, setExpertConsensus] = useState({}); 
+  const [myBets, setMyBets] = useState(() => loadFromStorage('nfl_my_bets', []));
+  const [simResults, setSimResults] = useState(() => loadFromStorage('nfl_sim_results', {}));
+  const [contestLines, setContestLines] = useState(() => loadFromStorage('nfl_contest_lines', {})); 
+  const [expertConsensus, setExpertConsensus] = useState(() => loadFromStorage('nfl_expert_consensus', {})); 
   const [stagedPicks, setStagedPicks] = useState([]); 
+
+  // --- AUTO-SAVE EFFECTS ---
+  // Save splits whenever they change
+  useEffect(() => {
+    if (Object.keys(splits).length > 0) {
+      saveToStorage('nfl_splits', splits);
+      console.log('💾 Splits data saved to localStorage');
+    }
+  }, [splits]);
+
+  // Save expert consensus whenever it changes
+  useEffect(() => {
+    if (Object.keys(expertConsensus).length > 0) {
+      saveToStorage('nfl_expert_consensus', expertConsensus);
+      console.log('💾 Expert consensus saved to localStorage');
+    }
+  }, [expertConsensus]);
+
+  // Save sim results whenever they change
+  useEffect(() => {
+    if (Object.keys(simResults).length > 0) {
+      saveToStorage('nfl_sim_results', simResults);
+      console.log('💾 Simulation results saved to localStorage');
+    }
+  }, [simResults]);
+
+  // Save contest lines whenever they change
+  useEffect(() => {
+    if (Object.keys(contestLines).length > 0) {
+      saveToStorage('nfl_contest_lines', contestLines);
+      console.log('💾 Contest lines saved to localStorage');
+    }
+  }, [contestLines]);
+
+  // Save my bets whenever they change
+  useEffect(() => {
+    if (myBets.length > 0) {
+      saveToStorage('nfl_my_bets', myBets);
+      console.log('💾 My bets saved to localStorage');
+    }
+  }, [myBets]); 
 
   // --- DYNAMIC DATA INGESTION ---
 // --- DYNAMIC DATA INGESTION ---
@@ -72,11 +141,13 @@ function App() {
         // 1. Schedule (Local - provides game IDs, times, team names)
         fetch("./schedule.json").then(r => r.ok ? r.json() : []).catch(() => []),
 
-        // 2. Live Odds from TheOddsAPI (provides real-time spreads, totals, moneylines)
-        fetchLiveOdds().catch(err => {
-            console.warn("⚠️ Live odds fetch failed:", err);
-            return [];
-        }),
+        // 2. Live Odds - DISABLED on startup to save API requests
+        // Only fetch when user clicks "Sync Odds" button
+        // fetchLiveOdds().catch(err => {
+        //     console.warn("⚠️ Live odds fetch failed:", err);
+        //     return [];
+        // }),
+        Promise.resolve([]), // Return empty array instead of calling API
 
         // 3. Stats (External -> Now Safe if Missing)
         fetch("./weekly_stats.json")
@@ -179,37 +250,89 @@ function App() {
   // --- ROBUST MATCHER (Now uses Dynamic 'schedule') ---
   const findGameForTeam = (rawInput) => {
       if (!rawInput) return null;
-      const clean = rawInput.toLowerCase().replace(/[^a-z0-9]/g, ""); 
+      const clean = rawInput.toLowerCase().replace(/[^a-z0-9]/g, "");
       
-      // 1. Check Alias Dictionary
+      console.log(`🔍 Searching for game matching: "${rawInput}" (cleaned: "${clean}")`);
+      
+      // 1. Check Alias Dictionary for exact matches
       for (const [alias, standard] of Object.entries(TEAM_ALIASES)) {
-          if (clean.includes(alias)) {
+          if (clean === alias || clean.includes(alias)) {
                const standardClean = standard.toLowerCase();
-               return schedule.find(g => {
+               const found = schedule.find(g => {
                     const h = g.home.toLowerCase().replace(/[^a-z0-9]/g, "");
                     const v = g.visitor.toLowerCase().replace(/[^a-z0-9]/g, "");
                     return h.includes(standardClean) || v.includes(standardClean);
                });
+               if (found) {
+                   console.log(`✅ Found via alias "${alias}" -> "${standard}":`, found);
+                   return found;
+               }
           }
       }
 
-      // 2. Fallback to raw match
-      return schedule.find(g => {
+      // 2. Try direct abbreviation matching (SEA, NE, etc.)
+      const found = schedule.find(g => {
+          const h = g.home.toLowerCase().replace(/[^a-z0-9]/g, "");
+          const v = g.visitor.toLowerCase().replace(/[^a-z0-9]/g, "");
+          return h === clean || v === clean;
+      });
+      if (found) {
+          console.log(`✅ Found via direct abbreviation match:`, found);
+          return found;
+      }
+
+      // 3. Try substring matching
+      const foundSubstring = schedule.find(g => {
           const home = g.home.toLowerCase().replace(/[^a-z0-9]/g, "");
           const vis = g.visitor.toLowerCase().replace(/[^a-z0-9]/g, "");
-          return home.includes(clean) || vis.includes(clean);
+          return home.includes(clean) || vis.includes(clean) || clean.includes(home) || clean.includes(vis);
       });
+      if (foundSubstring) {
+          console.log(`✅ Found via substring match:`, foundSubstring);
+          return foundSubstring;
+      }
+
+      console.log(`❌ No game found for "${rawInput}"`);
+      console.log(`Available games:`, schedule.map(g => `${g.visitor} @ ${g.home}`));
+      return null;
   };
 
   // --- AI LOGIC ---
   const handleAIAnalyze = async (text, sourceData) => {
     try {
         console.log("Analyzing text...");
+        const availableGames = schedule.map(g => `${g.visitor} @ ${g.home}`).join(", ");
         const prompt = `
-        Analyze this transcript and extract NFL betting picks.
+        Analyze this NFL betting transcript and extract picks.
         Source: ${sourceData.name}
-        Return JSON object with "picks" array. 
-        Each pick MUST have: "selection", "type", "line", "summary", "units", "team1", "team2".
+        
+        Available games THIS WEEK: ${availableGames}
+        
+        For each pick, identify:
+        1. The TEAM (must be one of the available games)
+        2. The TYPE (Spread, Total, or Moneyline)
+        3. The LINE (the spread/total value, or "ML" for moneyline)
+        4. The analysis/rationale
+        5. Units (confidence level)
+        
+        Return a valid JSON object with this exact format:
+        {
+          "picks": [
+            {
+              "selection": "SEA",
+              "team1": "Seattle",
+              "team2": "New England", 
+              "type": "Spread",
+              "line": "-4.5",
+              "summary": "Key reasons for this pick",
+              "analysis": "Detailed analysis",
+              "units": 2
+            }
+          ]
+        }
+        
+        Make sure "selection" is the team's abbreviation or clear identifier from the available games.
+        
         Transcript: ${text.substring(0, 15000)}
         `;
 
@@ -218,7 +341,7 @@ function App() {
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sourceData.apiKey}` },
             body: JSON.stringify({
                 model: "gpt-4o",
-                messages: [{ role: "system", content: "You are a betting analyst JSON extractor. Return a valid JSON object with 'picks' key." }, { role: "user", content: prompt }],
+                messages: [{ role: "system", content: "You are a betting analyst JSON extractor. Return ONLY a valid JSON object with 'picks' array. Ensure team names match the available games provided." }, { role: "user", content: prompt }],
                 response_format: { type: "json_object" } 
             })
         });
@@ -329,7 +452,90 @@ function App() {
       });
       setExpertConsensus(newConsensus);
   };
-  const handleBulkImport = (text) => { alert("Bulk Text received."); };
+
+  const handleBulkImport = (text) => {
+      console.log("📋 Processing bulk import...");
+      
+      // Try to parse as Action Network Splits
+      const parsed = parseActionNetworkAuto(text);
+      
+      if (!parsed || parsed.length === 0) {
+          alert("❌ Could not parse the data. Make sure it's properly formatted Action Network splits data.");
+          return;
+      }
+
+      console.log("✅ Parsed splits:", parsed);
+      
+      // Update splits for each parsed game
+      const newSplits = { ...splits };
+      let updateCount = 0;
+
+      parsed.forEach(p => {
+          console.log(`🔍 Looking for game: ${p.visitor} @ ${p.home}`);
+          
+          // Try to find matching game using flexible team name matching
+          // The schedule might have abbreviations (SEA, NE) while parsed data has full names (Seahawks, Patriots)
+          const game = schedule.find(g => {
+              const schedVisitor = g.visitor.toLowerCase().replace(/[^a-z]/g, '');
+              const schedHome = g.home.toLowerCase().replace(/[^a-z]/g, '');
+              const parsedVisitor = p.visitor.toLowerCase().replace(/[^a-z]/g, '');
+              const parsedHome = p.home.toLowerCase().replace(/[^a-z]/g, '');
+              
+              // Try direct match first
+              if (schedVisitor === parsedVisitor && schedHome === parsedHome) {
+                  console.log(`✅ Direct match: ${g.visitor} @ ${g.home}`);
+                  return true;
+              }
+              
+              // Try substring matching (SEA matches Seahawks, NE matches newengland/patriots)
+              if ((schedVisitor.includes(parsedVisitor) || parsedVisitor.includes(schedVisitor)) &&
+                  (schedHome.includes(parsedHome) || parsedHome.includes(schedHome))) {
+                  console.log(`✅ Substring match: ${g.visitor} @ ${g.home}`);
+                  return true;
+              }
+              
+              // Try using findGameForTeam helper
+              const visitorGame = findGameForTeam(p.visitor);
+              const homeGame = findGameForTeam(p.home);
+              if (visitorGame && visitorGame.id === g.id) {
+                  console.log(`✅ Found via visitor team search: ${g.visitor} @ ${g.home}`);
+                  return true;
+              }
+              if (homeGame && homeGame.id === g.id) {
+                  console.log(`✅ Found via home team search: ${g.visitor} @ ${g.home}`);
+                  return true;
+              }
+              
+              return false;
+          });
+
+          if (game) {
+              console.log(`📊 Updating splits for ${game.visitor} @ ${game.home}`);
+              
+              // Merge new splits with existing data (don't overwrite)
+              // This allows importing both ATS and ML data for the same game
+              const existingSplits = newSplits[game.id] || {};
+              const mergedSplits = {
+                  ...existingSplits,
+                  ...p,
+                  splits: {
+                      ...existingSplits.splits,
+                      ...p.splits
+                  }
+              };
+              
+              newSplits[game.id] = mergedSplits;
+              updateCount++;
+          } else {
+              console.warn(`⚠️ No game found for ${p.visitor} @ ${p.home}`);
+              console.log(`Available games:`, schedule.map(g => `${g.visitor} @ ${g.home}`));
+          }
+      });
+
+      setSplits(newSplits);
+      alert(`✅ Successfully imported ${updateCount} game splits!`);
+  };
+
   const handleBet = (gameId, type, selection, line) => {
     const game = schedule.find(g => g.id === gameId);
     setMyBets([{ id: Date.now(), game: `${game.visitor} @ ${game.home}`, gameId, selection, type, line, odds: -110, status: 'OPEN' }, ...myBets]);
@@ -342,7 +548,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-gray-200 font-sans pb-20 selection:bg-[#00d2be] selection:text-black">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => setShowPulse(true)} onOpenTeasers={() => setShowTeasers(true)} onOpenContest={() => setShowContest(true)} onImport={() => setShowImport(true)} onAnalyze={() => setShowAudio(true)} onManage={() => setShowExpertMgr(true)} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) setMyBets([]); }}/>
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => setShowPulse(true)} onOpenSplitsData={() => setShowSplits(true)} onOpenTeasers={() => setShowTeasers(true)} onOpenContest={() => setShowContest(true)} onImport={() => setShowImport(true)} onAnalyze={() => setShowAudio(true)} onManage={() => setShowExpertMgr(true)} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) setMyBets([]); }}/>
       <main className="max-w-7xl mx-auto px-4 py-8">
         {activeTab === 'dashboard' && <div className="animate-in fade-in zoom-in duration-300"><Dashboard schedule={gamesWithSplits} stats={stats} simResults={simResults} onGameClick={setSelectedGame} onShowInjuries={(game) => { setSelectedGame(game); setShowInjuryReport(true); }} onAddBankrollBet={(game) => { setSelectedGame(game); setShowBetEntry(true); }} /></div>}
         {activeTab === 'standings' && <Standings experts={INITIAL_EXPERTS} />}
@@ -351,6 +557,7 @@ function App() {
         {activeTab === 'bankroll' && <div className="animate-in fade-in zoom-in duration-300"><BankrollDashboard onAddBet={() => setShowBetEntry(true)} onShowCalculator={() => setShowUnitCalculator(true)} onImportBets={() => setShowBetImport(true)} onShowPending={() => setShowPendingBets(true)} onShowSettings={() => {}} /></div>}
         {activeTab === 'analytics' && <div className="animate-in fade-in zoom-in duration-300"><AnalyticsDashboard /></div>}
         {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
+        {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGUnit={() => setShowGUnitImport(true)} onOpenGradeModal={(gameData) => { setGradeGameData(gameData); setShowGradeModal(true); }} key={picksRefreshKey} /></div>}
       </main>
       <MatchupWizardModal isOpen={!!selectedGame} game={selectedGame} stats={stats} currentWizardData={selectedGame ? (expertConsensus[selectedGame.id] || null) : null} onClose={() => setSelectedGame(null)} onBet={(id, type, sel, line) => { handleBet(id, type, sel, line); setSelectedGame(null); }} />
       <PulseModal isOpen={showPulse} onClose={() => setShowPulse(false)} games={gamesWithSplits} />
@@ -401,6 +608,19 @@ function App() {
           setShowPendingBets(false);
           setTimeout(() => setShowPendingBets(true), 100);
         }}
+      />
+      
+      <GUnitImportModal 
+        isOpen={showGUnitImport}
+        onClose={() => { setShowGUnitImport(false); setPicksRefreshKey(k => k + 1); }}
+        schedule={schedule}
+      />
+      
+      <ManualGradeModal 
+        isOpen={showGradeModal}
+        onClose={() => { setShowGradeModal(false); setGradeGameData(null); setPicksRefreshKey(k => k + 1); }}
+        gameData={gradeGameData}
+        onGraded={() => setPicksRefreshKey(k => k + 1)}
       />
     </div>
   );

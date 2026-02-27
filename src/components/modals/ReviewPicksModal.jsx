@@ -33,7 +33,9 @@ export default function ReviewPicksModal({ isOpen, onClose, stagedPicks, onConfi
           ) : (
             <div className="space-y-4">
               {stagedPicks.map((pick, idx) => (
-                <div key={idx} className="bg-slate-800/40 border border-slate-700 p-4 rounded-xl flex gap-4 group hover:border-indigo-500/50 transition-all">
+                <div key={idx} className={`border p-4 rounded-xl flex gap-4 group hover:border-indigo-500/50 transition-all ${
+                  pick.matched ? 'bg-slate-800/40 border-slate-700' : 'bg-red-950/20 border-red-700/50'
+                }`}>
                   
                   {/* Left: Pick Info */}
                   <div className="flex-1">
@@ -46,6 +48,11 @@ export default function ReviewPicksModal({ isOpen, onClose, stagedPicks, onConfi
                           }`}>
                               {pick.type} {pick.line !== '0' && pick.line}
                           </span>
+                          {!pick.matched && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border bg-red-500/10 text-red-400 border-red-500/20 ml-auto">
+                              ⚠️ No Game Match
+                            </span>
+                          )}
                       </div>
                       
                       {/* Rationale */}

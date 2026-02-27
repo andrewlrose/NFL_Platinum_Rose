@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -7,6 +7,7 @@ export default function Header({
   cartCount, 
   onSyncOdds, 
   onOpenSplits,   
+  onOpenSplitsData, // 🔥 NEW: Opens raw splits table
   onOpenTeasers,  
   onOpenContest,
   onImport,       
@@ -91,6 +92,7 @@ export default function Header({
                 <ToolButton onClick={onOpenTeasers} icon={Split} label="Teasers" colorClass="text-purple-400" />
                 <ToolButton onClick={onOpenContest} icon={ListFilter} label="Contest" colorClass="text-orange-400" />
                 <ToolButton onClick={onOpenSplits} icon={Activity} label="Pulse" colorClass="text-rose-400" />
+                <ToolButton onClick={onOpenSplitsData} icon={BarChart3} label="Splits" colorClass="text-cyan-400" />
             </div>
 
             {/* RIGHT: DATA BUTTONS */}
@@ -122,6 +124,7 @@ export default function Header({
             <NavTab id="analytics" label="Analytics" icon={BarChart3} />
             <NavTab id="odds" label="Live Odds" icon={TrendingUp} />
             <NavTab id="standings" label="Expert Standings" icon={Trophy} />
+            <NavTab id="picks" label="Picks Tracker" icon={Target} />
             <NavTab id="devlab" label="AI Dev Lab" icon={Mic2} />
         </div>
       </div>

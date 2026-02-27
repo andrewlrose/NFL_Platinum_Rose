@@ -20,20 +20,46 @@ export default function LiveOddsDashboard() {
   const [userBets, setUserBets] = useState([]);
 
   useEffect(() => {
+    // Load cached odds first (don't waste API call)
+    const cached = localStorage.getItem('cached_odds_data');
+    const cacheTime = localStorage.getItem('cached_odds_time');
+    
+    if (cached && cacheTime) {
+      const age = Date.now() - parseInt(cacheTime);
+      // Use cache if less than 10 minutes old
+      if (age < 10 * 60 * 1000) {
+        console.log('📦 Using cached odds (age: ' + Math.round(age / 60000) + ' min)');
+        setGames(JSON.parse(cached));
+        setLastUpdate(new Date(parseInt(cacheTime)));
+        setLoading(false);
+        loadUserBets();
+        return;
+      }
+    }
+    
+    // No cache or expired - load from API
     loadOdds();
     loadUserBets();
-    // Auto-refresh every 2 minutes
-    const interval = setInterval(loadOdds, 120000);
-    return () => clearInterval(interval);
+    
+    // ⚠️ AUTO-REFRESH DISABLED to save API requests
+    // Uncomment only if you have unlimited API plan:
+    // const interval = setInterval(loadOdds, 120000);
+    // return () => clearInterval(interval);
   }, []);
 
   const loadOdds = async () => {
     setLoading(true);
     try {
+      console.log('🔄 Fetching odds from API (this counts against your 500/month limit)...');
       const oddsData = await fetchMultiBookOdds();
       setGames(oddsData);
       setLastUpdate(new Date());
-      console.log(`📊 Loaded odds for ${oddsData.length} games`);
+      
+      // Cache the results
+      localStorage.setItem('cached_odds_data', JSON.stringify(oddsData));
+      localStorage.setItem('cached_odds_time', Date.now().toString());
+      
+      console.log(`✅ Loaded odds for ${oddsData.length} games (cached for 10 minutes)`);
     } catch (error) {
       console.error('Failed to load odds:', error);
     } finally {
