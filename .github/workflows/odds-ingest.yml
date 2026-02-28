@@ -12,8 +12,9 @@ name: Odds Ingest
 
 on:
   schedule:
-    # Every 4 hours — adjust during offseason to save API quota
-    - cron: '0 */4 * * *'
+    # Once daily at 12:00 UTC — offseason futures don't move much.
+    # Change to '0 */4 * * *' in August when weekly lines are posted.
+    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
