@@ -579,6 +579,23 @@ export const LOGO_URLS = Object.entries(NFL_TEAMS).reduce((acc, [name, data]) =>
 }, {});
 
 /**
+ * TEAM_LOGOS — Comprehensive logo lookup (abbreviation + name + city → URL)
+ * Drop-in replacement for the inline TEAM_LOGOS maps in MatchupCard / DevLab.
+ * Handles: "KC", "Chiefs", "Kansas City", "WSH", etc.
+ */
+export const TEAM_LOGOS = Object.entries(NFL_TEAMS).reduce((acc, [name, data]) => {
+  // Standard abbreviation (ARI, ATL, KC, …)
+  acc[data.abbreviation] = data.logo;
+  // Alt abbreviations (WSH, GNB, OAK, …)
+  data.altAbbreviations.forEach(abbr => { acc[abbr] = data.logo; });
+  // Team name (Cardinals, Falcons, …)
+  acc[name] = data.logo;
+  // City name (Arizona, Atlanta, …)
+  if (data.city) acc[data.city] = data.logo;
+  return acc;
+}, {});
+
+/**
  * Abbreviation aliases (used in simulation.js)
  * Maps abbreviation → lowercase team name
  */
@@ -604,4 +621,4 @@ export function normalizeDKName(dkName) {
 // EXPORTS SUMMARY
 // ═══════════════════════════════════════════════════════════════════════════════
 // Primary: NFL_TEAMS, normalizeTeam, getTeam, getTeamLogo, getTeamAbbreviation
-// Legacy: TEAM_ALIASES, TEAM_MAP, NAME_MAP, TEAM_MAPPING, LOGO_URLS, ABBREV_TO_TEAM
+// Legacy: TEAM_ALIASES, TEAM_MAP, NAME_MAP, TEAM_MAPPING, LOGO_URLS, TEAM_LOGOS, ABBREV_TO_TEAM

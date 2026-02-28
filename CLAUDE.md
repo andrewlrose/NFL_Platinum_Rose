@@ -5,7 +5,7 @@ NFL betting analytics and line shopping dashboard (React + Vite + Tailwind CSS).
 Integrates real-time odds from 8 sportsbooks, tracks betting performance, manages expert picks, and provides simulation-based edge analysis.
 
 **Repository**: https://github.com/andrewlrose/NFL_Platinum_Rose
-**Workspace**: `E:\dev\projects\NFL_Dashboard`
+**Workspace**: `d:\Platinum_Rose\NFL_Platinum_Rose`
 **Dev URL**: http://localhost:5173/platinum-rose-app/
 
 ## Key Commands
@@ -22,8 +22,6 @@ npm run update-schedule  # Refresh schedule.json from external source
 - Utils/libs: `src/lib/{utilName}.js`
 - Data files: `public/*.json`
 - Modals: `src/components/modals/{ModalName}Modal.jsx`
-- Static JSON data: `src/lib/*.json` (ratings, projections, prop lines)
-- Test utilities: root `test-*.js` files (Node.js scripts, not browser)
 - Python scripts: `scripts/*.py`
 
 ## Vite Config
@@ -36,7 +34,8 @@ npm run update-schedule  # Refresh schedule.json from external source
 VITE_ODDS_API_KEY=...       # TheOddsAPI key (500 requests/month on free plan)
 VITE_OPENAI_API_KEY=...     # OpenAI API key (for transcript analysis)
 ```
-Accessed via `import.meta.env.VITE_*` in browser code. Fallbacks exist in `api.js`.
+Accessed via `import.meta.env.VITE_*` in browser code.
+Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 
 ## Tab Routing (App.jsx)
 | `activeTab` | Component |
@@ -61,14 +60,10 @@ Accessed via `import.meta.env.VITE_*` in browser code. Fallbacks exist in `api.j
 | `pr_picks_v1` | Picks tracker data | picksDatabase.js |
 | `pr_game_results_v1` | Cached game results for grading | picksDatabase.js |
 | `nfl_bankroll_data_v1` | Bankroll bet data | bankroll.js |
-| `platinum_rose_bets_v17` | Legacy bets storage key | constants.js |
-| `platinum_rose_ratings` | Team ratings cache | DevLabModal.jsx |
 | `cached_odds_data` | Cached API odds response | LiveOddsDashboard.jsx |
 | `cached_odds_time` | Cache timestamp for odds | LiveOddsDashboard.jsx |
 | `lineMovements` | Historical line movement data | enhancedOddsApi.js |
 | `PR_OPENAI_KEY` | User-provided OpenAI key | AudioUploadModal.jsx |
-
-**IndexedDB**: `NFLDashboardDB` → object store `transcripts` (in db.js)
 
 **Rule**: NEVER change localStorage key names without a migration helper. Old data becomes invisible.
 
@@ -76,7 +71,7 @@ Accessed via `import.meta.env.VITE_*` in browser code. Fallbacks exist in `api.j
 | API | Endpoint | Usage |
 |-----|----------|-------|
 | **TheOddsAPI** | `api.the-odds-api.com/v4/sports/americanfootball_nfl/odds` | Live odds from 8 sportsbooks |
-| **OpenAI** | `api.openai.com/v1/chat/completions` | GPT-4o transcript → picks extraction |
+| **OpenAI** | `api.openai.com/v1/chat/completions` | GPT-4o transcript → picks extraction (via lib/openai.js) |
 | **ESPN Injuries** | `site.api.espn.com/.../teams/{ID}/injuries` | NFL team injury reports |
 | **GitHub Raw** | `raw.githubusercontent.com/andrewlrose/NFL_Platinum_Rose/main/betting_splits.json` | Splits data sync |
 | **Local** | `./schedule.json`, `./weekly_stats.json` | Schedule + stats from `public/` |
@@ -87,7 +82,6 @@ Accessed via `import.meta.env.VITE_*` in browser code. Fallbacks exist in `api.j
 - Startup fetch is DISABLED (every browser refresh = 1 call)
 - 10-minute caching layer in LiveOddsDashboard.jsx
 - Only fetches when user explicitly clicks Sync or visits Odds tab
-- Use `monitor-api-usage.js` in browser console to track usage
 
 ## Sportsbooks Integrated
 DraftKings, FanDuel, BetMGM, Caesars, BetOnline, Bookmaker, PointsBet, Unibet
@@ -141,27 +135,73 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 ## Component Architecture Notes
 
-### App.jsx — Central Hub
-- All top-level state lives here (30+ useState calls)
-- No custom hooks — all logic is inline
-- Persistence: `loadFromStorage`/`saveToStorage` helpers with auto-save useEffects
-- `gamesWithSplits` computed array merges schedule + splits + expertConsensus + injuries + contestLines
-- `findGameForTeam(rawInput)` — 3-tier matching: alias dict → direct abbreviation → substring
-- `handleAIAnalyze` — OpenAI transcript analysis → staged picks → review modal → confirm
-- `handleBulkImport` — Action Network splits parser with flexible team matching
-- Boot sequence: `Promise.all([schedule, empty-odds, stats, splits])` → merge → fetch injuries
+### App.jsx — Central Hub (~110 lines)
+- Pure wiring layer — imports hooks, destructures, renders JSX
+- Only local state: `activeTab`, `selectedGame`
+- `gamesWithSplits` cross-cutting `useMemo` (merges data from useSchedule + useExperts)
+- 16 modals lazy-mounted with `{modals.x && <Modal />}` — zero DOM overhead when closed
+  - Includes: splits, teasers, pulse, contest, audio, review, import, expertMgr, injuryReport, unitCalculator, betEntry, betImport, pendingBets, editBet, gradeModal, bankrollSettings
+- All business logic delegated to custom hooks (see below)
+
+### Custom Hooks (src/hooks/)
+
+#### useModals — Modal state reducer
+- Single `useReducer` replaces 15 individual `useState` booleans
+- `openModal(name)` / `closeModal(name)` — stable refs via `useCallback`
+- Associated data: `selectedBetForEdit`, `gradeGameData`, `picksRefreshKey`
+
+#### useSchedule — Boot sequence + data
+- Owns: `schedule`, `stats`, `splits`, `injuries`, `loading`, `contestLines`, `simResults`
+- Boot `useEffect`: `Promise.all([schedule, empty-odds, stats, splits])` → merge → fetch injuries
+- `findGameForTeam(rawInput)` — 3-tier matching: alias dict → abbreviation → substring (`useCallback([schedule])`)
+- `handleBulkImport` — Action Network splits parser (`useCallback([splits, schedule, findGameForTeam])`)
+- Auto-save effects for `splits`, `simResults`, `contestLines`
+
+#### useExperts — Expert consensus CRUD + AI
+- Owns: `expertConsensus`, `stagedPicks`
+- Params: `{ schedule, findGameForTeam, openModal, closeModal }`
+- `handleAIAnalyze` — GPT-4o transcript → staged picks → toggles audio/review modals
+- `handleConfirmPicks` — commits staged picks to consensus (functional updater)
+- `handleUpdatePick` / `handleDeletePick` / `handleClearExpert` — stable refs (`useCallback([])`)
+- Auto-save effect for `expertConsensus`
+
+#### useBettingCard — Personal betting card
+- Owns: `myBets`
+- Params: `schedule` (for team name lookup)
+- `handleBet`, `removeBet`, `handleLockBets`, `clearBets` — all stable refs
+- Auto-save effect for `myBets`
+
+### Shared Utilities (src/lib/storage.js)
+- `loadFromStorage(key, defaultValue)` / `saveToStorage(key, value)` — used by all hooks
+
+### API Config (apiConfig.js) — NEW
+- Single source of truth for all API endpoints, keys, and constants
+- Exports: `ODDS_API_KEY`, `OPENAI_API_KEY`, `ODDS_API`, `OPENAI_API`, `ESPN_API`, `GITHUB_RAW`, `LOCAL_DATA`
+- All env vars read here, not scattered across files
+
+### Constants (constants.js)
+- `getNFLWeekInfo()` — derives current NFL week/phase from date (regular season weeks 1-18, playoff rounds, offseason)
+- `CURRENT_WEEK` — numeric week derived from `getNFLWeekInfo().week`
+- Used by Header.jsx for dynamic week label display
+
+### OpenAI Integration (openai.js) — NEW
+- `extractPicksFromTranscript(text, sourceData, availableGames)` — GPT-4o transcript → picks extraction
+- Extracted from App.jsx inline `handleAIAnalyze` fetch call
+- Returns parsed picks array, throws on API error
 
 ### Team Database (teams.js)
 - 32 NFL teams with logos, abbreviations, aliases
 - `TEAM_ALIASES` — maps common names/abbreviations to standard names
+- `TEAM_LOGOS` — comprehensive logo lookup (abbreviation + name + city → URL) — single source of truth, replaces inline maps in MatchupCard/DevLab
 - `NAME_MAP` — used by actionParser.js for splits matching
 - `normalizeTeam(input)` — returns canonical team name
 - `getTeamLogo(team)` — returns ESPN CDN logo URL
+- `getTeamAbbreviation(team)` — returns standard abbreviation (used by oddsApi.js)
 - `getDomeTeams()` — returns set of indoor teams
 
 ### Picks System (picksDatabase.js)
 - `STORAGE_KEY = 'pr_picks_v1'` / `RESULTS_KEY = 'pr_game_results_v1'`
-- Sources: `'AI_LAB'`, `'GUNIT'`
+- Sources: `'AI_LAB'`
 - Types: `'spread'`, `'total'`
 - Results: `'WIN'`, `'LOSS'`, `'PUSH'`, `'PENDING'`
 - Confidence stored as whole numbers (57), not decimals (0.57)
@@ -186,7 +226,6 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 ### Data Formats
 - Confidence values: Store as whole numbers (57), not decimals (0.57)
-- G-Unit edges: Nested structure with `spreadEdge`/`totalEdge` objects, not flat properties
 - Stats for MatchupWizardModal: Must be ARRAY format, not object
 - Convert with: `Object.entries(obj).map(([team, data]) => ({team, ...data}))`
 
@@ -224,7 +263,7 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 - **O(n²) lookups in loops**: Never call a `.find()` inside `.map()` — pre-build a `Map` keyed by the lookup field for O(1) access.
 
-- **NCAA content in NFL project**: The `gunitParser.js` `TEAM_NORMALIZE` map contains NCAA basketball teams (UNC, UConn, Ole Miss, etc.). This needs to be replaced with NFL team names. The `test-picks-database.js` and `test-standings-accuracy.js` files also reference NCAA localStorage keys.
+- **NCAA content in NFL project**: Cleaned up. All NCAA files have been removed.
 
 - **Hook TDZ ordering**: Never call a hook that receives a `const fn = () =>` callback BEFORE that `const` declaration in the same component body. `const` is NOT hoisted. Move the hook call BELOW the function definition. Symptom: `ReferenceError: Cannot access 'X' before initialization`.
 
@@ -243,7 +282,6 @@ Context is a finite resource — preserve it by delegating exploration and resea
 - [ ] App boots without console errors
 - [ ] Dashboard loads schedule and displays matchup cards
 - [ ] Sync Odds loads data without burning extra API calls
-- [ ] G-Unit import parses and shows edges
 - [ ] Picks Tracker loads picks from localStorage
 - [ ] All 8 tabs render without crashing
 - [ ] Bulk import (Action Network) parses and updates splits
@@ -259,7 +297,6 @@ Context is a finite resource — preserve it by delegating exploration and resea
 |-------|---------|----------|
 | **OddsIngestAgent** | Poll TheOddsAPI on schedule, cache odds + line snapshots | HIGH |
 | **NFLAutoGradeAgent** | Poll ESPN NFL scoreboard, grade pending picks automatically | HIGH |
-| **GUnitAgent** | Download G-Unit spreadsheet, parse edges (fix NCAA team map first) | MEDIUM |
 | **PodcastIngestAgent** | Extract NFL picks from podcast RSS feeds via PickExtractionAgent | MEDIUM |
 | **PickExtractionAgent** | Shared AI extraction backbone — sport-agnostic | MEDIUM |
 | **TwitterIngestAgent** | Extract NFL picks from bookmarked tweets | LOW |
@@ -277,8 +314,28 @@ Context is a finite resource — preserve it by delegating exploration and resea
 - Set `maxRetries` / `maxRunTimeMs` on every agent
 - Validate agent output schemas before writing to `public/` or localStorage
 - Agents report structured errors — never swallow in try/catch
-- File system memory (`public/*.json`) is the coordination mechanism — no direct agent-to-agent state
 - All agents degrade gracefully: no config = local-only behavior unchanged
+
+### File System Memory — Coordination Layer
+Two-folder pattern separates **data** from **operational state**:
+
+| Folder | Purpose | Consumers |
+|--------|---------|----------|
+| `public/` | Data outputs (odds, schedule, stats JSON) | React app (browser) |
+| `memory/` | Operational logs, agent state, dev handoffs | Agents, AgentScheduler, dev sessions |
+| `handoffs/` | Dev session context briefings | Fresh chat sessions |
+
+**Agent memory files** (`memory/{agent}-{date}.md`):
+- What ran, when, success/failure
+- Last-processed IDs (prevents duplicate work)
+- Remaining API budget / rate limit state
+- Resume instructions if interrupted
+
+**Dev handoff files** (`handoffs/YYYY-MM-DD-HHMM.md`):
+- Written by `/handoff` command or proactively when sessions get long
+- Self-contained resume block — paste into fresh chat to continue
+
+**Rule**: Agents never communicate directly. All coordination flows through files.
 
 ---
 
@@ -302,7 +359,7 @@ Context is a finite resource — preserve it by delegating exploration and resea
 11. CI/CD pipeline (GitHub Actions)
 12. Testing suite (Jest + Cypress)
 
-See [UNFINISHED_FEATURES.md](UNFINISHED_FEATURES.md) for full details with effort estimates.
+See CLAUDE.md Unfinished Features section below for current priority list.
 
 ---
 
@@ -310,25 +367,61 @@ See [UNFINISHED_FEATURES.md](UNFINISHED_FEATURES.md) for full details with effor
 - Primary accent: `#00d2be` (teal)
 - Background: `#0f0f0f`
 - AI Lab: emerald (`text-emerald-400`, `bg-emerald-500/20`)
-- G-Unit: purple (`text-purple-400`, `bg-purple-500/20`)
 - Positive: emerald, Negative: rose, Neutral: amber/slate
 - Selection highlight: `selection:bg-[#00d2be] selection:text-black`
 
 ## Custom Commands
 
 ### /handoff
-When the user types `/handoff`, produce two blocks:
+When the user types `/handoff`, OR when you notice the session is getting long (6+ tasks completed, multi-hour session), proactively suggest running `/handoff`.
 
-1. **Session summary** — Concise bullet-point recap:
-   - **CRITICAL**: Anything mid-flight, partially broken, or blocking progress
-   - **IMPORTANT**: Features completed, bugs fixed, files changed this session
-   - **Blockers / Open Decisions**: Items waiting on user input or external data
-   - Known gotchas or traps discovered during the session
+Produce two outputs:
 
-2. **Context briefing** — A complete, self-contained block to paste into a fresh chat:
+#### Output 1: Save to `handoffs/YYYY-MM-DD-HHMM.md`
+Write a persistent handoff file with this structure:
+```
+# Handoff — YYYY-MM-DD HH:MM
+Session: ~Xh | Model: [model name]
+
+## CRITICAL (mid-flight / broken / blocking)
+- [item]
+
+## DONE
+- [file] — one-line description
+
+## PENDING
+- [task] — current state, what remains
+
+## BLOCKERS (waiting on external)
+- [item]
+
+## OPEN DECISIONS (need user input)
+- [item]
+
+## GOTCHAS DISCOVERED
+- [anti-pattern or trap found this session]
+
+## RESUME COMMAND
+[One copy-pasteable sentence to continue in a fresh chat]
+```
+
+#### Output 2: Chat message to user
+Display the same content in chat, formatted as:
+
+1. **Session summary** — Bullet-point recap organized by CRITICAL / DONE / PENDING
+2. **Context briefing** — Self-contained block to paste into a fresh chat:
    - Project name, stack, dev URL, workspace path
    - All files modified this session with one-line descriptions
    - Current state of any in-progress work
    - Immediate next steps in priority order
    - Anti-patterns encountered
-   - **Resume Command**: One copy-pasteable sentence to pick up exactly where this session left off
+   - **Resume Command**: One copy-pasteable sentence
+
+Then tell the user: "Handoff saved to `handoffs/YYYY-MM-DD-HHMM.md`. To continue: paste the Resume Command into a fresh chat."
+
+#### What to SKIP in handoffs
+- Completed tasks already documented in CLAUDE.md
+- Debugging output and intermediate steps
+- Concept explanations (can re-derive)
+- Casual conversation
+- Failed attempts that led nowhere (unless blocking)

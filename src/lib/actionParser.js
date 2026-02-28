@@ -1,7 +1,7 @@
 // src/lib/actionParser.js
 // Uses unified team database from teams.js
 
-import { NAME_MAP, TEAM_ALIASES } from './teams.js';
+import { NAME_MAP } from './teams.js';
 
 export const parseActionNetworkDump = (text) => {
     const updates = [];

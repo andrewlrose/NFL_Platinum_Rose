@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
-  Trophy, TrendingUp, TrendingDown, List, Upload, CheckCircle2,
+  Trophy, TrendingUp, TrendingDown, List, CheckCircle2,
   Trash2, AlertTriangle, ChevronDown, Filter, BarChart3, Target,
   Clock, Award, Zap, RefreshCw
 } from 'lucide-react';
@@ -83,7 +83,7 @@ function OverviewTab({ onRefresh }) {
         <div className="text-center py-16 text-slate-600">
           <Target size={48} className="mx-auto mb-4 opacity-30" />
           <p className="text-lg font-bold text-slate-500">No Picks Yet</p>
-          <p className="text-sm mt-1">Import G-Unit edges or run AI Dev Lab simulations to start tracking.</p>
+          <p className="text-sm mt-1">Run AI Dev Lab simulations to start tracking picks.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -91,8 +91,8 @@ function OverviewTab({ onRefresh }) {
             <div key={src} className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                  {src === 'AI_LAB' ? <Zap size={16} className="text-indigo-400" /> : <Award size={16} className="text-purple-400" />}
-                  <span className="font-bold text-white text-sm">{src === 'AI_LAB' ? 'AI Dev Lab' : 'G-Unit81'}</span>
+                  {src === 'AI_LAB' ? <Zap size={16} className="text-indigo-400" /> : <Award size={16} className="text-slate-400" />}
+                  <span className="font-bold text-white text-sm">{src === 'AI_LAB' ? 'AI Dev Lab' : src}</span>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded border ${s.units >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
                   {s.units >= 0 ? '+' : ''}{s.units.toFixed(2)}u
@@ -194,7 +194,6 @@ function AllPicksTab({ onRefresh }) {
         >
           <option value="all">All Sources</option>
           <option value="AI_LAB">AI Dev Lab</option>
-          <option value="GUNIT">G-Unit81</option>
         </select>
         <select
           value={resultFilter}
@@ -374,7 +373,7 @@ function GradeTab({ onRefresh, onOpenGradeModal }) {
 
 // ── Main Component ──────────────────────────────────────────
 
-export default function PicksTracker({ onOpenGUnit, onOpenGradeModal }) {
+export default function PicksTracker({ onOpenGradeModal }) {
   const [tab, setTab] = useState('overview');
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
@@ -408,16 +407,10 @@ export default function PicksTracker({ onOpenGUnit, onOpenGradeModal }) {
             </span>
           </h2>
           <p className="text-slate-400 text-sm mt-1">
-            G-Unit81 &amp; AI Dev Lab • Track, Grade &amp; Analyze
+            AI Dev Lab • Track, Grade &amp; Analyze
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={onOpenGUnit}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all"
-          >
-            <Upload size={14} /> Import G-Unit
-          </button>
           <button
             onClick={handleHealthCheck}
             className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm flex items-center gap-2 border border-slate-700 transition-all"

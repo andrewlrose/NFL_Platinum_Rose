@@ -156,8 +156,8 @@ export default function MatchupWizardModal({ isOpen, onClose, game, onBet, stats
         
         {/* --- SECTION 1: PLATINUM HEADER --- */}
         <div className="relative bg-slate-950 p-6 border-b border-slate-800">
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-800/50 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
-            <div className="flex justify-between items-center gap-4">
+            <button onClick={onClose} className="absolute top-3 right-3 z-20 p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors shadow-lg"><X size={18} /></button>
+            <div className="flex justify-between items-center gap-4 pr-10">
                 <div className="flex flex-col items-center">
                     <img src={TEAM_LOGOS[game.visitor]} alt={game.visitor} className="w-16 h-16 object-contain mb-2 drop-shadow-lg" />
                     <div className="text-2xl font-black text-white tracking-tight">{Math.round(projVis)}</div>

@@ -1,13 +1,44 @@
 // src/components/odds/OddsCenter.jsx
 // Main container for all live odds and line shopping features
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Target, Activity } from 'lucide-react';
 import LiveOddsDashboard from './LiveOddsDashboard';
 import LineMovementTracker from './LineMovementTracker';
+import ArbitrageFinder from './ArbitrageFinder';
+import SteamMoveTracker from './SteamMoveTracker';
+import {
+  findArbitrageOpportunities,
+  generateMockMultiBookData,
+  getLineMovements,
+} from '../../lib/enhancedOddsApi';
 
 export default function OddsCenter() {
   const [activeTab, setActiveTab] = useState('live-odds');
+  const [arbBadge, setArbBadge]     = useState(0);
+  const [steamBadge, setSteamBadge] = useState(0);
+
+  useEffect(() => {
+    // --- Arbitrage badge: mirrors ArbitrageFinder.loadOpportunities ---
+    const computeArbCount = () => {
+      const cached = localStorage.getItem('cached_odds_data');
+      if (cached) {
+        try {
+          const games = JSON.parse(cached);
+          const arbs = findArbitrageOpportunities(games);
+          if (arbs.length > 0) return arbs.length;
+        } catch (_) { /* fall through */ }
+      }
+      // Fall back to mock multi-book data (same as child component)
+      return findArbitrageOpportunities(generateMockMultiBookData()).length;
+    };
+
+    // --- Steam badge: mirrors SteamMoveTracker.load ---
+    const computeSteamCount = () => getLineMovements(24).length;
+
+    setArbBadge(computeArbCount());
+    setSteamBadge(computeSteamCount());
+  }, []);
 
   const tabs = [
     {
@@ -27,14 +58,14 @@ export default function OddsCenter() {
       label: 'Arbitrage',
       icon: Target,
       description: 'Find guaranteed profit opportunities',
-      badge: '3'
+      badge: arbBadge > 0 ? String(arbBadge) : null,
     },
     {
       id: 'steam-moves',
       label: 'Steam Moves',
       icon: Activity,
       description: 'Sharp money movements',
-      badge: '5'
+      badge: steamBadge > 0 ? String(steamBadge) : null,
     }
   ];
 
@@ -89,41 +120,6 @@ export default function OddsCenter() {
       {/* Content */}
       <div>
         {renderContent()}
-      </div>
-    </div>
-  );
-}
-
-// Placeholder components for future features
-function ArbitrageFinder() {
-  return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 p-8">
-      <div className="text-center">
-        <Target size={48} className="text-purple-400 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">Arbitrage Finder</h3>
-        <p className="text-slate-400 mb-6">Find guaranteed profit opportunities across multiple sportsbooks</p>
-        <div className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4">
-          <p className="text-purple-300 text-sm">
-            🎯 <strong>Coming Soon:</strong> Automated arbitrage detection across 10+ sportsbooks with real-time profit calculations and alert notifications.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SteamMoveTracker() {
-  return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 p-8">
-      <div className="text-center">
-        <Activity size={48} className="text-blue-400 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-white mb-2">Steam Move Tracker</h3>
-        <p className="text-slate-400 mb-6">Follow sharp money movements and professional betting patterns</p>
-        <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4">
-          <p className="text-blue-300 text-sm">
-            ⚡ <strong>Coming Soon:</strong> Real-time detection of coordinated betting across multiple books, reverse line movement alerts, and sharp money indicators.
-          </p>
-        </div>
       </div>
     </div>
   );

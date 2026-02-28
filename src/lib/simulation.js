@@ -1,7 +1,7 @@
 // File: src/lib/simulation.js
 // Uses unified team database from teams.js
 
-import { ABBREV_TO_TEAM, normalizeTeam } from './teams.js';
+import { ABBREV_TO_TEAM } from './teams.js';
 
 // 1. Math Helper: Box-Muller Transform
 function boxMullerRandom() {

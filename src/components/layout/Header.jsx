@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target } from 'lucide-react';
+import { getNFLWeekInfo } from '../../lib/constants';
 
 export default function Header({ 
   activeTab, 
@@ -75,7 +76,7 @@ export default function Header({
                     <h1 className="text-white font-black text-sm tracking-tight leading-none">PLATINUM ROSE</h1>
                     <div className="flex items-center gap-1.5 opacity-80">
                         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-[9px] font-bold text-emerald-500 tracking-wider">WEEK 17 • LIVE</span>
+                        <span className="text-[9px] font-bold text-emerald-500 tracking-wider">{getNFLWeekInfo().label} • LIVE</span>
                     </div>
                 </div>
             </div>

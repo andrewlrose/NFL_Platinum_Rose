@@ -1,6 +1,38 @@
 // --- CONFIGURATION ---
 export const APP_VERSION = "v2.0 (GitHub Live)";
-export const CURRENT_WEEK = 17; 
+
+/**
+ * Derive current NFL week from date.
+ * 2025 season: Week 1 = Sep 4, 2025. Regular season = 18 weeks.
+ * Returns { week: number, phase: string, label: string }
+ */
+export const getNFLWeekInfo = () => {
+    const SEASON_START = new Date('2025-09-02T00:00:00'); // Tuesday before Week 1 kickoff
+    const now = new Date();
+    
+    // Before season
+    if (now < SEASON_START) {
+        return { week: 0, phase: 'preseason', label: 'PRESEASON' };
+    }
+
+    const diffDays = Math.floor((now - SEASON_START) / (1000 * 60 * 60 * 24));
+    const rawWeek = Math.floor(diffDays / 7) + 1;
+
+    if (rawWeek <= 18) {
+        return { week: rawWeek, phase: 'regular', label: `WEEK ${rawWeek}` };
+    }
+
+    // Playoff mapping (approximate — weeks 19-22 after season start)
+    const playoffWeek = rawWeek - 18;
+    if (playoffWeek === 1) return { week: 19, phase: 'playoffs', label: 'WILD CARD' };
+    if (playoffWeek === 2) return { week: 20, phase: 'playoffs', label: 'DIVISIONAL' };
+    if (playoffWeek === 3) return { week: 21, phase: 'playoffs', label: 'CONFERENCE' };
+    if (playoffWeek === 4) return { week: 22, phase: 'playoffs', label: 'SUPER BOWL' };
+
+    return { week: rawWeek, phase: 'offseason', label: 'OFFSEASON' };
+};
+
+export const CURRENT_WEEK = getNFLWeekInfo().week; 
 
 // --- STORAGE KEYS ---
 // We only need this one so your "My Card" saves to your browser
@@ -10,34 +42,5 @@ export const STORAGE_KEY_BETS = 'platinum_rose_bets_v17';
 // Re-export from unified experts.js for backward compatibility
 export { INITIAL_EXPERTS, EXPERTS, findExpert } from './experts.js';
 
-// --- SCHEDULE ---
-// This drives the Dashboard Grid
-// --- SCHEDULE (2025 REAL WEEK 17) ---
-// Times are ET. Spreads are illustrative based on current opening lines.
-export const WEEK_17_SCHEDULE = [
-  // CHRISTMAS DAY (Thu Dec 25)
-  { id: 1, home: 'WAS', visitor: 'DAL', spread: 5.5, total: 48.5, time: 'Thu 1:00 PM' },
-  { id: 2, home: 'MIN', visitor: 'DET', spread: 6.0, total: 51.0, time: 'Thu 4:30 PM' },
-  { id: 3, home: 'KC', visitor: 'DEN', spread: 13.5, total: 43.5, time: 'Thu 8:15 PM' },
-
-  // SATURDAY (Dec 27)
-  { id: 4, home: 'LAC', visitor: 'HOU', spread: -1.5, total: 46.0, time: 'Sat 4:30 PM' },
-  { id: 5, home: 'GB', visitor: 'BAL', spread: -2.5, total: 47.5, time: 'Sat 8:00 PM' },
-
-  // SUNDAY (Dec 28)
-  { id: 6, home: 'CAR', visitor: 'SEA', spread: 7.0, total: 41.5, time: 'Sun 1:00 PM' },
-  { id: 7, home: 'CIN', visitor: 'ARI', spread: -7.0, total: 45.0, time: 'Sun 1:00 PM' },
-  { id: 8, home: 'CLE', visitor: 'PIT', spread: 4.5, total: 39.5, time: 'Sun 1:00 PM' },
-  { id: 9, home: 'IND', visitor: 'JAX', spread: 6.5, total: 44.0, time: 'Sun 1:00 PM' },
-  { id: 10, home: 'MIA', visitor: 'TB', spread: 5.5, total: 46.5, time: 'Sun 1:00 PM' },
-  { id: 11, home: 'NYJ', visitor: 'NE', spread: 12.5, total: 38.0, time: 'Sun 1:00 PM' },
-  { id: 12, home: 'TEN', visitor: 'NO', spread: 2.5, total: 42.0, time: 'Sun 1:00 PM' },
-  { id: 13, home: 'LV', visitor: 'NYG', spread: 1.5, total: 40.5, time: 'Sun 4:05 PM' },
-  { id: 14, home: 'BUF', visitor: 'PHI', spread: -2.5, total: 49.0, time: 'Sun 4:25 PM' },
-  { id: 15, home: 'SF', visitor: 'CHI', spread: -2.5, total: 45.5, time: 'Sun 8:20 PM' },
-
-  // MONDAY (Dec 29)
-  { id: 16, home: 'ATL', visitor: 'LAR', spread: -3.0, total: 48.0, time: 'Mon 8:15 PM' }
-];
-
+// Note: WEEK_17_SCHEDULE removed — schedule is loaded dynamically from public/schedule.json
 // Note: INITIAL_EXPERTS is now defined in experts.js and re-exported above

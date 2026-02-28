@@ -15,7 +15,7 @@ const STORAGE_KEY = 'pr_picks_v1';
 const RESULTS_KEY = 'pr_game_results_v1';
 
 // ── Constants ───────────────────────────────────────────────
-const VALID_SOURCES   = ['AI_LAB', 'GUNIT'];
+const VALID_SOURCES   = ['AI_LAB'];
 const VALID_TYPES     = ['spread', 'total'];
 const VALID_RESULTS   = ['WIN', 'LOSS', 'PUSH', 'PENDING'];
 const JUICE           = 1.1;   // standard -110 vig
