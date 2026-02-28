@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, TrendingUp, TrendingDown, Clock, Info, RefreshCw } from 'lucide-react';
 import { getLineMovements } from '../../lib/enhancedOddsApi';
+import { getLineMovementsDB } from '../../lib/supabase';
 
 // Significance thresholds by market type
 const SIG_THRESHOLDS = {
@@ -58,8 +59,11 @@ export default function SteamMoveTracker() {
 
   useEffect(() => { load(); }, []);
 
-  const load = () => {
-    const real = getLineMovements(24);
+  const load = async () => {
+    // Try Supabase first (populated by OddsIngestAgent), fall back to localStorage
+    let real = await getLineMovementsDB(24).catch(() => []);
+    if (real.length === 0) real = getLineMovements(24);
+
     if (real.length > 0) {
       setMoves(real.map(m => ({ ...m, significance: m.significance || getSignificance(m) })));
       setIsDemo(false);

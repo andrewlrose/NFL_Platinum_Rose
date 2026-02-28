@@ -1,0 +1,66 @@
+# NFLAutoGradeAgent - polls ESPN scoreboard, writes final scores to Supabase
+#
+# Required repo secrets (Settings > Secrets > Actions):
+#   SUPABASE_URL              - https://aambmuzfcojxqvbzhngp.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY - service_role JWT
+#
+# No ODDS_API_KEY needed — ESPN scoreboard is public.
+#
+# Schedule:
+#   - Hourly on Thu/Sun/Mon (NFL game days) to grade picks quickly after final whistle
+#   - Every 4 hours on other days (picks grading is non-urgent)
+# Manual trigger: Actions tab → "NFL Auto Grade" → Run workflow
+
+name: NFL Auto Grade
+
+on:
+  schedule:
+    # Hourly on Sunday (UTC 17:00–06:00 covers 1 PM–midnight ET)
+    - cron: '15 17-23 * * 0'
+    - cron: '15 0-6  * * 1'
+    # Hourly on Thursday night ET (01:00–06:00 UTC Fri = 9 PM–2 AM ET Thu)
+    - cron: '15 1-6 * * 5'
+    # Hourly on Monday night ET (01:00–06:00 UTC Tue = 9 PM–2 AM ET Mon)
+    - cron: '15 1-6 * * 2'
+    # Every 4 hours on other days — catches Saturday games + weekly cleanup
+    - cron: '15 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (skip ESPN fetch + Supabase write, use mock data)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  grade:
+    name: Fetch ESPN scores + upsert game results
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run NFLAutoGradeAgent
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN:                   ${{ inputs.dry_run }}
+        run: node agents/nfl-auto-grade.js
+
+      - name: Log completion
+        if: success()
+        run: echo "✅ Auto-grade complete at $(date -u)"

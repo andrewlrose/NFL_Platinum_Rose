@@ -1,0 +1,122 @@
+// src/lib/supabase.js
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUPABASE CLIENT — browser-side, uses anon key (read-only public data)
+// Agents use service_role key via process.env, not this file.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const isAvailable = () => !!supabase;
+
+// ─── Odds ────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the most recent odds snapshot written by OddsIngestAgent.
+ * Returns { games: ProcessedGame[], fetchedAt: string } or null.
+ */
+export async function getLatestOddsSnapshot() {
+  if (!isAvailable()) return null;
+  try {
+    const { data, error } = await supabase
+      .from('odds_snapshots')
+      .select('games, fetched_at')
+      .order('fetched_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) return null;
+    return { games: data.games || [], fetchedAt: data.fetched_at };
+  } catch (e) {
+    console.warn('[supabase] getLatestOddsSnapshot failed:', e.message);
+    return null;
+  }
+}
+
+// ─── Line Movements ──────────────────────────────────────────────────────────
+
+/**
+ * Get line movements from Supabase (last N hours).
+ * Normalises to the format used by SteamMoveTracker / LineMovementTracker:
+ * { game, type, from, to, movement, book, timestamp }
+ */
+export async function getLineMovementsDB(hours = 24) {
+  if (!isAvailable()) return [];
+  try {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('line_movements')
+      .select('*')
+      .gte('detected_at', cutoff)
+      .order('detected_at', { ascending: false })
+      .limit(200);
+
+    if (error || !data) return [];
+
+    // Normalise to storage format expected by getLineMovements()
+    return data.map(row => ({
+      id:        row.id,
+      game:      row.game_key?.replace('_', ' @ ') ?? 'Unknown',
+      home_team: row.home_team,
+      away_team: row.away_team,
+      book:      row.book,
+      type:      row.type,
+      from:      row.from_line,
+      to:        row.to_line,
+      movement:  row.movement,
+      timestamp: row.detected_at,
+    }));
+  } catch (e) {
+    console.warn('[supabase] getLineMovementsDB failed:', e.message);
+    return [];
+  }
+}
+
+// ─── Picks / Grading (future tables) ─────────────────────────────────────────
+
+/**
+ * Get game results for auto-grading pending picks.
+ * Table: game_results (written by NFLAutoGradeAgent)
+ */
+export async function getGameResults({ week, season } = {}) {
+  if (!isAvailable()) return [];
+  try {
+    let query = supabase.from('game_results').select('*');
+    if (week)   query = query.eq('week', week);
+    if (season) query = query.eq('season', season);
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getGameResults failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Look up specific games by ESPN ID (for auto-grading pending picks).
+ * @param {string[]} espnIds  — array of ESPN game IDs that match pick.gameId
+ * @returns {Promise<Array>}
+ */
+export async function getGameResultsByIds(espnIds) {
+  if (!isAvailable() || !espnIds?.length) return [];
+  try {
+    const { data, error } = await supabase
+      .from('game_results')
+      .select('*')
+      .in('espn_id', espnIds)
+      .eq('status', 'final');
+
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getGameResultsByIds failed:', e.message);
+    return [];
+  }
+}

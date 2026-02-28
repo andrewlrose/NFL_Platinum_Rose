@@ -2,11 +2,12 @@
 // Main container for all live odds and line shopping features
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Target, Activity } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Activity, DollarSign } from 'lucide-react';
 import LiveOddsDashboard from './LiveOddsDashboard';
 import LineMovementTracker from './LineMovementTracker';
 import ArbitrageFinder from './ArbitrageFinder';
 import SteamMoveTracker from './SteamMoveTracker';
+import BetValueComparison from './BetValueComparison';
 import {
   findArbitrageOpportunities,
   generateMockMultiBookData,
@@ -66,6 +67,12 @@ export default function OddsCenter() {
       icon: Activity,
       description: 'Sharp money movements',
       badge: steamBadge > 0 ? String(steamBadge) : null,
+    },
+    {
+      id: 'bet-value',
+      label: 'Bet Value',
+      icon: DollarSign,
+      description: 'Your bets vs market lines',
     }
   ];
 
@@ -79,6 +86,8 @@ export default function OddsCenter() {
         return <ArbitrageFinder />;
       case 'steam-moves':
         return <SteamMoveTracker />;
+      case 'bet-value':
+        return <BetValueComparison />;
       default:
         return <LiveOddsDashboard />;
     }

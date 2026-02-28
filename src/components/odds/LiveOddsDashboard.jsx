@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { fetchMultiBookOdds, getBestOdds, SPORTSBOOKS } from '../../lib/enhancedOddsApi';
 import { getBankrollData } from '../../lib/bankroll';
+import { getLatestOddsSnapshot } from '../../lib/supabase';
 
 export default function LiveOddsDashboard() {
   const [games, setGames] = useState([]);
@@ -20,31 +21,49 @@ export default function LiveOddsDashboard() {
   const [userBets, setUserBets] = useState([]);
 
   useEffect(() => {
-    // Load cached odds first (don't waste API call)
-    const cached = localStorage.getItem('cached_odds_data');
-    const cacheTime = localStorage.getItem('cached_odds_time');
-    
-    if (cached && cacheTime) {
-      const age = Date.now() - parseInt(cacheTime);
-      // Use cache if less than 10 minutes old
-      if (age < 10 * 60 * 1000) {
-        console.log('📦 Using cached odds (age: ' + Math.round(age / 60000) + ' min)');
-        setGames(JSON.parse(cached));
-        setLastUpdate(new Date(parseInt(cacheTime)));
-        setLoading(false);
-        loadUserBets();
-        return;
+    (async () => {
+      // 1. Try Supabase snapshot (written by OddsIngestAgent every 4h)
+      try {
+        const snap = await getLatestOddsSnapshot();
+        if (snap?.games?.length) {
+          const ageMin = Math.round((Date.now() - new Date(snap.fetchedAt).getTime()) / 60000);
+          if (ageMin < 60) { // use if < 1 hour old
+            console.log(`☁️ Using Supabase odds snapshot (${ageMin}m old, ${snap.games.length} games)`);
+            setGames(snap.games);
+            setLastUpdate(new Date(snap.fetchedAt));
+            // Mirror to localStorage so BetValueComparison + OddsCenter badge work
+            localStorage.setItem('cached_odds_data', JSON.stringify(snap.games));
+            localStorage.setItem('cached_odds_time', new Date(snap.fetchedAt).getTime().toString());
+            setLoading(false);
+            loadUserBets();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ Supabase unavailable, falling back to localStorage/API');
       }
-    }
-    
-    // No cache or expired - load from API
-    loadOdds();
-    loadUserBets();
-    
-    // ⚠️ AUTO-REFRESH DISABLED to save API requests
-    // Uncomment only if you have unlimited API plan:
-    // const interval = setInterval(loadOdds, 120000);
-    // return () => clearInterval(interval);
+
+      // 2. Try localStorage cache (< 10 min old)
+      const cached = localStorage.getItem('cached_odds_data');
+      const cacheTime = localStorage.getItem('cached_odds_time');
+      if (cached && cacheTime) {
+        const age = Date.now() - parseInt(cacheTime);
+        if (age < 10 * 60 * 1000) {
+          console.log('📦 Using localStorage cache (age: ' + Math.round(age / 60000) + ' min)');
+          setGames(JSON.parse(cached));
+          setLastUpdate(new Date(parseInt(cacheTime)));
+          setLoading(false);
+          loadUserBets();
+          return;
+        }
+      }
+
+      // 3. Fall back to direct API call
+      loadOdds();
+      loadUserBets();
+
+      // ⚠️ AUTO-REFRESH DISABLED — agent handles polling now
+    })();
   }, []);
 
   const loadOdds = async () => {

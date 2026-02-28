@@ -5,7 +5,7 @@ NFL betting analytics and line shopping dashboard (React + Vite + Tailwind CSS).
 Integrates real-time odds from 8 sportsbooks, tracks betting performance, manages expert picks, and provides simulation-based edge analysis.
 
 **Repository**: https://github.com/andrewlrose/NFL_Platinum_Rose
-**Workspace**: `d:\Platinum_Rose\NFL_Platinum_Rose`
+**Workspace**: `E:\dev\projects\NFL_Dashboard`
 **Dev URL**: http://localhost:5173/platinum-rose-app/
 
 ## Key Commands
@@ -31,11 +31,22 @@ npm run update-schedule  # Refresh schedule.json from external source
 
 ## Environment Variables
 ```
-VITE_ODDS_API_KEY=...       # TheOddsAPI key (500 requests/month on free plan)
-VITE_OPENAI_API_KEY=...     # OpenAI API key (for transcript analysis)
+VITE_ODDS_API_KEY=...          # TheOddsAPI key (500 requests/month on free plan)
+VITE_OPENAI_API_KEY=...        # OpenAI API key (for transcript analysis)
+VITE_SUPABASE_URL=...          # https://aambmuzfcojxqvbzhngp.supabase.co
+VITE_SUPABASE_ANON_KEY=...     # Supabase anon/public JWT (read-only)
 ```
 Accessed via `import.meta.env.VITE_*` in browser code.
 Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
+
+### GitHub Actions Secrets (for agents)
+| Secret | Value |
+|--------|-------|
+| `SUPABASE_URL` | https://aambmuzfcojxqvbzhngp.supabase.co |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role JWT (bypasses RLS) |
+| `ODDS_API_KEY` | TheOddsAPI key (same as VITE_ODDS_API_KEY) |
+
+Add at: GitHub repo → Settings → Secrets and variables → Actions
 
 ## Tab Routing (App.jsx)
 | `activeTab` | Component |
@@ -60,9 +71,9 @@ Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 | `pr_picks_v1` | Picks tracker data | picksDatabase.js |
 | `pr_game_results_v1` | Cached game results for grading | picksDatabase.js |
 | `nfl_bankroll_data_v1` | Bankroll bet data | bankroll.js |
-| `cached_odds_data` | Cached API odds response | LiveOddsDashboard.jsx |
+| `cached_odds_data` | Cached API odds response (fallback when Supabase unavailable) | LiveOddsDashboard.jsx |
 | `cached_odds_time` | Cache timestamp for odds | LiveOddsDashboard.jsx |
-| `lineMovements` | Historical line movement data | enhancedOddsApi.js |
+| `lineMovements` | Line movements from in-browser tracking (fallback; Supabase is primary) | enhancedOddsApi.js |
 | `PR_OPENAI_KEY` | User-provided OpenAI key | AudioUploadModal.jsx |
 
 **Rule**: NEVER change localStorage key names without a migration helper. Old data becomes invisible.
@@ -72,6 +83,7 @@ Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 |-----|----------|-------|
 | **TheOddsAPI** | `api.the-odds-api.com/v4/sports/americanfootball_nfl/odds` | Live odds from 8 sportsbooks |
 | **OpenAI** | `api.openai.com/v1/chat/completions` | GPT-4o transcript → picks extraction (via lib/openai.js) |
+| **Supabase** | `aambmuzfcojxqvbzhngp.supabase.co` | Persistent storage: odds snapshots, line movements, game results |
 | **ESPN Injuries** | `site.api.espn.com/.../teams/{ID}/injuries` | NFL team injury reports |
 | **GitHub Raw** | `raw.githubusercontent.com/andrewlrose/NFL_Platinum_Rose/main/betting_splits.json` | Splits data sync |
 | **Local** | `./schedule.json`, `./weekly_stats.json` | Schedule + stats from `public/` |
@@ -173,6 +185,14 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 ### Shared Utilities (src/lib/storage.js)
 - `loadFromStorage(key, defaultValue)` / `saveToStorage(key, value)` — used by all hooks
+
+### Supabase Client (src/lib/supabase.js) — NEW
+- Browser-side Supabase client (anon/public key, read-only)
+- `getLatestOddsSnapshot()` — read most recent agent-written odds; called by LiveOddsDashboard
+- `getLineMovementsDB(hours)` — read line movement rows; called by SteamMoveTracker, LineMovementTracker
+- `getGameResults({ week, season })` — read game results for optional week/season filter
+- `getGameResultsByIds(espnIds)` — look up specific final games by ESPN ID array; called by useAutoGrade
+- Falls back gracefully if Supabase is unavailable (no URL/key configured)
 
 ### API Config (apiConfig.js) — NEW
 - Single source of truth for all API endpoints, keys, and constants
@@ -293,19 +313,19 @@ Context is a finite resource — preserve it by delegating exploration and resea
 ## Agent System — Future Architecture
 
 ### Planned Agents (adapted from NCAA project)
-| Agent | Purpose | Priority |
-|-------|---------|----------|
-| **OddsIngestAgent** | Poll TheOddsAPI on schedule, cache odds + line snapshots | HIGH |
-| **NFLAutoGradeAgent** | Poll ESPN NFL scoreboard, grade pending picks automatically | HIGH |
-| **PodcastIngestAgent** | Extract NFL picks from podcast RSS feeds via PickExtractionAgent | MEDIUM |
-| **PickExtractionAgent** | Shared AI extraction backbone — sport-agnostic | MEDIUM |
-| **TwitterIngestAgent** | Extract NFL picks from bookmarked tweets | LOW |
-| **AgentScheduler** | Cron orchestrator for all agents | MEDIUM |
+| Agent | Purpose | Priority | Status |
+|-------|---------|----------|--------|
+| **OddsIngestAgent** | Poll TheOddsAPI on schedule, cache odds + line snapshots | HIGH | ✅ Built (`agents/odds-ingest.js`, `.github/workflows/odds-ingest.yml`) |
+| **NFLAutoGradeAgent** | Poll ESPN NFL scoreboard, grade pending picks automatically | HIGH | ✅ Built (`agents/nfl-auto-grade.js`, `.github/workflows/nfl-auto-grade.yml`) |
+| **PodcastIngestAgent** | Extract NFL picks from podcast RSS feeds via PickExtractionAgent | MEDIUM | Planned |
+| **PickExtractionAgent** | Shared AI extraction backbone — sport-agnostic | MEDIUM | Planned |
+| **TwitterIngestAgent** | Extract NFL picks from bookmarked tweets | LOW | Planned |
+| **AgentScheduler** | Cron orchestrator for all agents | MEDIUM | Handled by GitHub Actions |
 
 ### Planned Hooks
 | Hook | Purpose |
 |------|---------|
-| `useAutoGrade` | Auto-grade picks when games finish (ESPN NFL scoreboard) |
+| `useAutoGrade` | Auto-grade picks when games finish (ESPN NFL scoreboard via Supabase `game_results`) — **BUILT** |
 | `useAutoLoad` | "Full Morning Load" — fetch edges + run sims + build picks in one click |
 | `useExpertInbox` | Bridge Node.js agents → browser state for expert picks |
 | `useMatchupIntel` | Surface podcast analysis on MatchupCards |
@@ -341,11 +361,11 @@ Two-folder pattern separates **data** from **operational state**:
 
 ## Unfinished Features (Priority Order)
 
-### Priority 1 — Core
-1. **Arbitrage Finder** — Structure exists in OddsCenter, logic ready in enhancedOddsApi.js
-2. **Steam Move Tracker** — Structure exists, line movement data available
-3. **Bet Value Comparison** — Compare user bets vs current market odds
-4. **Line Movement Alerts** — Notification system for favorable movements
+### Priority 1 — Core ✅ COMPLETE
+1. ~~**Arbitrage Finder**~~ — **Done.** `ArbitrageFinder.jsx` — real odds, stake calculator, demo fallback
+2. ~~**Steam Move Tracker**~~ — **Done.** `SteamMoveTracker.jsx` — real `lineMovements` localStorage + demo fallback
+3. ~~**Bet Value Comparison**~~ — **Done.** `BetValueComparison.jsx` — compares `nfl_my_bets` vs cached market lines, "beat the close" delta logic
+4. ~~**Line Movement Alerts**~~ — **Done.** `LineMovementTracker.jsx` — refactored to `getLineMovements()` + bet-aware alert generation
 
 ### Priority 2 — Enhancement
 5. Historical line charts (TradingView-style)

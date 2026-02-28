@@ -5,6 +5,7 @@ import { useModals } from './hooks/useModals';
 import { useSchedule } from './hooks/useSchedule';
 import { useExperts } from './hooks/useExperts';
 import { useBettingCard } from './hooks/useBettingCard';
+import { useAutoGrade } from './hooks/useAutoGrade';
 
 // --- Lib ---
 import { INITIAL_EXPERTS } from './lib/experts';
@@ -69,6 +70,9 @@ function App() {
     myBets, handleBet, removeBet, handleLockBets, clearBets,
   } = useBettingCard(schedule);
 
+  // --- Auto-grade pending picks from Supabase game_results ---
+  const { autoGraded } = useAutoGrade();
+
   // --- Derived Data (cross-cutting: merges schedule + experts + splits) ---
   const gamesWithSplits = useMemo(() => schedule.map(game => {
     const gameData = splits[game.id] || splits[String(game.id)];
@@ -98,7 +102,7 @@ function App() {
         {activeTab === 'bankroll' && <div className="animate-in fade-in zoom-in duration-300"><BankrollDashboard onAddBet={() => openModal('betEntry')} onShowCalculator={() => openModal('unitCalculator')} onImportBets={() => openModal('betImport')} onShowPending={() => openModal('pendingBets')} onShowSettings={() => openModal('bankrollSettings')} /></div>}
         {activeTab === 'analytics' && <div className="animate-in fade-in zoom-in duration-300"><AnalyticsDashboard /></div>}
         {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
-        {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} key={picksRefreshKey} /></div>}
+        {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
       </main>
 
       {/* --- LAZY-MOUNTED MODALS --- */}

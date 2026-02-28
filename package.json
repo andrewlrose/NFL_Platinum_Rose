@@ -11,6 +11,7 @@
     "update-schedule": "node scripts/update-schedule.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
     "lucide-react": "^0.562.0",
     "node-fetch": "^3.3.2",
     "papaparse": "^5.5.3",
