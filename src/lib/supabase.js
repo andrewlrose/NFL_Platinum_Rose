@@ -132,6 +132,82 @@ export async function getActiveGameKeys(hours = 7 * 24) {
   }
 }
 
+// ─── Futures Odds ─────────────────────────────────────────────────────────────
+
+/**
+ * Get the most recent futures odds snapshot for each team+market+book combo.
+ * Returns the latest row per (market_type, team, book) — i.e. current market odds.
+ * Used by FuturesOddsMonitor to compare entry price vs current odds.
+ *
+ * @returns {Promise<Array>} rows: { market_type, team, book, odds, implied_prob, snapshot_time }
+ */
+export async function getLatestFuturesOdds() {
+  if (!isAvailable()) return [];
+  try {
+    // Get timestamps of most recent snapshot per market_type so we can filter to it
+    const { data: latest, error: latestErr } = await supabase
+      .from('futures_odds_snapshots')
+      .select('market_type, snapshot_time')
+      .order('snapshot_time', { ascending: false })
+      .limit(3); // one per market type
+
+    if (latestErr || !latest?.length) return [];
+
+    // Group latest snapshot_time by market_type
+    const latestByMarket = new Map();
+    for (const row of latest) {
+      if (!latestByMarket.has(row.market_type)) {
+        latestByMarket.set(row.market_type, row.snapshot_time);
+      }
+    }
+
+    // Fetch all rows within 15 minutes of the latest snapshot per market
+    const allRows = [];
+    for (const [marketType, latestTime] of latestByMarket) {
+      const windowStart = new Date(new Date(latestTime).getTime() - 15 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from('futures_odds_snapshots')
+        .select('market_type, team, book, odds, implied_prob, snapshot_time')
+        .eq('market_type', marketType)
+        .gte('snapshot_time', windowStart)
+        .order('snapshot_time', { ascending: false });
+
+      if (!error && data) allRows.push(...data);
+    }
+
+    return allRows;
+  } catch (e) {
+    console.warn('[supabase] getLatestFuturesOdds failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Get historical futures odds for a specific team+market (for trend chart).
+ * @param {string} team        — exact team name as stored
+ * @param {string} marketType  — 'superbowl' | 'conference' | 'division'
+ * @param {number} days        — how far back (default 30 days)
+ */
+export async function getFuturesOddsHistory(team, marketType, days = 30) {
+  if (!isAvailable() || !team || !marketType) return [];
+  try {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('futures_odds_snapshots')
+      .select('snapshot_time, book, odds, implied_prob')
+      .eq('team', team)
+      .eq('market_type', marketType)
+      .gte('snapshot_time', cutoff)
+      .order('snapshot_time', { ascending: true });
+
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getFuturesOddsHistory failed:', e.message);
+    return [];
+  }
+}
+
 /**
  * Get game results for auto-grading pending picks.
  * Table: game_results (written by NFLAutoGradeAgent)

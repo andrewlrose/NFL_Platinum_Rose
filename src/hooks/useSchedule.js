@@ -3,7 +3,7 @@ import { TEAM_ALIASES } from '../lib/teams';
 import { fetchAllInjuries } from '../lib/injuries';
 import { parseActionNetworkAuto } from '../lib/actionParser';
 import { GITHUB_RAW, LOCAL_DATA } from '../lib/apiConfig';
-import { loadFromStorage, saveToStorage } from '../lib/storage';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from '../lib/storage';
 
 /**
  * useSchedule — boot sequence, data fetching, splits import, team matcher
@@ -20,25 +20,17 @@ export function useSchedule() {
   const [simResults, setSimResults] = useState(() => loadFromStorage('nfl_sim_results', {}));
 
   // --- AUTO-SAVE EFFECTS ---
+  // Note: guards removed — saving empty state is intentional (clears persist through refresh)
   useEffect(() => {
-    if (Object.keys(splits).length > 0) {
-      saveToStorage('nfl_splits', splits);
-      console.log('💾 Splits data saved to localStorage');
-    }
+    saveToStorage(PR_STORAGE_KEYS.SPLITS.key, splits);
   }, [splits]);
 
   useEffect(() => {
-    if (Object.keys(simResults).length > 0) {
-      saveToStorage('nfl_sim_results', simResults);
-      console.log('💾 Simulation results saved to localStorage');
-    }
+    saveToStorage(PR_STORAGE_KEYS.SIM_RESULTS.key, simResults);
   }, [simResults]);
 
   useEffect(() => {
-    if (Object.keys(contestLines).length > 0) {
-      saveToStorage('nfl_contest_lines', contestLines);
-      console.log('💾 Contest lines saved to localStorage');
-    }
+    saveToStorage(PR_STORAGE_KEYS.CONTEST_LINES.key, contestLines);
   }, [contestLines]);
 
   // --- BOOT SEQUENCE ---
@@ -111,7 +103,22 @@ export function useSchedule() {
 
       setSchedule(mergedSchedule);
       setStats(statsData);
-      setSplits(splitsData || {});
+
+      // ── Splits boot fix ──────────────────────────────────────────────────────
+      // ONLY use fetched splits when localStorage is empty.
+      // The user's locally-imported Action Network splits must not be overwritten
+      // on every hard refresh by whatever is currently in the GitHub raw file.
+      const localSplits = loadFromStorage(PR_STORAGE_KEYS.SPLITS.key, null);
+      const localHasData = localSplits && Object.keys(localSplits).length > 0;
+      if (!localHasData && splitsData && Object.keys(splitsData).length > 0) {
+        setSplits(splitsData);
+        console.log('📥 Initialized splits from GitHub raw (localStorage was empty)');
+      } else if (!localHasData) {
+        // Both empty — leave state as initialized (empty object)
+        console.log('ℹ️ No splits data available (localStorage empty, GitHub fetch empty/failed)');
+      } else {
+        console.log(`✅ Retained ${Object.keys(localSplits).length} game splits from localStorage`);
+      }
 
       // Injuries (separate async call)
       fetchAllInjuries(mergedSchedule)

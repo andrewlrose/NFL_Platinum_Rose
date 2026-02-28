@@ -2,7 +2,8 @@
 // Thin orchestrator — delegates logic to analyticsEngine + sub-components
 
 import React, { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, BarChart3, Target } from 'lucide-react';
+import OutcomesDashboard from './OutcomesDashboard';
 import { getBankrollData, calculateAnalytics as calcBasicAnalytics, BET_STATUS } from '../../lib/bankroll';
 import { generateTestData, calculateDetailedAnalytics } from './analyticsEngine';
 
@@ -13,8 +14,10 @@ import RiskAnalysis      from './RiskAnalysis';
 import BettingPatterns   from './BettingPatterns';
 import TrendChart        from './TrendChart';
 import EdgeAnalysis      from './EdgeAnalysis';
+import BookAnalytics     from './BookAnalytics';
 
 export default function AnalyticsDashboard() {
+  const [activeView, setActiveView] = useState('overview'); // 'overview' | 'outcomes'
   const [analytics, setAnalytics]       = useState(null);
   const [timeframe, setTimeframe]       = useState('all');
   const [betTypeFilter, setBetTypeFilter] = useState('all');
@@ -62,6 +65,39 @@ export default function AnalyticsDashboard() {
   // ── Render ────────────────────────────────────────────
   return (
     <div className="space-y-6">
+
+      {/* ── View Switcher ──────────────────────────────── */}
+      <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveView('overview')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeView === 'overview'
+              ? 'bg-slate-700 text-white'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <BarChart3 size={15} />
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveView('outcomes')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeView === 'outcomes'
+              ? 'bg-slate-700 text-white'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Target size={15} />
+          Outcomes
+        </button>
+      </div>
+
+      {/* ── Outcomes view ───────────────────────────────── */}
+      {activeView === 'outcomes' && <OutcomesDashboard />}
+
+      {/* ── Overview view ───────────────────────────────── */}
+      {activeView === 'overview' && <>
+
       {/* Demo-mode banner */}
       {analytics && analytics.totalBets === 16 && (
         <div className="bg-blue-900/30 border border-blue-600/30 rounded-lg p-4">
@@ -135,7 +171,10 @@ export default function AnalyticsDashboard() {
       )}
 
       <TrendChart trends={detailedStats?.trends} />
+      <BookAnalytics bookAnalytics={detailedStats?.bookAnalytics} />
       <EdgeAnalysis analytics={analytics} detailedStats={detailedStats} />
+
+      </> /* end overview */}
     </div>
   );
 }

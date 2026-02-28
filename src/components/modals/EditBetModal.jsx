@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Save, Trash2, AlertTriangle, Edit } from 'lucide-react';
-import { getBankrollData, updateBet, BET_TYPES } from '../../lib/bankroll';
+import { getBankrollData, saveBankrollData, updateBet, BET_TYPES } from '../../lib/bankroll';
 
 export default function EditBetModal({ 
   isOpen, 
@@ -65,7 +65,7 @@ export default function EditBetModal({
     
     if (betIndex !== -1) {
       data.bets[betIndex] = updatedBet;
-      localStorage.setItem('nfl_bankroll_data_v1', JSON.stringify(data));
+      saveBankrollData(data);
       
       setEditedBet(updatedBet);
       onBetUpdated(updatedBet);
@@ -133,7 +133,7 @@ export default function EditBetModal({
     
     if (betIndex !== -1) {
       data.bets[betIndex] = updatedBet;
-      localStorage.setItem('nfl_bankroll_data_v1', JSON.stringify(data));
+      saveBankrollData(data);
       
       setEditedBet(updatedBet);
       onBetUpdated(updatedBet);
@@ -162,7 +162,7 @@ export default function EditBetModal({
     
     if (betIndex !== -1) {
       data.bets[betIndex] = editedBet;
-      localStorage.setItem('nfl_bankroll_data_v1', JSON.stringify(data));
+      saveBankrollData(data);
       
       onBetUpdated(editedBet);
       onClose();

@@ -1,7 +1,9 @@
 // src/lib/bankroll.js
 // Bankroll management, bet tracking, and analytics
 
-const STORAGE_KEY = 'nfl_bankroll_data_v1';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage';
+
+const STORAGE_KEY = PR_STORAGE_KEYS.BANKROLL.key;
 
 // Default bankroll settings
 const DEFAULT_SETTINGS = {
@@ -44,7 +46,7 @@ const RISK_PROFILES = {
  */
 export const getBankrollData = () => {
     try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = loadFromStorage(STORAGE_KEY, null);
         if (!stored) {
             const defaultData = {
                 settings: DEFAULT_SETTINGS,
@@ -55,7 +57,7 @@ export const getBankrollData = () => {
             saveBankrollData(defaultData);
             return defaultData;
         }
-        return JSON.parse(stored);
+        return stored;
     } catch (error) {
         console.error('Error loading bankroll data:', error);
         return {
@@ -73,7 +75,7 @@ export const getBankrollData = () => {
 export const saveBankrollData = (data) => {
     try {
         data.lastUpdated = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        saveToStorage(STORAGE_KEY, data);
         return true;
     } catch (error) {
         console.error('Error saving bankroll data:', error);

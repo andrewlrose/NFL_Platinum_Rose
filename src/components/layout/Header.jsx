@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target } from 'lucide-react';
+import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target, Briefcase, Database } from 'lucide-react';
 import { getNFLWeekInfo } from '../../lib/constants';
 
 export default function Header({ 
@@ -8,14 +8,15 @@ export default function Header({
   cartCount, 
   onSyncOdds, 
   onOpenSplits,   
-  onOpenSplitsData, // 🔥 NEW: Opens raw splits table
+  onOpenSplitsData,
   onOpenTeasers,  
   onOpenContest,
   onImport,       
   onAnalyze,      
-  onManage,       // 🔥 NEW: Dedicated Manager Prop
+  onManage,       
   onSave,
-  onReset
+  onReset,
+  onOpenStorage,
 }) {
   
   const NavTab = ({ id, label, icon: Icon }) => (
@@ -111,6 +112,8 @@ export default function Header({
 
                     <IconButton onClick={onSave} icon={Save} label="Save Picks" colorClass="text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/30" />
                     <IconButton onClick={onReset} icon={RotateCcw} label="Reset Card" colorClass="text-rose-400 hover:text-rose-300 hover:border-rose-500/30" />
+                    <div className="h-6 w-px bg-slate-800 mx-1"></div>
+                    <IconButton onClick={onOpenStorage} icon={Database} label="Data Manager" colorClass="text-[#00d2be] hover:text-white hover:border-[#00d2be]/30" />
                 </div>
             </div>
         </div>
@@ -126,6 +129,7 @@ export default function Header({
             <NavTab id="odds" label="Live Odds" icon={TrendingUp} />
             <NavTab id="standings" label="Expert Standings" icon={Trophy} />
             <NavTab id="picks" label="Picks Tracker" icon={Target} />
+            <NavTab id="futures" label="Futures" icon={Briefcase} />
             <NavTab id="devlab" label="AI Dev Lab" icon={Mic2} />
         </div>
       </div>

@@ -37,6 +37,9 @@ import OddsCenter from './components/odds/OddsCenter';
 import PicksTracker from './components/picks-tracker/PicksTracker';
 import ManualGradeModal from './components/modals/ManualGradeModal';
 import BankrollSettingsModal from './components/modals/BankrollSettingsModal';
+import FuturesPortfolio from './components/futures/FuturesPortfolio';
+import FuturesEntryModal from './components/modals/FuturesEntryModal';
+import StorageBackupModal from './components/modals/StorageBackupModal';
 
 function App() {
   // --- UI State (local to App) ---
@@ -93,7 +96,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-gray-200 font-sans pb-20 selection:bg-[#00d2be] selection:text-black">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }}/>
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }} onOpenStorage={() => openModal('storage')} />
       <main className="max-w-7xl mx-auto px-4 py-8">
         {activeTab === 'dashboard' && <div className="animate-in fade-in zoom-in duration-300"><Dashboard schedule={gamesWithSplits} stats={stats} simResults={simResults} onGameClick={setSelectedGame} onShowInjuries={(game) => { setSelectedGame(game); openModal('injuryReport'); }} onAddBankrollBet={(game) => { setBetEntryGame(game); openModal('betEntry'); }} /></div>}
         {activeTab === 'standings' && <div className="max-w-5xl mx-auto animate-in fade-in zoom-in duration-300"><ExpertLeaderboard expertConsensus={expertConsensus} refreshKey={picksRefreshKey + autoGraded} /></div>}
@@ -103,6 +106,7 @@ function App() {
         {activeTab === 'analytics' && <div className="animate-in fade-in zoom-in duration-300"><AnalyticsDashboard /></div>}
         {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
         {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
+        {activeTab === 'futures' && <div className="animate-in fade-in zoom-in duration-300"><FuturesPortfolio onAddPosition={() => openModal('futuresEntry')} /></div>}
       </main>
 
       {/* --- LAZY-MOUNTED MODALS --- */}
@@ -123,6 +127,9 @@ function App() {
       {modals.editBet && <EditBetModal isOpen onClose={() => { closeModal('editBet'); setSelectedBetForEdit(null); }} bet={selectedBetForEdit} schedule={schedule} onBetUpdated={() => { closeModal('pendingBets'); setTimeout(() => openModal('pendingBets'), 100); }} />}
       {modals.gradeModal && <ManualGradeModal isOpen onClose={() => { closeModal('gradeModal'); setGradeGameData(null); setPicksRefreshKey(k => k + 1); }} gameData={gradeGameData} onGraded={() => setPicksRefreshKey(k => k + 1)} />}
       {modals.bankrollSettings && <BankrollSettingsModal isOpen onClose={() => closeModal('bankrollSettings')} onSettingsUpdated={() => {}} />}
+      {modals.futuresEntry && <FuturesEntryModal isOpen onClose={() => closeModal('futuresEntry')} onAdded={() => {}} />
+      }
+      {modals.storage && <StorageBackupModal isOpen onClose={() => closeModal('storage')} />}
     </div>
   );
 }

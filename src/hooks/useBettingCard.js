@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { loadFromStorage, saveToStorage } from '../lib/storage';
+import { loadFromStorage, saveToStorage, clearStorage, PR_STORAGE_KEYS } from '../lib/storage';
 
 /**
  * useBettingCard — personal betting card state + handlers
@@ -7,14 +7,11 @@ import { loadFromStorage, saveToStorage } from '../lib/storage';
  * @param {Array} schedule - current schedule array (for team name lookup)
  */
 export function useBettingCard(schedule) {
-  const [myBets, setMyBets] = useState(() => loadFromStorage('nfl_my_bets', []));
+  const [myBets, setMyBets] = useState(() => loadFromStorage(PR_STORAGE_KEYS.MY_BETS.key, []));
 
-  // --- Auto-save ---
+  // --- Auto-save (guard removed — clearing bets must persist through refresh) ---
   useEffect(() => {
-    if (myBets.length > 0) {
-      saveToStorage('nfl_my_bets', myBets);
-      console.log('💾 My bets saved to localStorage');
-    }
+    saveToStorage(PR_STORAGE_KEYS.MY_BETS.key, myBets);
   }, [myBets]);
 
   const handleBet = useCallback((gameId, type, selection, line) => {
@@ -40,7 +37,10 @@ export function useBettingCard(schedule) {
     []
   );
 
-  const clearBets = useCallback(() => setMyBets([]), []);
+  const clearBets = useCallback(() => {
+    setMyBets([]);
+    clearStorage(PR_STORAGE_KEYS.MY_BETS.key, []);  // persist the clear through refresh
+  }, []);
 
   return {
     myBets,

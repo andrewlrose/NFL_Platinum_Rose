@@ -179,12 +179,27 @@ export const calculateRiskMetrics = (bets) => {
   };
 };
 
-// ── Day-of-week patterns ────────────────────────────────
+// ── Day-of-week + hour-of-day patterns ──────────────────
 
 export const calculateBettingPatterns = (bets) => {
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayOfWeekStats = {};
   dayNames.forEach(day => { dayOfWeekStats[day] = { bets: 0, wins: 0, profit: 0 }; });
+
+  // Hour buckets: Early(0-11), Afternoon(12-17), Evening(18-21), Late(22-23)
+  const hourBuckets = {
+    'Morning (12am–12pm)':  { bets: 0, wins: 0, profit: 0, hours: 'early' },
+    'Afternoon (12pm–6pm)': { bets: 0, wins: 0, profit: 0, hours: 'afternoon' },
+    'Evening (6pm–10pm)':   { bets: 0, wins: 0, profit: 0, hours: 'evening' },
+    'Late (10pm+)':         { bets: 0, wins: 0, profit: 0, hours: 'late' },
+  };
+
+  const getHourBucket = (hour) => {
+    if (hour < 12) return 'Morning (12am–12pm)';
+    if (hour < 18) return 'Afternoon (12pm–6pm)';
+    if (hour < 22) return 'Evening (6pm–10pm)';
+    return 'Late (10pm+)';
+  };
 
   bets.forEach(bet => {
     const date = new Date(bet.timestamp || bet.date);
@@ -192,14 +207,56 @@ export const calculateBettingPatterns = (bets) => {
     dayOfWeekStats[day].bets++;
     if (bet.status === BET_STATUS.WON) dayOfWeekStats[day].wins++;
     dayOfWeekStats[day].profit += bet.profit || 0;
+
+    const bucket = getHourBucket(date.getHours());
+    hourBuckets[bucket].bets++;
+    if (bet.status === BET_STATUS.WON) hourBuckets[bucket].wins++;
+    hourBuckets[bucket].profit += bet.profit || 0;
   });
 
   Object.keys(dayOfWeekStats).forEach(day => {
     const s = dayOfWeekStats[day];
     s.winRate = s.bets > 0 ? (s.wins / s.bets) * 100 : 0;
   });
+  Object.keys(hourBuckets).forEach(bucket => {
+    const s = hourBuckets[bucket];
+    s.winRate = s.bets > 0 ? (s.wins / s.bets) * 100 : 0;
+  });
 
-  return { dayOfWeek: dayOfWeekStats };
+  return { dayOfWeek: dayOfWeekStats, hourOfDay: hourBuckets };
+};
+
+// ── Sportsbook breakdown ────────────────────────────────
+
+export const calculateBookAnalytics = (bets) => {
+  const bookStats = {};
+
+  bets.forEach(bet => {
+    const book = bet.source || 'Unknown';
+    if (!bookStats[book]) {
+      bookStats[book] = { bets: 0, wins: 0, losses: 0, pushes: 0, profit: 0, wagered: 0 };
+    }
+    const s = bookStats[book];
+    s.bets++;
+    s.wagered += bet.amount || 0;
+    s.profit  += bet.profit || 0;
+    if (bet.status === BET_STATUS.WON)    s.wins++;
+    if (bet.status === BET_STATUS.LOST)   s.losses++;
+    if (bet.status === BET_STATUS.PUSHED) s.pushes++;
+  });
+
+  // Enrich with derived fields
+  Object.keys(bookStats).forEach(book => {
+    const s = bookStats[book];
+    const withResult = s.wins + s.losses;
+    s.winRate = withResult > 0 ? (s.wins / withResult) * 100 : 0;
+    s.roi     = s.wagered   > 0 ? (s.profit / s.wagered) * 100 : 0;
+  });
+
+  // Sort by profit desc
+  return Object.entries(bookStats)
+    .sort(([, a], [, b]) => b.profit - a.profit)
+    .map(([book, stats]) => ({ book, ...stats }));
 };
 
 // ── Orchestrator: build full detailedStats object ───────
@@ -220,6 +277,7 @@ export const calculateDetailedAnalytics = (bets, timeframe, betTypeFilter) => {
     trends:            calculateTrends(settledBets),
     riskMetrics:       calculateRiskMetrics(settledBets),
     patterns:          calculateBettingPatterns(settledBets),
+    bookAnalytics:     calculateBookAnalytics(settledBets),
     totalBets:         filteredBets.length,
     settledBets:       settledBets.length
   };
@@ -229,22 +287,22 @@ export const calculateDetailedAnalytics = (bets, timeframe, betTypeFilter) => {
 
 export const generateTestData = () => {
   const testBets = [
-    { id: 1,  type: 'spread',    status: BET_STATUS.WON,  amount: 110, profit: 100,  team: 'NE',          odds: -110, timestamp: '2026-01-15T19:00:00Z' },
-    { id: 2,  type: 'spread',    status: BET_STATUS.LOST, amount: 55,  profit: -55,  team: 'BUF',         odds: -110, timestamp: '2026-01-17T16:00:00Z' },
-    { id: 3,  type: 'spread',    status: BET_STATUS.WON,  amount: 110, profit: 100,  team: 'KC',          odds: -110, timestamp: '2026-01-20T15:00:00Z' },
-    { id: 4,  type: 'spread',    status: BET_STATUS.LOST, amount: 110, profit: -110, team: 'LAR',         odds: -110, timestamp: '2026-01-22T20:00:00Z' },
-    { id: 5,  type: 'total',     status: BET_STATUS.WON,  amount: 100, profit: 90,   team: 'Over',        odds: -110, timestamp: '2026-01-25T14:00:00Z' },
-    { id: 6,  type: 'total',     status: BET_STATUS.WON,  amount: 75,  profit: 68,   team: 'Under',       odds: -110, timestamp: '2026-01-28T17:00:00Z' },
-    { id: 7,  type: 'total',     status: BET_STATUS.WON,  amount: 50,  profit: 125,  team: 'Over',        odds: 250,  timestamp: '2026-01-30T19:30:00Z' },
-    { id: 8,  type: 'moneyline', status: BET_STATUS.WON,  amount: 100, profit: 180,  team: 'SF',          odds: 180,  timestamp: '2026-02-01T16:00:00Z' },
-    { id: 9,  type: 'moneyline', status: BET_STATUS.WON,  amount: 50,  profit: 105,  team: 'DET',         odds: 210,  timestamp: '2026-02-02T13:00:00Z' },
-    { id: 10, type: 'moneyline', status: BET_STATUS.LOST, amount: 200, profit: -200, team: 'DAL',         odds: 150,  timestamp: '2026-02-03T20:00:00Z' },
-    { id: 11, type: 'parlay',    status: BET_STATUS.WON,  amount: 25,  profit: 125,  team: 'Multi',       odds: 500,  timestamp: '2026-01-18T18:00:00Z' },
-    { id: 12, type: 'parlay',    status: BET_STATUS.LOST, amount: 50,  profit: -50,  team: 'Multi',       odds: 300,  timestamp: '2026-01-21T15:00:00Z' },
-    { id: 13, type: 'parlay',    status: BET_STATUS.WON,  amount: 30,  profit: 180,  team: 'Multi',       odds: 600,  timestamp: '2026-01-26T14:00:00Z' },
-    { id: 14, type: 'prop',      status: BET_STATUS.WON,  amount: 75,  profit: 150,  team: 'J.Allen',     odds: 200,  timestamp: '2026-01-29T19:00:00Z' },
-    { id: 15, type: 'prop',      status: BET_STATUS.LOST, amount: 100, profit: -100, team: 'C.McCaffrey', odds: 120,  timestamp: '2026-01-31T16:30:00Z' },
-    { id: 16, type: 'futures',   status: BET_STATUS.WON,  amount: 50,  profit: 450,  team: 'KC',          odds: 900,  timestamp: '2026-01-16T12:00:00Z' }
+    { id: 1,  type: 'spread',    status: BET_STATUS.WON,  amount: 110, profit: 100,  team: 'NE',          odds: -110, source: 'DraftKings', timestamp: '2026-01-15T19:00:00Z' },
+    { id: 2,  type: 'spread',    status: BET_STATUS.LOST, amount: 55,  profit: -55,  team: 'BUF',         odds: -110, source: 'FanDuel',    timestamp: '2026-01-17T16:00:00Z' },
+    { id: 3,  type: 'spread',    status: BET_STATUS.WON,  amount: 110, profit: 100,  team: 'KC',          odds: -110, source: 'DraftKings', timestamp: '2026-01-20T15:00:00Z' },
+    { id: 4,  type: 'spread',    status: BET_STATUS.LOST, amount: 110, profit: -110, team: 'LAR',         odds: -110, source: 'BetMGM',     timestamp: '2026-01-22T20:00:00Z' },
+    { id: 5,  type: 'total',     status: BET_STATUS.WON,  amount: 100, profit: 90,   team: 'Over',        odds: -110, source: 'Caesars',    timestamp: '2026-01-25T14:00:00Z' },
+    { id: 6,  type: 'total',     status: BET_STATUS.WON,  amount: 75,  profit: 68,   team: 'Under',       odds: -110, source: 'FanDuel',    timestamp: '2026-01-28T17:00:00Z' },
+    { id: 7,  type: 'total',     status: BET_STATUS.WON,  amount: 50,  profit: 125,  team: 'Over',        odds: 250,  source: 'DraftKings', timestamp: '2026-01-30T19:30:00Z' },
+    { id: 8,  type: 'moneyline', status: BET_STATUS.WON,  amount: 100, profit: 180,  team: 'SF',          odds: 180,  source: 'BetOnline',  timestamp: '2026-02-01T16:00:00Z' },
+    { id: 9,  type: 'moneyline', status: BET_STATUS.WON,  amount: 50,  profit: 105,  team: 'DET',         odds: 210,  source: 'Caesars',    timestamp: '2026-02-02T13:00:00Z' },
+    { id: 10, type: 'moneyline', status: BET_STATUS.LOST, amount: 200, profit: -200, team: 'DAL',         odds: 150,  source: 'FanDuel',    timestamp: '2026-02-03T20:00:00Z' },
+    { id: 11, type: 'parlay',    status: BET_STATUS.WON,  amount: 25,  profit: 125,  team: 'Multi',       odds: 500,  source: 'DraftKings', timestamp: '2026-01-18T18:00:00Z' },
+    { id: 12, type: 'parlay',    status: BET_STATUS.LOST, amount: 50,  profit: -50,  team: 'Multi',       odds: 300,  source: 'BetMGM',     timestamp: '2026-01-21T15:00:00Z' },
+    { id: 13, type: 'parlay',    status: BET_STATUS.WON,  amount: 30,  profit: 180,  team: 'Multi',       odds: 600,  source: 'Caesars',    timestamp: '2026-01-26T14:00:00Z' },
+    { id: 14, type: 'prop',      status: BET_STATUS.WON,  amount: 75,  profit: 150,  team: 'J.Allen',     odds: 200,  source: 'BetOnline',  timestamp: '2026-01-29T19:00:00Z' },
+    { id: 15, type: 'prop',      status: BET_STATUS.LOST, amount: 100, profit: -100, team: 'C.McCaffrey', odds: 120,  source: 'BetMGM',     timestamp: '2026-01-31T16:30:00Z' },
+    { id: 16, type: 'futures',   status: BET_STATUS.WON,  amount: 50,  profit: 450,  team: 'KC',          odds: 900,  source: 'DraftKings', timestamp: '2026-01-16T12:00:00Z' }
   ];
 
   const wins  = testBets.filter(b => b.status === BET_STATUS.WON).length;
@@ -320,6 +378,13 @@ export const generateTestData = () => {
         Saturday:  { bets: 0, wins: 0, profit: 0,   winRate: 0 }
       }
     },
+    bookAnalytics: [
+      { book: 'DraftKings', bets: 5, wins: 5, losses: 0, pushes: 0, wagered: 345,  profit: 900,  winRate: 100.0, roi: 260.87 },
+      { book: 'Caesars',    bets: 3, wins: 3, losses: 0, pushes: 0, wagered: 180,  profit: 375,  winRate: 100.0, roi: 208.33 },
+      { book: 'BetOnline',  bets: 2, wins: 2, losses: 0, pushes: 0, wagered: 175,  profit: 330,  winRate: 100.0, roi: 188.57 },
+      { book: 'FanDuel',    bets: 3, wins: 1, losses: 2, pushes: 0, wagered: 330,  profit: -187, winRate: 33.3,  roi: -56.67 },
+      { book: 'BetMGM',     bets: 3, wins: 0, losses: 3, pushes: 0, wagered: 260,  profit: -260, winRate: 0.0,   roi: -100.0 },
+    ],
     totalBets: testBets.length,
     settledBets: testBets.length
   };

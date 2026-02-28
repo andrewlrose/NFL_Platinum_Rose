@@ -1,0 +1,60 @@
+# FuturesOddsIngestAgent — polls TheOddsAPI outrights markets daily
+#
+# Required repo secrets (Settings > Secrets > Actions):
+#   SUPABASE_URL              - https://aambmuzfcojxqvbzhngp.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY - service_role JWT
+#   ODDS_API_KEY              - TheOddsAPI key (500 req/month free plan)
+#
+# ⚠️  COST: 3 futures markets × 2 req each = 6 requests/run.
+#    At 1×/day = ~186 req/month during offseason.
+#    Reduce to weekly ('0 12 * * 1') in-season to preserve quota for odds-ingest.
+#
+# Manual trigger: Actions tab -> "Futures Odds Ingest" -> Run workflow
+
+name: Futures Odds Ingest
+
+on:
+  schedule:
+    # Once daily at 10:00 UTC (6am ET) — futures markets are stable overnight
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (fetch + log, skip Supabase write)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    name: Fetch futures odds snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run FuturesOddsIngestAgent
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ODDS_API_KEY:              ${{ secrets.ODDS_API_KEY }}
+          DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
+        run: node agents/futures-odds-ingest.js
+
+      - name: Log completion
+        if: success()
+        run: echo "✅ Futures ingest complete at $(date -u)"

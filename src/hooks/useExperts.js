@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { extractPicksFromTranscript } from '../lib/openai';
-import { loadFromStorage, saveToStorage } from '../lib/storage';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from '../lib/storage';
 
 /**
  * useExperts — expert consensus CRUD + AI transcript analysis
@@ -13,16 +13,13 @@ import { loadFromStorage, saveToStorage } from '../lib/storage';
  */
 export function useExperts({ schedule, findGameForTeam, openModal, closeModal }) {
   const [expertConsensus, setExpertConsensus] = useState(
-    () => loadFromStorage('nfl_expert_consensus', {})
+    () => loadFromStorage(PR_STORAGE_KEYS.EXPERT_CONSENSUS.key, {})
   );
   const [stagedPicks, setStagedPicks] = useState([]);
 
-  // --- Auto-save ---
+  // --- Auto-save (guard removed — empty saves must persist so clears survive refresh) ---
   useEffect(() => {
-    if (Object.keys(expertConsensus).length > 0) {
-      saveToStorage('nfl_expert_consensus', expertConsensus);
-      console.log('💾 Expert consensus saved to localStorage');
-    }
+    saveToStorage(PR_STORAGE_KEYS.EXPERT_CONSENSUS.key, expertConsensus);
   }, [expertConsensus]);
 
   // --- AI Transcript → Picks ---

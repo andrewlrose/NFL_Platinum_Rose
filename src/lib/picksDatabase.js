@@ -10,9 +10,11 @@
 //   4. Validation – enforce schema, dates, confidence format
 // ─────────────────────────────────────────────────────────────
 
-// ── Storage Key ─────────────────────────────────────────────
-const STORAGE_KEY = 'pr_picks_v1';
-const RESULTS_KEY = 'pr_game_results_v1';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage';
+
+// ── Storage Keys (canonical refs) ───────────────────────────
+const STORAGE_KEY = PR_STORAGE_KEYS.PICKS.key;
+const RESULTS_KEY = PR_STORAGE_KEYS.GAME_RESULTS.key;
 
 // ── Constants ───────────────────────────────────────────────
 const VALID_SOURCES   = ['AI_LAB'];
@@ -35,28 +37,16 @@ export const EDGE_BUCKETS = {
 // ── Helpers ─────────────────────────────────────────────────
 
 /** Read picks array from localStorage */
-const readPicks = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-  } catch { return []; }
-};
+const readPicks  = () => loadFromStorage(STORAGE_KEY, []);
 
 /** Write picks array to localStorage */
-const writePicks = (picks) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(picks));
-};
+const writePicks = (picks) => saveToStorage(STORAGE_KEY, picks);
 
 /** Read cached game results */
-const readResults = () => {
-  try {
-    return JSON.parse(localStorage.getItem(RESULTS_KEY) || '{}');
-  } catch { return {}; }
-};
+const readResults  = () => loadFromStorage(RESULTS_KEY, {});
 
 /** Write cached game results */
-const writeResults = (results) => {
-  localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
-};
+const writeResults = (results) => saveToStorage(RESULTS_KEY, results);
 
 /** Generate a unique pick ID */
 const generateId = (source, gameId, pickType) => {
