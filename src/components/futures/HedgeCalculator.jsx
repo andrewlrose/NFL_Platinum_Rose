@@ -122,11 +122,11 @@ export default function HedgeCalculator({ onRefresh }) {
         </div>
       </div>
 
-      {positions.length === 0 ? (
+      {positions.length === 0 && !prefill ? (
         <div className="text-center py-12 bg-slate-900/30 rounded-xl border border-dashed border-slate-800">
           <Shield className="w-8 h-8 text-slate-700 mx-auto mb-3" />
           <p className="text-slate-500 text-sm">No open positions to hedge.</p>
-          <p className="text-slate-600 text-xs mt-1">Add a futures position first.</p>
+          <p className="text-slate-600 text-xs mt-1">Add a futures position first, or use the Parlay tab to send a parlay here.</p>
         </div>
       ) : (
         <div className="grid lg:grid-cols-2 gap-5">
@@ -134,29 +134,64 @@ export default function HedgeCalculator({ onRefresh }) {
           {/* ── LEFT: Inputs ── */}
           <div className="space-y-4">
 
-            {/* Position picker */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
-              <label className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                Select Futures Position to Hedge
-              </label>
-              <select
-                value={selectedId}
-                onChange={e => { setSelectedId(e.target.value); setSaved(false); }}
-                className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-amber-500 transition"
-              >
-                <option value="">— Choose position —</option>
-                {positions.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.team}{p.team2 ? ` / ${p.team2}` : ''} · {FUTURES_TYPE_LABELS[p.type] || p.type} · {fmtOdds(p.odds)} · ${p.stake}
-                  </option>
-                ))}
-              </select>
+            {/* Prefill banner (from ParlayTracker) OR position picker */}
+            {prefillActive ? (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+                    Hedging Parlay
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {prefill.mode === 'running' ? 'Live legs value' : 'Full payout'}
+                  </span>
+                </div>
+                <p className="text-white font-bold text-sm truncate">{prefill.label}</p>
+                <div className="flex gap-4 text-xs">
+                  <span className="text-slate-400">Stake <span className="text-white font-mono">${fmt(prefill.stake, 2)}</span></span>
+                  <span className="text-slate-400">Payout <span className="text-emerald-400 font-mono">${fmt(prefill.potentialPayout, 2)}</span></span>
+                </div>
+                {positions.length > 0 && (
+                  <div className="pt-1">
+                    <label className="text-[10px] text-slate-500">Or switch to a saved position:</label>
+                    <select
+                      value={selectedId}
+                      onChange={e => { setSelectedId(e.target.value); setSaved(false); }}
+                      className="mt-1 w-full bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-amber-500"
+                    >
+                      <option value="">— Use parlay numbers above —</option>
+                      {positions.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.team} · {FUTURES_TYPE_LABELS[p.type] || p.type} · ${p.stake}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+                <label className="block text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                  Select Futures Position to Hedge
+                </label>
+                <select
+                  value={selectedId}
+                  onChange={e => { setSelectedId(e.target.value); setSaved(false); }}
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-amber-500 transition"
+                >
+                  <option value="">— Choose position —</option>
+                  {positions.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.team}{p.team2 ? ` / ${p.team2}` : ''} · {FUTURES_TYPE_LABELS[p.type] || p.type} · {fmtOdds(p.odds)} · ${p.stake}
+                    </option>
+                  ))}
+                </select>
 
-              {/* Selected position summary */}
-              {selected && (
-                <PositionSummaryCard pos={selected} />
-              )}
-            </div>
+                {/* Selected position summary */}
+                {selected && (
+                  <PositionSummaryCard pos={selected} />
+                )}
+              </div>
+            )}
 
             {/* Hedge odds input */}
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
@@ -272,7 +307,7 @@ export default function HedgeCalculator({ onRefresh }) {
                       <BigStat
                         label="Total Invested"
                         value={`$${fmt(activeResult.totalInvested, 2)}`}
-                        sub={`$${fmt(selected.stake)} futures + $${fmt(activeResult.hedgeStake, 2)} hedge`}
+                        sub={`$${fmt(hedgeSource?.stake)} stake + $${fmt(activeResult.hedgeStake, 2)} hedge`}
                         accent="blue"
                       />
                     </div>
@@ -301,7 +336,7 @@ export default function HedgeCalculator({ onRefresh }) {
                       <tbody>
                         <ScenarioRow
                           label={`✅ Futures Wins`}
-                          labelSub={selected.team}
+                          labelSub={hedgeSource?.team || ''}
                           net={activeResult.futuresWin}
                           roi={(activeResult.futuresWin / activeResult.totalInvested) * 100}
                           vsDelta={activeResult.futuresWin - results.noHedge.futuresWin}
@@ -340,8 +375,8 @@ export default function HedgeCalculator({ onRefresh }) {
                   </div>
                 )}
 
-                {/* Save button */}
-                {activeResult && (
+                {/* Save button — only for saved futures positions, not parlay prefill */}
+                {activeResult && !prefillActive && (
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleSave}
@@ -357,6 +392,11 @@ export default function HedgeCalculator({ onRefresh }) {
                     {hedgeBook && <span className="text-slate-500 text-xs">on {hedgeBook}</span>}
                     {saveError && <span className="text-rose-400 text-xs">{saveError}</span>}
                   </div>
+                )}
+                {activeResult && prefillActive && (
+                  <p className="text-slate-600 text-xs italic">
+                    Save this hedge manually once placed — parlay stakes aren't linked to saved positions.
+                  </p>
                 )}
               </>
             )}

@@ -48,6 +48,11 @@ export const PR_STORAGE_KEYS = {
     permanence: 'critical',
     description: 'Futures positions and open parlays',
   },
+  PLAYOFF_BRACKET: {
+    key: 'pr_playoff_bracket_v1',
+    permanence: 'persistent',
+    description: 'Playoff bracket seed assignments for exposure overlay',
+  },
   // Betting card —————————————————————————————————————————————————————————
   MY_BETS: {
     key: 'nfl_my_bets',

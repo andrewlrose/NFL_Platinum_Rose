@@ -32,6 +32,37 @@ export const POSITION_STATUS = {
   VOID:   'VOID',
 };
 
+// ── Parlay enums ─────────────────────────────────────────────────────────────
+
+export const PARLAY_STATUS = {
+  LIVE:   'LIVE',
+  WON:    'WON',
+  LOST:   'LOST',
+  PUSHED: 'PUSHED',
+  VOIDED: 'VOIDED',
+};
+
+export const PARLAY_LEG_TYPES = {
+  SPREAD:    'SPREAD',
+  TOTAL:     'TOTAL',
+  MONEYLINE: 'MONEYLINE',
+  FUTURES:   'FUTURES',
+};
+
+export const PARLAY_LEG_TYPE_LABELS = {
+  SPREAD:    'Spread',
+  TOTAL:     'Total',
+  MONEYLINE: 'Moneyline',
+  FUTURES:   'Futures',
+};
+
+export const LEG_RESULT = {
+  PENDING: 'PENDING',
+  WIN:     'WIN',
+  LOSS:    'LOSS',
+  PUSH:    'PUSH',
+};
+
 // ── Odds math helpers ────────────────────────────────────────────────────────
 
 /** Convert American odds to decimal odds */
@@ -56,6 +87,27 @@ export function calcPayout(stake, americanOdds) {
 /** Calculate profit only (payout - stake) */
 export function calcProfit(stake, americanOdds) {
   return calcPayout(stake, americanOdds) - stake;
+}
+
+/**
+ * Compute combined American odds from an array of legs.
+ * PUSH legs are excluded (they reduce the parlay by one leg).
+ */
+export function computeParlayOdds(legs) {
+  const active = legs.filter(l => l.result !== LEG_RESULT.PUSH);
+  if (active.length === 0) return 100; // all pushed → even money
+  const decimal = active.reduce((prod, l) => prod * americanToDecimal(Number(l.odds)), 1);
+  if (decimal >= 2) return Math.round((decimal - 1) * 100);
+  return Math.round(-100 / (decimal - 1));
+}
+
+/** Derive parlay status from its current legs — call after any leg update */
+function deriveParlayStatus(legs) {
+  if (legs.some(l => l.result === LEG_RESULT.LOSS)) return PARLAY_STATUS.LOST;
+  const nonPush = legs.filter(l => l.result !== LEG_RESULT.PUSH);
+  if (nonPush.length === 0) return PARLAY_STATUS.PUSHED;
+  if (nonPush.every(l => l.result === LEG_RESULT.WIN)) return PARLAY_STATUS.WON;
+  return PARLAY_STATUS.LIVE;
 }
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────
@@ -154,27 +206,88 @@ export function addHedge(positionId, hedge) {
 
 // ── Open Parlays ─────────────────────────────────────────────────────────────
 
-/** Add an open parlay */
+/** Add an open parlay with per-leg type, description, linked position/bet */
 export function addParlay(parlay) {
   const data = loadData();
+  const legs = (parlay.legs || []).map((leg, i) => ({
+    id: String(Date.now() + i),
+    type: leg.type || PARLAY_LEG_TYPES.SPREAD,
+    description: leg.description || '',
+    team: leg.team || '',
+    odds: Number(leg.odds || 0),
+    result: leg.result || LEG_RESULT.PENDING,
+    linkedPositionId: leg.linkedPositionId || null,
+    linkedBetId: leg.linkedBetId || null,
+  }));
+  const totalOdds = legs.length > 0 ? computeParlayOdds(legs) : 0;
+  const stake = Number(parlay.stake || 0);
   const newParlay = {
     id: String(Date.now()),
     createdAt: new Date().toISOString(),
-    legs: (parlay.legs || []).map(leg => ({
-      description: leg.description || '',
-      team: leg.team || '',
-      result: leg.result || 'PENDING',
-      odds: Number(leg.odds || 0),
-    })),
-    totalOdds: Number(parlay.totalOdds || 0),
-    stake: Number(parlay.stake || 0),
-    potentialPayout: Number(parlay.potentialPayout || 0),
+    name: parlay.name || '',
+    legs,
+    totalOdds,
+    stake,
+    potentialPayout: stake > 0 && totalOdds !== 0 ? calcPayout(stake, totalOdds) : Number(parlay.potentialPayout || 0),
     book: parlay.book || '',
-    status: 'LIVE',
+    status: PARLAY_STATUS.LIVE,
+    notes: parlay.notes || '',
+    runningOdds: null, // set dynamically as legs win
   };
   data.parlays = [...(data.parlays || []), newParlay];
   saveData(data);
   return newParlay;
+}
+
+/** Update top-level parlay fields (status, notes, name…) */
+export function updateParlay(id, updates) {
+  const data = loadData();
+  data.parlays = (data.parlays || []).map(p =>
+    String(p.id) !== String(id) ? p : { ...p, ...updates }
+  );
+  saveData(data);
+}
+
+/**
+ * Update a single leg by legId and auto-advance the parlay's status.
+ * Also recomputes runningOdds = product of WON legs (for hedge calc display).
+ */
+export function updateParlayLeg(parlayId, legId, updates) {
+  const data = loadData();
+  data.parlays = (data.parlays || []).map(p => {
+    if (String(p.id) !== String(parlayId)) return p;
+    const legs = p.legs.map(l =>
+      String(l.id) === String(legId) ? { ...l, ...updates } : l
+    );
+    const newStatus = deriveParlayStatus(legs);
+    // Running odds = product of WON legs only (what you've banked so far)
+    const wonLegs = legs.filter(l => l.result === LEG_RESULT.WIN);
+    const runningOdds = wonLegs.length > 0 ? computeParlayOdds(wonLegs) : null;
+    return { ...p, legs, status: newStatus, runningOdds };
+  });
+  saveData(data);
+}
+
+/** Add a new leg to an existing parlay */
+export function addParlayLeg(parlayId, leg) {
+  const data = loadData();
+  data.parlays = (data.parlays || []).map(p => {
+    if (String(p.id) !== String(parlayId)) return p;
+    const newLeg = {
+      id: String(Date.now()),
+      type: leg.type || PARLAY_LEG_TYPES.SPREAD,
+      description: leg.description || '',
+      team: leg.team || '',
+      odds: Number(leg.odds || 0),
+      result: LEG_RESULT.PENDING,
+      linkedPositionId: leg.linkedPositionId || null,
+      linkedBetId: leg.linkedBetId || null,
+    };
+    const legs = [...p.legs, newLeg];
+    const totalOdds = computeParlayOdds(legs);
+    return { ...p, legs, totalOdds, potentialPayout: calcPayout(p.stake, totalOdds) };
+  });
+  saveData(data);
 }
 
 /** Delete a parlay */

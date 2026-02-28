@@ -75,6 +75,7 @@ All keys are catalogued in `PR_STORAGE_KEYS` in `src/lib/storage.js`. Use `loadF
 | `pr_game_results_v1` | Cached game results for grading | persistent | picksDatabase.js |
 | `nfl_bankroll_data_v1` | Bankroll bet data | **critical** | bankroll.js |
 | `nfl_futures_portfolio_v1` | Futures positions + open parlays | **critical** | futures.js |
+| `pr_playoff_bracket_v1` | Playoff bracket seed assignments (AFC/NFC 7 seeds each) | persistent | PlayoffBracket.jsx |
 | `cached_odds_data` | Cached API odds response (fallback when Supabase unavailable) | ephemeral | LiveOddsDashboard.jsx |
 | `cached_odds_time` | Cache timestamp for odds | ephemeral | LiveOddsDashboard.jsx |
 | `lineMovements` | Line movements from in-browser tracking (fallback; Supabase is primary) | ephemeral | enhancedOddsApi.js |
@@ -267,7 +268,7 @@ Context is a finite resource — preserve it by delegating exploration and resea
 - Odds math: `americanToDecimal()`, `impliedProbability()`, `calcPayout()`, `calcProfit()`
 - Portfolio analytics: `getPortfolioSummary()`, `getExposureByTeam()`
 - Supabase table: `futures_odds_snapshots` (migration `002_futures_odds.sql`)
-- **Planned phases**: ~~B = HedgeCalculator~~, ~~C = FuturesOddsMonitor + agent~~, D = ParlayTracker, E = PlayoffBracket
+- **Planned phases**: ~~B = HedgeCalculator~~, ~~C = FuturesOddsMonitor + agent~~, ~~D = ParlayTracker~~, ~~E = PlayoffBracket~~
 
 ### Hedge Calculator (src/lib/hedgeCalculator.js + src/components/futures/HedgeCalculator.jsx)
 - **Pure math lib** (`hedgeCalculator.js`):
@@ -472,8 +473,8 @@ Two-folder pattern separates **data** from **operational state**:
 - ~~**Phase A — Core CRUD**~~ — **Done.** `futures.js`, `FuturesPortfolio.jsx`, `FuturesEntryModal.jsx`, `002_futures_odds.sql`
 - ~~**Phase B — Hedge Calculator**~~ — **Done.** `hedgeCalculator.js` (lock/break-even/custom math + portfolio matrix), `HedgeCalculator.jsx` (sub-tab in Futures Portfolio)
 - ~~**Phase C — Odds Monitor + Ingest Agent**~~ — **Done.** `FuturesOddsMonitor.jsx` + `agents/futures-odds-ingest.js`; Supabase table already created; GitHub Actions workflow added
-- **Phase D — Parlay Tracker** — `ParlayTracker.jsx`; open parlay tracking with per-leg result + hedge integration
-- **Phase E — Playoff Bracket** — `PlayoffBracket.jsx`; visual bracket overlay showing total exposure per team
+- ~~**Phase D — Parlay Tracker**~~ — **Done.** `ParlayTracker.jsx`; open parlay tracking with per-leg result cycling + auto-status advance + hedge calc integration (prefill from parlay → Hedge tab)
+- ~~**Phase E — Playoff Bracket**~~ — **Done.** `PlayoffBracket.jsx`; 6th sub-tab in FuturesPortfolio; visual 14-team bracket (AFC + NFC 7 seeds each), editable seeds with team picker, exposure overlay badges per team (stake/payout/bet-type chips), Super Bowl center panel showing direct SB/SBM bets, exposure summary table, seed reference table, demo + demo-reset. Seeds persist via `pr_playoff_bracket_v1` (storage.js).
 
 ---
 

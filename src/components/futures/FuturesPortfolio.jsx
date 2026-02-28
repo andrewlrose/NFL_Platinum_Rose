@@ -4,10 +4,12 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Briefcase, Plus, TrendingUp, TrendingDown, DollarSign, Target,
   Shield, Trash2, Edit3, ChevronDown, ChevronUp, AlertTriangle,
-  BarChart3, Layers, Trophy, Award, Calculator, Activity
+  BarChart3, Layers, Trophy, Award, Calculator, Activity, GitMerge
 } from 'lucide-react';
 import HedgeCalculator from './HedgeCalculator';
 import FuturesOddsMonitor from './FuturesOddsMonitor';
+import ParlayTracker from './ParlayTracker';
+import PlayoffBracket from './PlayoffBracket';
 import {
   getPositions, getPortfolioSummary, getExposureByTeam,
   deletePosition, updatePosition,
@@ -41,6 +43,8 @@ const SUBTABS = [
   { id: 'exposure',  label: 'Exposure',   icon: BarChart3 },
   { id: 'hedge',     label: 'Hedge Calc', icon: Calculator },
   { id: 'monitor',   label: 'Odds Monitor', icon: Activity },
+  { id: 'parlays',   label: 'Parlays',    icon: GitMerge },
+  { id: 'bracket',   label: 'Playoff Bracket', icon: Trophy },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -53,6 +57,13 @@ export default function FuturesPortfolio({ onAddPosition }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [expandedId, setExpandedId]     = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  // Parlay → Hedge calc prefill state
+  const [hedgePrefill, setHedgePrefill] = useState(null);
+
+  const handleHedgeParlay = useCallback((parlayData) => {
+    setHedgePrefill(parlayData);
+    setSubTab('hedge');
+  }, []);
 
   // Force re-read from localStorage
   const positions = useMemo(() => getPositions(), [refreshKey]);
@@ -214,6 +225,24 @@ export default function FuturesPortfolio({ onAddPosition }) {
       {/* Summary */}
       <SummaryCards />
 
+      {/* Parlay quick stats (when parlays exist) */}
+      {(summary.liveParlays > 0) && (
+        <div className="flex items-center gap-4 bg-purple-500/5 border border-purple-500/20 rounded-xl px-4 py-2.5">
+          <GitMerge size={14} className="text-purple-400 shrink-0" />
+          <span className="text-purple-300 font-bold text-sm">{summary.liveParlays} live parlay{summary.liveParlays > 1 ? 's' : ''}</span>
+          <span className="text-slate-500 text-xs">·</span>
+          <span className="text-slate-400 text-xs">{fmtUSD(summary.parlayExposure)} staked</span>
+          <span className="text-slate-500 text-xs">·</span>
+          <span className="text-emerald-400 text-xs font-mono">{fmtUSD(summary.parlayMaxPayout)} max payout</span>
+          <button
+            onClick={() => setSubTab('parlays')}
+            className="ml-auto text-xs text-purple-400 hover:text-purple-300 font-bold transition"
+          >
+            View Parlays →
+          </button>
+        </div>
+      )}
+
       {/* Sub-tabs */}
       <div className="flex items-center gap-1 border-b border-slate-800 pb-px">
         {SUBTABS.map(tab => (
@@ -235,8 +264,17 @@ export default function FuturesPortfolio({ onAddPosition }) {
       {/* Content */}
       {subTab === 'positions' && <PositionsView />}
       {subTab === 'exposure'  && <ExposureView />}
-      {subTab === 'hedge'     && <HedgeCalculator onRefresh={refresh} />}
+      {subTab === 'hedge'     && (
+        <HedgeCalculator
+          onRefresh={refresh}
+          prefill={hedgePrefill}
+        />
+      )}
       {subTab === 'monitor'   && <FuturesOddsMonitor />}
+      {subTab === 'parlays'   && (
+        <ParlayTracker onSendToHedge={handleHedgeParlay} />
+      )}
+      {subTab === 'bracket'   && <PlayoffBracket />}
     </div>
   );
 }
