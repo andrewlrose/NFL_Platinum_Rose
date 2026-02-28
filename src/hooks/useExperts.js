@@ -66,6 +66,9 @@ export function useExperts({ schedule, findGameForTeam, openModal, closeModal })
     let savedCount = 0;
     let skippedCount = 0;
 
+    // Build a fast gameId → game lookup from schedule
+    const gameMap = new Map((schedule || []).map(g => [String(g.id), g]));
+
     stagedPicks.forEach(p => {
       if (!p.gameId) { skippedCount++; } else { savedCount++; }
     });
@@ -86,9 +89,29 @@ export function useExperts({ schedule, findGameForTeam, openModal, closeModal })
         };
 
         const category = (p.type && p.type.toLowerCase().includes('total')) ? 'total' : 'spread';
+
+        // Enrich pick with grading-ready fields from schedule
+        const game = gameMap.get(String(p.gameId));
+        const homeNames = game ? [game.home, game.homeName].filter(Boolean).map(s => s.toLowerCase()) : [];
+        const sel = (p.selection || '').toLowerCase();
+        const isHomeTeam = homeNames.some(h => sel.includes(h) || h.includes(sel));
+
         updatedGameData.expertPicks[category].push({
-          expert: p.expert, pick: p.selection, line: p.line, pickType: p.type,
-          analysis: p.analysis, rationale: p.rationale, units: p.units
+          id:          `${p.expert}-${p.gameId}-${category}-${Date.now()}`,
+          expert:      p.expert,
+          pick:        p.selection,
+          line:        p.line,
+          pickType:    p.type,
+          isHomeTeam,
+          home:        game?.homeName ?? game?.home ?? null,
+          visitor:     game?.visitorName ?? game?.visitor ?? null,
+          gameDate:    game?.date ?? null,
+          analysis:    p.analysis,
+          rationale:   p.rationale,
+          units:       p.units ?? 1,
+          result:      'PENDING',
+          gradedAt:    null,
+          addedAt:     new Date().toISOString(),
         });
 
         newConsensus[p.gameId] = updatedGameData;
@@ -104,7 +127,7 @@ export function useExperts({ schedule, findGameForTeam, openModal, closeModal })
     } else {
       alert(`Success! ${savedCount} picks added.`);
     }
-  }, [stagedPicks, closeModal]);
+  }, [stagedPicks, schedule, closeModal]);
 
   // --- CRUD handlers (all use functional updaters → stable refs) ---
   const handleUpdatePick = useCallback((gameId, oldPick, newPickData) => {

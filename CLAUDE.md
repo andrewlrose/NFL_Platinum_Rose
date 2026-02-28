@@ -308,6 +308,20 @@ Context is a finite resource — preserve it by delegating exploration and resea
 - [ ] AI transcript analysis extracts and stages picks
 - [ ] Bankroll bet entry saves to localStorage
 
+### Line History Chart — Feature Test Plan
+> Verify after changes to `LineHistoryChart.jsx`, `supabase.js` (`getLineHistoryDB`/`getActiveGameKeys`), or `OddsCenter.jsx`.
+- [ ] **Tab renders** — "Line History" tab visible in OddsCenter, click doesn't crash
+- [ ] **Demo fallback** — with no Supabase data, chart renders demo Eagles @ Chiefs game; amber "DEMO" badge present
+- [ ] **Market tabs** — switching Spread / Total O/U / Moneyline re-renders chart with correct data
+- [ ] **Opening/Current/Net Move** — three stat cards update when switching markets (demo: spread open = -2.5, net = -0.5)
+- [ ] **Chart renders** — recharts step chart visible; at least 2 book lines plotted
+- [ ] **Tooltip** — hover chart shows timestamp + per-book values in custom tooltip
+- [ ] **Opening reference line** — dashed gray line at opening value is present
+- [ ] **Book badges** — bottom book chips show correct current line values
+- [ ] **Game dropdown** — with Supabase data: dropdown populates from `getActiveGameKeys()`; selecting different game reloads chart
+- [ ] **Refresh button** — clicking Refresh re-fetches without page reload
+- [ ] **No console errors** in any market tab or game selection
+
 ---
 
 ## Agent System — Future Architecture
@@ -368,8 +382,8 @@ Two-folder pattern separates **data** from **operational state**:
 4. ~~**Line Movement Alerts**~~ — **Done.** `LineMovementTracker.jsx` — refactored to `getLineMovements()` + bet-aware alert generation
 
 ### Priority 2 — Enhancement
-5. Historical line charts (TradingView-style)
-6. Expert picks integration & accuracy tracking
+5. ~~**Historical line charts**~~ — **Done.** `LineHistoryChart.jsx` — recharts stepAfter per-book lines, demo fallback, spread/total/ML tabs, opening/current/delta summary
+6. ~~**Expert picks integration & accuracy tracking**~~ — **Done.** `ExpertLeaderboard.jsx` + `expertStats.js` — live W-L-P/win%/units per expert, pick detail rows, auto-graded via `useAutoGrade`
 7. Bet outcome tracking dashboard
 8. Advanced filtering & sorting
 9. Performance analytics (ROI by sportsbook, timing analysis)
