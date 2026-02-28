@@ -2,12 +2,13 @@
 // Main container for all live odds and line shopping features
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Target, Activity, DollarSign } from 'lucide-react';
+import { BarChart3, TrendingUp, Target, Activity, DollarSign, LineChart } from 'lucide-react';
 import LiveOddsDashboard from './LiveOddsDashboard';
 import LineMovementTracker from './LineMovementTracker';
 import ArbitrageFinder from './ArbitrageFinder';
 import SteamMoveTracker from './SteamMoveTracker';
 import BetValueComparison from './BetValueComparison';
+import LineHistoryChart from './LineHistoryChart';
 import {
   findArbitrageOpportunities,
   generateMockMultiBookData,
@@ -73,7 +74,13 @@ export default function OddsCenter() {
       label: 'Bet Value',
       icon: DollarSign,
       description: 'Your bets vs market lines',
-    }
+    },
+    {
+      id: 'line-history',
+      label: 'Line History',
+      icon: LineChart,
+      description: 'Historical line movement charts',
+    },
   ];
 
   const renderContent = () => {
@@ -88,6 +95,8 @@ export default function OddsCenter() {
         return <SteamMoveTracker />;
       case 'bet-value':
         return <BetValueComparison />;
+      case 'line-history':
+        return <LineHistoryChart />;
       default:
         return <LiveOddsDashboard />;
     }

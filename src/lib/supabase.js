@@ -81,6 +81,58 @@ export async function getLineMovementsDB(hours = 24) {
 // ─── Picks / Grading (future tables) ─────────────────────────────────────────
 
 /**
+ * Get all line movements for a specific game_key (for historical chart).
+ * Unlike getLineMovementsDB this queries by game_key and uses a long window.
+ * @param {string} gameKey  — e.g. "Buffalo Bills_Kansas City Chiefs"
+ * @param {number} hours    — how far back to look (default 7 days)
+ */
+export async function getLineHistoryDB(gameKey, hours = 7 * 24) {
+  if (!isAvailable() || !gameKey) return [];
+  try {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('line_movements')
+      .select('*')
+      .eq('game_key', gameKey)
+      .gte('detected_at', cutoff)
+      .order('detected_at', { ascending: true });
+
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getLineHistoryDB failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Get all unique game keys from line_movements in the last N hours.
+ * Used to populate the game selector in LineHistoryChart.
+ */
+export async function getActiveGameKeys(hours = 7 * 24) {
+  if (!isAvailable()) return [];
+  try {
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('line_movements')
+      .select('game_key, home_team, away_team')
+      .gte('detected_at', cutoff);
+
+    if (error || !data) return [];
+    // Deduplicate by game_key
+    const seen = new Set();
+    return data.filter(r => {
+      if (seen.has(r.game_key)) return false;
+      seen.add(r.game_key);
+      return true;
+    });
+  } catch (e) {
+    console.warn('[supabase] getActiveGameKeys failed:', e.message);
+    return [];
+  }
+}
+
+/**
  * Get game results for auto-grading pending picks.
  * Table: game_results (written by NFLAutoGradeAgent)
  */
