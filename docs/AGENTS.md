@@ -9,6 +9,7 @@
 | `SUPABASE_URL` | https://aambmuzfcojxqvbzhngp.supabase.co |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role JWT (bypasses RLS) |
 | `ODDS_API_KEY` | TheOddsAPI key (same as VITE_ODDS_API_KEY) |
+| `OPENAI_API_KEY` | OpenAI key — used by PodcastIngestAgent (Whisper + GPT-4o) |
 
 Add at: GitHub repo → Settings → Secrets and variables → Actions
 
@@ -21,6 +22,7 @@ Add at: GitHub repo → Settings → Secrets and variables → Actions
 | **OddsIngestAgent** | `agents/odds-ingest.js` | GitHub Actions: `odds-ingest.yml` | Poll TheOddsAPI, write odds + line snapshots to Supabase |
 | **NFLAutoGradeAgent** | `agents/nfl-auto-grade.js` | GitHub Actions: `nfl-auto-grade.yml` | Poll ESPN NFL scoreboard, grade pending picks automatically |
 | **FuturesOddsIngestAgent** | `agents/futures-odds-ingest.js` | GitHub Actions: `futures-odds-ingest.yml` 10:00 UTC daily | Poll 3 outrights markets, write to `futures_odds_snapshots` |
+| **PodcastIngestAgent** | `agents/podcast-ingest.js` | GitHub Actions: `podcast-ingest.yml` every 6 hours | Poll RSS feeds, Whisper transcribe, GPT-4o pick extraction → Supabase |
 
 ### FuturesOddsIngestAgent — detail
 - Polls: `americanfootball_nfl_super_bowl_winner`, `_championship_winner`, `_division_winner`
@@ -34,7 +36,6 @@ Add at: GitHub repo → Settings → Secrets and variables → Actions
 
 | Agent | Purpose | Priority |
 |-------|---------|----------|
-| **PodcastIngestAgent** | Extract NFL picks from podcast RSS feeds via PickExtractionAgent | MEDIUM |
 | **PickExtractionAgent** | Shared AI extraction backbone — sport-agnostic | MEDIUM |
 | **TwitterIngestAgent** | Extract NFL picks from bookmarked tweets | LOW |
 
@@ -81,3 +82,6 @@ Two-folder pattern separates **data** from **operational state**:
 | `line_movements` | `001_init.sql` | OddsIngestAgent | SteamMoveTracker, LineMovementTracker |
 | `game_results` | `001_init.sql` | NFLAutoGradeAgent | useAutoGrade |
 | `futures_odds_snapshots` | `002_futures_odds.sql` | FuturesOddsIngestAgent | FuturesOddsMonitor |
+| `podcast_feeds` | `003_podcast.sql` | migration seed | PodcastIngestAgent, PodcastIngestModal |
+| `podcast_episodes` | `003_podcast.sql` | PodcastIngestAgent | PodcastIngestModal |
+| `podcast_transcripts` | `003_podcast.sql` | PodcastIngestAgent | PodcastIngestModal |

@@ -1,0 +1,43 @@
+name: Podcast Ingest Agent
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # Every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+  workflow_dispatch:         # Manual trigger from GitHub Actions tab
+    inputs:
+      dry_run:
+        description: 'Dry run (discover only, no transcription)'
+        required: false
+        default: 'false'
+        type: boolean
+      max_per_run:
+        description: 'Max episodes to process per run'
+        required: false
+        default: '3'
+        type: string
+
+jobs:
+  podcast-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run PodcastIngestAgent
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENAI_API_KEY:            ${{ secrets.OPENAI_API_KEY }}
+          DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
+          MAX_PER_RUN:               ${{ inputs.max_per_run || '3' }}
+        run: node agents/podcast-ingest.js

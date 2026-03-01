@@ -248,3 +248,35 @@ export async function getGameResultsByIds(espnIds) {
     return [];
   }
 }
+
+// ─── Podcast Ingest ───────────────────────────────────────────────────────────
+
+/**
+ * Fetch recent processed podcast episodes with their transcripts, picks, and intel.
+ * Joins podcast_episodes → podcast_transcripts + podcast_feeds.
+ * Used by PodcastIngestModal to list actionable episodes.
+ *
+ * @param {number} limit  — max episodes to return (default 30)
+ * @returns {Promise<Array>} episodes with nested feed + transcript data
+ */
+export async function getPodcastEpisodes(limit = 30) {
+  if (!isAvailable()) return [];
+  try {
+    const { data, error } = await supabase
+      .from('podcast_episodes')
+      .select(`
+        id, title, pub_date, status, is_partial, duration_secs,
+        podcast_feeds ( name, expert ),
+        podcast_transcripts ( picks, intel, processed_at )
+      `)
+      .eq('status', 'done')
+      .order('pub_date', { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getPodcastEpisodes failed:', e.message);
+    return [];
+  }
+}

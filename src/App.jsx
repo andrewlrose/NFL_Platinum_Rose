@@ -40,12 +40,14 @@ import BankrollSettingsModal from './components/modals/BankrollSettingsModal';
 import FuturesPortfolio from './components/futures/FuturesPortfolio';
 import FuturesEntryModal from './components/modals/FuturesEntryModal';
 import StorageBackupModal from './components/modals/StorageBackupModal';
+import PodcastIngestModal from './components/modals/PodcastIngestModal';
 
 function App() {
   // --- UI State (local to App) ---
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedGame, setSelectedGame] = useState(null);
   const [betEntryGame, setBetEntryGame] = useState(null);
+  const [podcastModalOpen, setPodcastModalOpen] = useState(false);
 
   // --- Custom Hooks ---
   const {
@@ -74,7 +76,7 @@ function App() {
   } = useBettingCard(schedule);
 
   // --- Auto-grade pending picks from Supabase game_results ---
-  const { autoGraded } = useAutoGrade();
+  const { autoGraded, runGradingCheck, checking } = useAutoGrade();
 
   // --- Derived Data (cross-cutting: merges schedule + experts + splits) ---
   const gamesWithSplits = useMemo(() => schedule.map(game => {
@@ -105,7 +107,7 @@ function App() {
         {activeTab === 'bankroll' && <div className="animate-in fade-in zoom-in duration-300"><BankrollDashboard onAddBet={() => openModal('betEntry')} onShowCalculator={() => openModal('unitCalculator')} onImportBets={() => openModal('betImport')} onShowPending={() => openModal('pendingBets')} onShowSettings={() => openModal('bankrollSettings')} /></div>}
         {activeTab === 'analytics' && <div className="animate-in fade-in zoom-in duration-300"><AnalyticsDashboard /></div>}
         {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
-        {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
+        {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} onAutoGrade={runGradingCheck} autoGrading={checking} onOpenPodcastModal={() => setPodcastModalOpen(true)} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
         {activeTab === 'futures' && <div className="animate-in fade-in zoom-in duration-300"><FuturesPortfolio onAddPosition={() => openModal('futuresEntry')} /></div>}
       </main>
 
@@ -129,7 +131,9 @@ function App() {
       {modals.bankrollSettings && <BankrollSettingsModal isOpen onClose={() => closeModal('bankrollSettings')} onSettingsUpdated={() => {}} />}
       {modals.futuresEntry && <FuturesEntryModal isOpen onClose={() => closeModal('futuresEntry')} onAdded={() => {}} />
       }
-      {modals.storage && <StorageBackupModal isOpen onClose={() => closeModal('storage')} />}
+      {modals.storage && <StorageBackupModal isOpen onClose={() => closeModal('storage')} />
+      }
+      <PodcastIngestModal isOpen={podcastModalOpen} onClose={() => setPodcastModalOpen(false)} onPicksImported={() => setPicksRefreshKey(k => k + 1)} />
     </div>
   );
 }

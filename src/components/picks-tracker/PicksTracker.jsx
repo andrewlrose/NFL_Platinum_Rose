@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   Trophy, TrendingUp, TrendingDown, List, CheckCircle2,
   Trash2, AlertTriangle, ChevronDown, Filter, BarChart3, Target,
-  Clock, Award, Zap, RefreshCw
+  Clock, Award, Zap, RefreshCw, Mic
 } from 'lucide-react';
 import {
   loadPicks, clearAllPicks, deletePick,
@@ -23,8 +23,9 @@ const badge = (result) => {
 };
 
 const sourceBadge = (source) => {
-  if (source === 'AI_LAB') return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
-  return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+  if (source === 'AI_LAB')  return 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
+  if (source === 'EXPERT')  return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+  return 'bg-slate-700/40 text-slate-400 border-slate-600/30';
 };
 
 const fmtDate = (iso) => {
@@ -91,8 +92,10 @@ function OverviewTab({ onRefresh }) {
             <div key={src} className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                  {src === 'AI_LAB' ? <Zap size={16} className="text-indigo-400" /> : <Award size={16} className="text-slate-400" />}
-                  <span className="font-bold text-white text-sm">{src === 'AI_LAB' ? 'AI Dev Lab' : src}</span>
+                  {src === 'AI_LAB'  ? <Zap size={16} className="text-indigo-400" /> : <Award size={16} className="text-slate-400" />}
+                  <span className="font-bold text-white text-sm">
+                    {src === 'AI_LAB' ? 'AI Dev Lab' : src === 'EXPERT' ? 'Expert Picks' : src}
+                  </span>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded border ${s.units >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'}`}>
                   {s.units >= 0 ? '+' : ''}{s.units.toFixed(2)}u
@@ -169,13 +172,19 @@ function OverviewTab({ onRefresh }) {
 function AllPicksTab({ onRefresh }) {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [resultFilter, setResultFilter] = useState('all');
+  const [typeFilter,   setTypeFilter]   = useState('all');
+  const [dateFrom,     setDateFrom]     = useState('');
+  const [dateTo,       setDateTo]       = useState('');
 
   const picks = useMemo(() => {
     const filters = {};
-    if (sourceFilter !== 'all') filters.source = sourceFilter;
-    if (resultFilter !== 'all') filters.result = resultFilter;
+    if (sourceFilter !== 'all') filters.source   = sourceFilter;
+    if (resultFilter !== 'all') filters.result   = resultFilter;
+    if (typeFilter   !== 'all') filters.pickType = typeFilter;
+    if (dateFrom)               filters.dateFrom = dateFrom;
+    if (dateTo)                 filters.dateTo   = dateTo;
     return loadPicks(filters).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [sourceFilter, resultFilter, onRefresh]);
+  }, [sourceFilter, resultFilter, typeFilter, dateFrom, dateTo, onRefresh]);
 
   const handleDelete = (id) => {
     if (!window.confirm('Delete this pick?')) return;
@@ -194,6 +203,7 @@ function AllPicksTab({ onRefresh }) {
         >
           <option value="all">All Sources</option>
           <option value="AI_LAB">AI Dev Lab</option>
+          <option value="EXPERT">Expert Picks</option>
         </select>
         <select
           value={resultFilter}
@@ -206,6 +216,26 @@ function AllPicksTab({ onRefresh }) {
           <option value="LOSS">Loss</option>
           <option value="PUSH">Push</option>
         </select>
+        <select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          className="bg-slate-800 border border-slate-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+        >
+          <option value="all">All Types</option>
+          <option value="spread">Spread</option>
+          <option value="total">Total</option>
+          <option value="moneyline">Moneyline</option>
+        </select>
+        <input
+          type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          className="bg-slate-800 border border-slate-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+          title="From date"
+        />
+        <input
+          type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          className="bg-slate-800 border border-slate-700 text-sm text-white rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+          title="To date"
+        />
         <span className="text-xs text-slate-500 self-center ml-auto">{picks.length} pick{picks.length !== 1 ? 's' : ''}</span>
       </div>
 
@@ -226,7 +256,7 @@ function AllPicksTab({ onRefresh }) {
 
               {/* Source badge */}
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${sourceBadge(p.source)}`}>
-                {p.source === 'AI_LAB' ? 'AI' : 'GU'}
+                {p.source === 'AI_LAB' ? 'AI' : p.source === 'EXPERT' ? 'EX' : p.source}
               </span>
 
               {/* Pick details */}
@@ -234,6 +264,8 @@ function AllPicksTab({ onRefresh }) {
                 <div className="text-sm font-bold text-white truncate">
                   {p.pickType === 'spread'
                     ? `${p.selection} ${p.line > 0 ? '+' : ''}${p.line}`
+                    : p.pickType === 'moneyline'
+                    ? `${p.selection} ${p.line > 0 ? '+' : ''}${p.line} ML`
                     : `${p.selection} ${p.line}`
                   }
                 </div>
@@ -281,7 +313,7 @@ function AllPicksTab({ onRefresh }) {
 }
 
 /** Grade tab — enter scores for pending games */
-function GradeTab({ onRefresh, onOpenGradeModal }) {
+function GradeTab({ onRefresh, onOpenGradeModal, onAutoGrade, autoGrading }) {
   const stalePicks = findStalePicksPending();
   const pendingPicks = loadPicks({ result: 'PENDING' });
 
@@ -322,10 +354,22 @@ function GradeTab({ onRefresh, onOpenGradeModal }) {
         </div>
       ) : (
         <>
-          <p className="text-xs text-slate-500">
-            {gameGroups.length} game{gameGroups.length !== 1 ? 's' : ''} with pending picks.
-            Click a game to enter the final score.
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              {gameGroups.length} game{gameGroups.length !== 1 ? 's' : ''} with pending picks.
+              Click a game to enter the final score.
+            </p>
+            {onAutoGrade && (
+              <button
+                onClick={onAutoGrade}
+                disabled={autoGrading}
+                className="text-xs bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-900/50 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={autoGrading ? 'animate-spin' : ''} />
+                {autoGrading ? 'Checking…' : 'Auto-Grade'}
+              </button>
+            )}
+          </div>
           {gameGroups.map(g => (
             <button
               key={g.gameId || `${g.visitor}@${g.home}`}
@@ -354,10 +398,12 @@ function GradeTab({ onRefresh, onOpenGradeModal }) {
                 {g.picks.map(p => (
                   <div key={p.id} className="text-xs text-slate-500 flex items-center gap-2">
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${sourceBadge(p.source)}`}>
-                      {p.source === 'AI_LAB' ? 'AI' : 'GU'}
+                      {p.source === 'AI_LAB' ? 'AI' : p.source === 'EXPERT' ? 'EX' : p.source}
                     </span>
                     {p.pickType === 'spread'
                       ? `${p.selection} ${p.line > 0 ? '+' : ''}${p.line}`
+                      : p.pickType === 'moneyline'
+                      ? `${p.selection} ${p.line > 0 ? '+' : ''}${p.line} ML`
                       : `${p.selection} ${p.line}`
                     }
                   </div>
@@ -373,7 +419,7 @@ function GradeTab({ onRefresh, onOpenGradeModal }) {
 
 // ── Main Component ──────────────────────────────────────────
 
-export default function PicksTracker({ onOpenGradeModal }) {
+export default function PicksTracker({ onOpenGradeModal, onAutoGrade, autoGrading, onOpenPodcastModal }) {
   const [tab, setTab] = useState('overview');
   const [refreshKey, setRefreshKey] = useState(0);
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
@@ -411,6 +457,14 @@ export default function PicksTracker({ onOpenGradeModal }) {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          {onOpenPodcastModal && (
+            <button
+              onClick={onOpenPodcastModal}
+              className="bg-[#00d2be]/10 hover:bg-[#00d2be]/20 text-[#00d2be] px-3 py-2 rounded-lg text-sm flex items-center gap-2 border border-[#00d2be]/30 transition-all"
+            >
+              <Mic size={14} /> Podcast Intel
+            </button>
+          )}
           <button
             onClick={handleHealthCheck}
             className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm flex items-center gap-2 border border-slate-700 transition-all"
@@ -448,7 +502,7 @@ export default function PicksTracker({ onOpenGradeModal }) {
       <div className="min-h-[50vh]">
         {tab === 'overview' && <OverviewTab key={refreshKey} onRefresh={refresh} />}
         {tab === 'picks'    && <AllPicksTab key={refreshKey} onRefresh={refresh} />}
-        {tab === 'grade'    && <GradeTab key={refreshKey} onRefresh={refresh} onOpenGradeModal={onOpenGradeModal} />}
+        {tab === 'grade'    && <GradeTab key={refreshKey} onRefresh={refresh} onOpenGradeModal={onOpenGradeModal} onAutoGrade={onAutoGrade} autoGrading={autoGrading} />}
       </div>
     </div>
   );
