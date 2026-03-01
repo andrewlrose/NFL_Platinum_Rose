@@ -25,6 +25,15 @@ const DRY_RUN          = process.env.DRY_RUN === 'true';
 const SUPABASE_URL     = process.env.SUPABASE_URL;
 const SUPABASE_KEY     = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const OPENAI_KEY       = process.env.OPENAI_API_KEY;
+const GROQ_KEY         = process.env.GROQ_API_KEY;  // optional — free Whisper via Groq
+
+// Use Groq for transcription if GROQ_API_KEY is set (free tier, drop-in compatible).
+// Falls back to OpenAI Whisper ($0.006/min) if not.
+const TRANSCRIBE_URL   = GROQ_KEY
+  ? 'https://api.groq.com/openai/v1/audio/transcriptions'
+  : 'https://api.openai.com/v1/audio/transcriptions';
+const TRANSCRIBE_KEY   = GROQ_KEY ?? OPENAI_KEY;
+const TRANSCRIBE_MODEL = GROQ_KEY ? 'whisper-large-v3' : 'whisper-1';
 
 // ─── Supabase client ──────────────────────────────────────────────────────────
 
@@ -168,13 +177,15 @@ async function transcribeAudio(filePath) {
 
   const form = new FormData();
   form.append('file', blob, 'episode.mp3');
-  form.append('model', 'whisper-1');
+  form.append('model', TRANSCRIBE_MODEL);
   form.append('language', 'en');
   form.append('response_format', 'text');
 
-  const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  console.log(`    🎤 Using ${GROQ_KEY ? 'Groq (free)' : 'OpenAI'} Whisper (${TRANSCRIBE_MODEL})`);
+
+  const res = await fetch(TRANSCRIBE_URL, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+    headers: { 'Authorization': `Bearer ${TRANSCRIBE_KEY}` },
     body: form,
     signal: AbortSignal.timeout(300_000), // 5 min for long audio
   });

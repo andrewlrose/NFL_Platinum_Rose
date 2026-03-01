@@ -9,7 +9,8 @@
 | `SUPABASE_URL` | https://aambmuzfcojxqvbzhngp.supabase.co |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role JWT (bypasses RLS) |
 | `ODDS_API_KEY` | TheOddsAPI key (same as VITE_ODDS_API_KEY) |
-| `OPENAI_API_KEY` | OpenAI key — used by PodcastIngestAgent (Whisper + GPT-4o) |
+| `OPENAI_API_KEY` | OpenAI key — used by PodcastIngestAgent (GPT-4o extraction + Whisper fallback) |
+| `GROQ_API_KEY` | **Optional** — free Whisper transcription via Groq (`whisper-large-v3`); if set, eliminates ~$0.35/episode Whisper cost. Get key at console.groq.com |
 
 Add at: GitHub repo → Settings → Secrets and variables → Actions
 
