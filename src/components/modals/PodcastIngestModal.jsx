@@ -8,7 +8,7 @@ import {
   Radio, AlertTriangle, Download, Zap, BookOpen, Clock
 } from 'lucide-react';
 import { getPodcastEpisodes } from '../../lib/supabase';
-import { addExpertPick } from '../../lib/picksDatabase';
+import { addPick } from '../../lib/picksDatabase';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -64,17 +64,23 @@ function EpisodeCard({ episode, onImport }) {
     try {
       let count = 0;
       for (const pick of picks) {
-        addExpertPick({
-          expertName:  expert,
-          selection:   pick.selection,
-          team1:       pick.team1 ?? pick.selection,
-          team2:       pick.team2 ?? '',
-          type:        pick.type,
-          line:        pick.line ?? null,
+        const pickType = (pick.type ?? 'spread').toLowerCase();
+        addPick({
+          source:      'EXPERT',
+          gameId:      null,
+          pickType:    pickType.includes('total') ? 'total' : pickType.includes('money') ? 'moneyline' : 'spread',
+          selection:   pick.selection ?? '',
+          line:        pick.line ?? 0,
+          edge:        0,
           confidence:  pick.confidence ?? 65,
+          home:        pick.team1 ?? '',
+          visitor:     pick.team2 ?? '',
+          gameDate:    pick.game_date ?? '',
+          gameTime:    '',
+          commenceTime: null,
+          isHomeTeam:  false,
+          expertName:  expert,
           rationale:   pick.summary ?? '',
-          units:       pick.units ?? 1,
-          gameDate:    pick.game_date ?? null,
         });
         count++;
       }

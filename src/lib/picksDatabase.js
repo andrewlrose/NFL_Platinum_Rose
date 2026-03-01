@@ -17,8 +17,8 @@ const STORAGE_KEY = PR_STORAGE_KEYS.PICKS.key;
 const RESULTS_KEY = PR_STORAGE_KEYS.GAME_RESULTS.key;
 
 // ── Constants ───────────────────────────────────────────────
-const VALID_SOURCES   = ['AI_LAB'];
-const VALID_TYPES     = ['spread', 'total'];
+const VALID_SOURCES   = ['AI_LAB', 'EXPERT'];
+const VALID_TYPES     = ['spread', 'total', 'moneyline'];
 const VALID_RESULTS   = ['WIN', 'LOSS', 'PUSH', 'PENDING'];
 const JUICE           = 1.1;   // standard -110 vig
 
@@ -231,6 +231,16 @@ export const gradeTotal = (pick, homeScore, visitorScore) => {
 };
 
 /**
+ * Grade a moneyline pick.
+ * WIN if the picked team won; LOSS if they lost; PUSH on an exact tie.
+ */
+export const gradeMoneyline = (pick, homeScore, visitorScore) => {
+  if (homeScore === visitorScore) return 'PUSH';
+  const homeWon = homeScore > visitorScore;
+  return pick.isHomeTeam ? (homeWon ? 'WIN' : 'LOSS') : (homeWon ? 'LOSS' : 'WIN');
+};
+
+/**
  * Grade a single pick given final scores.
  * Returns the updated pick (also persists to storage).
  */
@@ -244,9 +254,9 @@ export const gradePick = (pickId, homeScore, visitorScore) => {
 
   const pick = picks[idx];
   const result =
-    pick.pickType === 'spread'
-      ? gradeSpread(pick, homeScore, visitorScore)
-      : gradeTotal(pick, homeScore, visitorScore);
+    pick.pickType === 'spread'    ? gradeSpread(pick, homeScore, visitorScore)
+    : pick.pickType === 'moneyline' ? gradeMoneyline(pick, homeScore, visitorScore)
+    :                                 gradeTotal(pick, homeScore, visitorScore);
 
   picks[idx] = {
     ...pick,
@@ -272,9 +282,9 @@ export const gradeGame = (gameId, homeScore, visitorScore) => {
     if (pick.gameId !== gameId || pick.result !== 'PENDING') return pick;
 
     const result =
-      pick.pickType === 'spread'
-        ? gradeSpread(pick, homeScore, visitorScore)
-        : gradeTotal(pick, homeScore, visitorScore);
+      pick.pickType === 'spread'    ? gradeSpread(pick, homeScore, visitorScore)
+      : pick.pickType === 'moneyline' ? gradeMoneyline(pick, homeScore, visitorScore)
+      :                                 gradeTotal(pick, homeScore, visitorScore);
 
     graded++;
     return {
@@ -447,9 +457,48 @@ export const healthCheck = () => {
   return { picks, stale, standings };
 };
 
+/**
+ * Convert an expert consensus pick into a tracked pr_picks_v1 pick.
+ * Source will be 'EXPERT'. Duplicate guard prevents re-tracking the same pick.
+ *
+ * @param {Object} expertPick  - object from expertConsensus[gameId].expertPicks.spread/total
+ *                               (must include .gameId, added by ExpertManagerModal)
+ */
+export const addExpertPick = (expertPick) => {
+  // Normalize pickType to lowercase VALID_TYPES value
+  const rawType = (expertPick.pickType || '').toLowerCase();
+  const pickType = rawType.includes('total')  ? 'total'
+                 : rawType.includes('money')  ? 'moneyline'
+                 :                              'spread';
+
+  // Ensure line is a number
+  const line = typeof expertPick.line === 'number'
+    ? expertPick.line
+    : parseFloat(expertPick.line) || 0;
+
+  // selection lives in 'pick' field on expert objects
+  const selection = expertPick.pick || expertPick.selection || '';
+
+  return addPick({
+    source:      'EXPERT',
+    gameId:      expertPick.gameId,
+    pickType,
+    selection,
+    line,
+    edge:        0,
+    confidence:  50,   // experts don't have confidence scores
+    home:        expertPick.home || '',
+    visitor:     expertPick.visitor || '',
+    gameDate:    expertPick.gameDate || '',
+    gameTime:    '',
+    commenceTime: null,
+    isHomeTeam:  expertPick.isHomeTeam ?? false,
+  });
+};
+
 // ── Exports summary ─────────────────────────────────────────
-// addPick, loadPicks, deletePick, clearAllPicks
-// gradePick, gradeGame, gradeSpread, gradeTotal
+// addPick, addExpertPick, loadPicks, deletePick, clearAllPicks
+// gradePick, gradeGame, gradeSpread, gradeTotal, gradeMoneyline
 // findStalePicksPending
 // calculateStandings, statsByConfidence, statsByEdge
 // validatePick, healthCheck
