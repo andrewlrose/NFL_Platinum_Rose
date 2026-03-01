@@ -1,6 +1,8 @@
 // src/lib/supabase.js
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUPABASE CLIENT — browser-side, uses anon key (read-only public data)
+// SUPABASE CLIENT — browser-side, uses anon key.
+// Read-only for public data (odds, line movements, game results).
+// Read+Write for user data (picks, bankroll bets) — permissive RLS for personal app.
 // Agents use service_role key via process.env, not this file.
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -277,6 +279,184 @@ export async function getPodcastEpisodes(limit = 30) {
     return data;
   } catch (e) {
     console.warn('[supabase] getPodcastEpisodes failed:', e.message);
+    return [];
+  }
+}
+
+// ─── User Picks Sync ──────────────────────────────────────────────────────────
+// localStorage is the primary store. These functions provide fire-and-forget
+// cloud sync so data survives a browser cache clear and is accessible on
+// multiple devices. Permissive RLS on user_picks allows anon key writes.
+
+/**
+ * Upsert a single pick to Supabase.
+ * Called fire-and-forget after every localStorage write in picksDatabase.js.
+ * @param {Object} pick  — pick object from picksDatabase.js
+ */
+export async function syncPick(pick) {
+  if (!isAvailable() || !pick?.id) return;
+  try {
+    await supabase.from('user_picks').upsert({
+      id:            pick.id,
+      game_id:       pick.gameId,
+      source:        pick.source,
+      pick_type:     pick.pickType,
+      selection:     pick.selection,
+      line:          pick.line,
+      edge:          pick.edge ?? 0,
+      confidence:    pick.confidence,
+      home:          pick.home,
+      visitor:       pick.visitor,
+      game_date:     pick.gameDate,
+      game_time:     pick.gameTime || null,
+      commence_time: pick.commenceTime || null,
+      is_home_team:  pick.isHomeTeam ?? false,
+      result:        pick.result ?? 'PENDING',
+      home_score:    pick.homeScore ?? null,
+      visitor_score: pick.visitorScore ?? null,
+      graded_at:     pick.gradedAt ? new Date(pick.gradedAt).toISOString() : null,
+      created_at:    pick.createdAt ? new Date(pick.createdAt).toISOString() : new Date().toISOString(),
+      updated_at:    new Date().toISOString(),
+    }, { onConflict: 'id' });
+  } catch (e) {
+    console.warn('[supabase] syncPick failed (non-fatal):', e.message);
+  }
+}
+
+/**
+ * Delete a pick from Supabase by ID.
+ * Called fire-and-forget after deletePick() in picksDatabase.js.
+ * @param {string} pickId
+ */
+export async function deleteSyncedPick(pickId) {
+  if (!isAvailable() || !pickId) return;
+  try {
+    await supabase.from('user_picks').delete().eq('id', pickId);
+  } catch (e) {
+    console.warn('[supabase] deleteSyncedPick failed (non-fatal):', e.message);
+  }
+}
+
+/**
+ * Load all picks from Supabase for boot-time hydration.
+ * Returns an array of pick objects normalized to the picksDatabase.js schema.
+ * @returns {Promise<Array>}
+ */
+export async function loadUserPicks() {
+  if (!isAvailable()) return [];
+  try {
+    const { data, error } = await supabase
+      .from('user_picks')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error || !data) return [];
+
+    // Normalize column_name → camelCase to match picksDatabase.js schema
+    return data.map(r => ({
+      id:           r.id,
+      gameId:       r.game_id,
+      source:       r.source,
+      pickType:     r.pick_type,
+      selection:    r.selection,
+      line:         r.line !== null ? Number(r.line) : 0,
+      edge:         r.edge !== null ? Number(r.edge) : 0,
+      confidence:   r.confidence ?? 50,
+      home:         r.home,
+      visitor:      r.visitor,
+      gameDate:     r.game_date,
+      gameTime:     r.game_time || '',
+      commenceTime: r.commence_time || null,
+      isHomeTeam:   r.is_home_team ?? false,
+      result:       r.result ?? 'PENDING',
+      homeScore:    r.home_score ?? null,
+      visitorScore: r.visitor_score ?? null,
+      gradedAt:     r.graded_at ?? null,
+      createdAt:    r.created_at,
+    }));
+  } catch (e) {
+    console.warn('[supabase] loadUserPicks failed (non-fatal):', e.message);
+    return [];
+  }
+}
+
+
+// ─── User Bankroll Bets Sync ──────────────────────────────────────────────────
+
+/**
+ * Upsert a single bankroll bet to Supabase.
+ * Called fire-and-forget after every write in bankroll.js.
+ * @param {Object} bet  — bet object from bankroll.js
+ */
+export async function syncBet(bet) {
+  if (!isAvailable() || !bet?.id) return;
+  try {
+    await supabase.from('user_bankroll_bets').upsert({
+      id:             bet.id,
+      timestamp:      bet.timestamp ? new Date(bet.timestamp).toISOString() : new Date().toISOString(),
+      week:           bet.week ?? null,
+      status:         bet.status ?? 'pending',
+      is_parlay:      bet.isParlay ?? false,
+      is_hedging_bet: bet.isHedgingBet ?? false,
+      open_slots:     bet.openSlots ?? 0,
+      legs:           bet.legs ?? [],
+      source:         bet.source ?? 'Manual',
+      ticket_number:  bet.ticketNumber ?? null,
+      imported:       bet.imported ?? false,
+      imported_at:    bet.importedAt ? new Date(bet.importedAt).toISOString() : null,
+      description:    bet.description ?? '',
+      amount:         bet.amount ?? null,
+      odds:           bet.odds ?? null,
+      type:           bet.type ?? null,
+      potential_win:  bet.potentialWin ?? 0,
+      profit:         bet.profit ?? null,
+      settled_at:     bet.settledAt ? new Date(bet.settledAt).toISOString() : null,
+      updated_at:     new Date().toISOString(),
+    }, { onConflict: 'id' });
+  } catch (e) {
+    console.warn('[supabase] syncBet failed (non-fatal):', e.message);
+  }
+}
+
+/**
+ * Load all bankroll bets from Supabase for boot-time hydration.
+ * Returns an array of bet objects normalized to the bankroll.js schema.
+ * @returns {Promise<Array>}
+ */
+export async function loadUserBets() {
+  if (!isAvailable()) return [];
+  try {
+    const { data, error } = await supabase
+      .from('user_bankroll_bets')
+      .select('*')
+      .order('timestamp', { ascending: true });
+
+    if (error || !data) return [];
+
+    // Normalize column_name → camelCase to match bankroll.js schema
+    return data.map(r => ({
+      id:            r.id,
+      timestamp:     r.timestamp,
+      week:          r.week,
+      status:        r.status ?? 'pending',
+      isParlay:      r.is_parlay ?? false,
+      isHedgingBet:  r.is_hedging_bet ?? false,
+      openSlots:     r.open_slots ?? 0,
+      legs:          r.legs ?? [],
+      source:        r.source ?? 'Manual',
+      ticketNumber:  r.ticket_number ?? null,
+      imported:      r.imported ?? false,
+      importedAt:    r.imported_at ?? null,
+      description:   r.description ?? '',
+      amount:        r.amount !== null ? Number(r.amount) : null,
+      odds:          r.odds !== null ? Number(r.odds) : null,
+      type:          r.type ?? null,
+      potentialWin:  r.potential_win !== null ? Number(r.potential_win) : 0,
+      profit:        r.profit !== null ? Number(r.profit) : null,
+      settledAt:     r.settled_at ?? null,
+    }));
+  } catch (e) {
+    console.warn('[supabase] loadUserBets failed (non-fatal):', e.message);
     return [];
   }
 }

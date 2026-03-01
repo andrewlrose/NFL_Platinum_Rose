@@ -11,6 +11,11 @@
 // ─────────────────────────────────────────────────────────────
 
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage';
+import { syncPick, deleteSyncedPick } from './supabase';
+
+// Sync helper — fire and forget, never throws
+const fireSync   = (pick)   => syncPick(pick).catch(() => {});
+const fireDelete  = (pickId) => deleteSyncedPick(pickId).catch(() => {});
 
 // ── Storage Keys (canonical refs) ───────────────────────────
 const STORAGE_KEY = PR_STORAGE_KEYS.PICKS.key;
@@ -153,6 +158,7 @@ export const addPick = (pickData) => {
 
   picks.push(pick);
   writePicks(picks);
+  fireSync(pick);  // cloud sync — non-blocking
   console.log(`✅ Pick saved: ${pick.source} ${pick.selection} ${pick.pickType} ${pick.line}`);
   return pick;
 };
@@ -174,6 +180,7 @@ export const loadPicks = (filters = {}) => {
 export const deletePick = (pickId) => {
   const picks = readPicks().filter(p => p.id !== pickId);
   writePicks(picks);
+  fireDelete(pickId);  // cloud sync — non-blocking
 };
 
 /** Delete ALL picks (full reset). */
@@ -267,6 +274,7 @@ export const gradePick = (pickId, homeScore, visitorScore) => {
   };
 
   writePicks(picks);
+  fireSync(picks[idx]);  // cloud sync — non-blocking
   console.log(`📝 Graded: ${pick.selection} ${pick.line} → ${result} (${homeScore}-${visitorScore})`);
   return picks[idx];
 };
@@ -297,6 +305,11 @@ export const gradeGame = (gameId, homeScore, visitorScore) => {
   });
 
   writePicks(updated);
+
+  // Sync graded picks to Supabase — fire and forget
+  updated
+    .filter(p => p.gameId === gameId && p.result !== 'PENDING')
+    .forEach(p => fireSync(p));
 
   // Cache the result for future reference
   const results = readResults();

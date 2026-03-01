@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
 // --- Hooks ---
 import { useModals } from './hooks/useModals';
@@ -9,6 +9,9 @@ import { useAutoGrade } from './hooks/useAutoGrade';
 
 // --- Lib ---
 import { INITIAL_EXPERTS } from './lib/experts';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './lib/storage';
+import { getBankrollData, saveBankrollData } from './lib/bankroll';
+import { loadUserPicks, loadUserBets } from './lib/supabase';
 
 // --- Components ---
 import Header from './components/layout/Header';
@@ -77,6 +80,44 @@ function App() {
 
   // --- Auto-grade pending picks from Supabase game_results ---
   const { autoGraded, runGradingCheck, checking } = useAutoGrade();
+
+  // --- Boot hydration: restore picks + bets from Supabase if missing locally ---
+  useEffect(() => {
+    async function hydrateFromSupabase() {
+      try {
+        const [cloudPicks, cloudBets] = await Promise.all([loadUserPicks(), loadUserBets()]);
+        let hydrated = false;
+
+        if (cloudPicks.length > 0) {
+          const localPicks = loadFromStorage(PR_STORAGE_KEYS.PICKS.key, []);
+          const localIds = new Set(localPicks.map(p => p.id));
+          const added = cloudPicks.filter(p => !localIds.has(p.id));
+          if (added.length > 0) {
+            saveToStorage(PR_STORAGE_KEYS.PICKS.key, [...localPicks, ...added]);
+            console.log(`[sync] Hydrated ${added.length} picks from Supabase`);
+            hydrated = true;
+          }
+        }
+
+        if (cloudBets.length > 0) {
+          const localData = getBankrollData();
+          const localIds = new Set(localData.bets.map(b => String(b.id)));
+          const added = cloudBets.filter(b => !localIds.has(String(b.id)));
+          if (added.length > 0) {
+            localData.bets = [...localData.bets, ...added];
+            saveBankrollData(localData);
+            console.log(`[sync] Hydrated ${added.length} bets from Supabase`);
+            hydrated = true;
+          }
+        }
+
+        if (hydrated) setPicksRefreshKey(k => k + 1);
+      } catch (e) {
+        console.warn('[sync] Boot hydration failed (non-fatal):', e.message);
+      }
+    }
+    hydrateFromSupabase();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Derived Data (cross-cutting: merges schedule + experts + splits) ---
   const gamesWithSplits = useMemo(() => schedule.map(game => {

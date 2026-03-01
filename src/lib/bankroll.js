@@ -2,6 +2,10 @@
 // Bankroll management, bet tracking, and analytics
 
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage';
+import { syncBet } from './supabase';
+
+// Sync helper — fire and forget, never throws
+const fireSync = (bet) => syncBet(bet).catch(() => {});
 
 const STORAGE_KEY = PR_STORAGE_KEYS.BANKROLL.key;
 
@@ -109,6 +113,7 @@ export const addBet = (bet) => {
     
     data.bets.push(newBet);
     saveBankrollData(data);
+    fireSync(newBet);  // cloud sync — non-blocking
     return newBet;
 };
 
@@ -137,6 +142,7 @@ export const updateBetResult = (betId, status, actualOdds = null) => {
     
     data.bets[betIndex] = bet;
     saveBankrollData(data);
+    fireSync(bet);  // cloud sync — non-blocking
     return true;
 };
 
@@ -159,6 +165,7 @@ export const updateBet = (betId, updatedBet) => {
     
     data.bets[betIndex] = updatedBetData;
     saveBankrollData(data);
+    fireSync(updatedBetData);  // cloud sync — non-blocking
     return true;
 };
 
