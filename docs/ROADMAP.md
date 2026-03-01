@@ -17,8 +17,8 @@
 9. ~~**Performance analytics (ROI by sportsbook, timing analysis)**~~ — `BookAnalytics.jsx` — recharts horizontal bar chart + sortable table (ROI/profit/win%/volume by sportsbook, W-L-P, mini win-distribution bar). `calculateBookAnalytics()` added to `analyticsEngine.js`. `BettingPatterns.jsx` upgraded with hour-of-day buckets + win-rate fill bars with break-even tick. Accessible via Analytics tab → Overview.
 
 ## Priority 3 — Infrastructure
-10. Cloud sync (Firebase/Supabase) — Supabase partially done (odds, results, futures); full user data sync not started
-11. CI/CD pipeline (GitHub Actions) — agents deployed; app deploy not automated
+10. ~~**Cloud sync (Supabase)**~~ — picks (`user_picks`) + bankroll bets (`user_bankroll_bets`) now synced via fire-and-forget on every write; boot hydration restores data after browser clear / new device; migration `004_user_data.sql`
+11. ~~**CI/CD pipeline (GitHub Actions)**~~ — agents + app deploy fully automated
 12. Testing suite (Jest + Cypress) — not started
 
 ---

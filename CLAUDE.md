@@ -55,6 +55,8 @@ Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 ## localStorage Keys
 All keys are catalogued in `PR_STORAGE_KEYS` in `src/lib/storage.js`. Use `loadFromStorage`/`saveToStorage`/`clearStorage` — never call `localStorage` directly.
 
+**Sync architecture:** localStorage is the PRIMARY store (instant reads, offline-capable). Supabase is a fire-and-forget sync layer. On every write to `pr_picks_v1` or `nfl_bankroll_data_v1`, the change is upserted to Supabase in the background. On app boot, `hydrateFromSupabase()` in App.jsx fetches any records missing from localStorage (restores data after browser clear or on a new device).
+
 | Key | Purpose | Permanence | Managed By |
 |-----|---------|------------|------------|
 | `nfl_splits` | Action Network betting splits | persistent | useSchedule.js |
