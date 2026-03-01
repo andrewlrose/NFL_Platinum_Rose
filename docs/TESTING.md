@@ -14,6 +14,7 @@ Run after changes to App.jsx, storage logic, or parsers:
 - [ ] All 9 tabs render without crashing
 - [ ] Bulk import (Action Network) parses and updates splits
 - [ ] AI transcript analysis extracts and stages picks
+- [ ] Picks Tracker → "Podcast Intel" button opens modal without crash
 - [ ] Bankroll bet entry saves to localStorage
 - [ ] Futures position entry saves and survives hard refresh
 - [ ] Clear a betting card → hard refresh → bets stay cleared (no resurrection)
@@ -50,3 +51,36 @@ Verify after changes to any file in `src/components/futures/` or `src/lib/future
 - [ ] Playoff Bracket: Edit Seeds mode → pick a team → card updates → persists after refresh
 - [ ] Playoff Bracket: teams with open futures show color-coded chips
 - [ ] StorageBackupModal: `pr_playoff_bracket_v1` present in key table
+
+---
+
+## Podcast Ingest Pipeline — Feature Test Plan
+Verify after changes to `agents/podcast-ingest.js`, `PodcastIngestModal.jsx`, `supabase.js` (`getPodcastEpisodes`), or `003_podcast.sql`:
+
+### GitHub Actions Agent
+- [ ] **Dry run passes** — workflow runs with `dry_run=true`, exits 0, logs "X recent episodes" for each of 4 feeds, no Supabase writes
+- [ ] **Live run (max_per_run=1)** — workflow runs with `dry_run=false`, exits 0; agent logs "1 transcribed + extracted"
+- [ ] **Episode in Supabase** — after live run, `podcast_episodes` table has 1 row with `status = 'done'`
+- [ ] **Transcript in Supabase** — `podcast_transcripts` table has 1 row with non-empty `picks` or `intel` arrays
+- [ ] **Dedup works** — re-running the agent immediately processes 0 new episodes (all guids already known)
+- [ ] **Error recovery** — if one episode fails, agent marks it `status = 'error'` with `error_msg`, continues to next, exits 1
+
+### PodcastIngestModal UI
+- [ ] **Button visible** — "Podcast Intel" teal button appears in Picks Tracker header
+- [ ] **Modal opens** — clicking button opens `PodcastIngestModal` without crash
+- [ ] **Episodes load** — processed episodes appear grouped by feed name (Sharp or Square / Even Money / Action Network / Warren Sharp)
+- [ ] **Expand episode** — clicking episode row chevron expands picks + intel sections
+- [ ] **Pick cards render** — each pick shows type chip (SPREAD/MONEYLINE/TOTAL), selection, line, summary, game date
+- [ ] **Intel notes render** — bullet list of analysis notes below picks
+- [ ] **Import button** — clicking "Import N" calls `addExpertPick()` for each pick; button changes to "✓ Imported"
+- [ ] **Import confirmation** — green banner "✓ N picks added to Picks Tracker" appears after import
+- [ ] **Picks appear in tracker** — after import, closing modal and checking All Picks tab shows new EXPERT source picks
+- [ ] **Refresh button** — refresh icon re-fetches from Supabase without closing modal
+- [ ] **Empty state** — with no processed episodes, modal shows "No Episodes Yet" message with cron schedule note
+- [ ] **Partial audio badge** — episodes with `is_partial=true` show "PARTIAL AUDIO" amber chip
+
+### Supabase / Data Layer
+- [ ] **`getPodcastEpisodes()` returns joined data** — result includes nested `podcast_feeds.name`, `podcast_feeds.expert`, `podcast_transcripts.picks`, `podcast_transcripts.intel`
+- [ ] **Only `status='done'` episodes returned** — pending/error/transcribing episodes not shown in UI
+- [ ] **Groq path** — if `GROQ_API_KEY` secret is set, agent logs "Using Groq (free) Whisper (whisper-large-v3)"
+- [ ] **OpenAI fallback** — if only `OPENAI_API_KEY` set, agent logs "Using OpenAI Whisper (whisper-1)"
