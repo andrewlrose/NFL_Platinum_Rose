@@ -42,6 +42,6 @@
 | OddsIngestAgent | ✅ Built |
 | NFLAutoGradeAgent | ✅ Built |
 | FuturesOddsIngestAgent | ✅ Built |
-| PodcastIngestAgent | Planned |
+| PodcastIngestAgent | ✅ Built |
 | PickExtractionAgent | Planned |
 | TwitterIngestAgent | Planned |
