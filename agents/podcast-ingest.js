@@ -42,6 +42,18 @@ function getSupabase() {
   return createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
+// ─── Custom errors ──────────────────────────────────────────────────────────────
+
+/** Thrown when the transcription API hits its hourly rate limit. Not retryable. */
+class RateLimitError extends Error {
+  constructor(retryAfterSecs) {
+    const mins = retryAfterSecs ? Math.ceil(retryAfterSecs / 60) : '?';
+    super(`Groq rate limit reached — retry in ~${mins} min`);
+    this.name = 'RateLimitError';
+    this.retryAfterSecs = retryAfterSecs;
+  }
+}
+
 // ─── Lightweight RSS parser ───────────────────────────────────────────────────
 
 /** Extract text content between the first occurrence of <tag...>...</tag> */
@@ -191,8 +203,20 @@ async function transcribeAudio(filePath) {
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Whisper error: ${err}`);
+    const errText = await res.text();
+    // Detect Groq rate limit — don't retry, let the episode stay 'pending'
+    try {
+      const errJson = JSON.parse(errText);
+      if (errJson?.error?.code === 'rate_limit_exceeded') {
+        // Parse retry-after seconds from the error message if available
+        const match = errJson.error.message.match(/(\d+)m(\d+(?:\.\d+)?)s/);
+        const secs  = match ? parseInt(match[1]) * 60 + parseFloat(match[2]) : null;
+        throw new RateLimitError(secs);
+      }
+    } catch (e) {
+      if (e instanceof RateLimitError) throw e;
+    }
+    throw new Error(`Whisper error: ${errText}`);
   }
 
   return res.text(); // whisper-1 + response_format=text returns plain string
@@ -291,6 +315,8 @@ async function fetchWithRetry(fn, retries = MAX_RETRIES) {
     try {
       return await fn();
     } catch (err) {
+      // Rate limit errors are never retryable within the same run — bail immediately
+      if (err instanceof RateLimitError) throw err;
       lastErr = err;
       if (i < retries - 1) {
         const delay = 2 ** i * 1000;
@@ -506,6 +532,19 @@ async function run() {
         totalProcessed++;
 
       } catch (err) {
+        // Rate limit: mark back as pending (not error) so next run retries.
+        // Stop processing remaining episodes — they'll all fail the same way.
+        if (err instanceof RateLimitError) {
+          console.warn(`    ⏳ ${err.message} — stopping this run early`);
+          if (episodeId) {
+            await supabase
+              .from('podcast_episodes')
+              .update({ status: 'pending', error_msg: null })
+              .eq('id', episodeId);
+          }
+          break; // stop processing this feed's queue; outer loop will stop too
+        }
+
         console.error(`    ❌ Processing failed: ${err.message}`);
         totalErrors++;
 
