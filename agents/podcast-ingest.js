@@ -255,7 +255,7 @@ async function transcribeWithAssemblyAI(audioUrl) {
   const submitRes = await fetch(`${ASSEMBLYAI_BASE}/transcript`, {
     method:  'POST',
     headers,
-    body:    JSON.stringify({ audio_url: audioUrl, language_code: 'en' }),
+    body:    JSON.stringify({ audio_url: audioUrl, language_code: 'en', speech_model: 'universal-2' }),
     signal:  AbortSignal.timeout(30_000),
   });
 
