@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "update-schedule": "node scripts/update-schedule.js"
+    "update-schedule": "node scripts/update-schedule.js",
+    "test:smoke": "playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.2",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
