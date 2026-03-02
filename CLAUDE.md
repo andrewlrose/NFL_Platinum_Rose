@@ -217,6 +217,10 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 - **Boot clobber — never unconditionally set state from a network fetch**: `setSplits(splitsData || {})` in the boot effect overwrites the user's Action Network splits on every hard refresh (and wipes them entirely on network failure). Always check localStorage first: only use the remote value if the local key is empty. Rule: boot effects initialize; they don't overwrite.
 
+- **AssemblyAI `speech_models` is required and is an array**: The API does not default to any model. Must pass `speech_models: ['universal-2']` (or `['universal-3-pro']` for higher quality). `speech_model` (singular, string) is deprecated and will also error. Always check AssemblyAI docs when the submit returns a 400 with a model-related error.
+
+- **GHA runs check out the commit at trigger time**: If you push a fix and immediately re-trigger a workflow, the run may still use the pre-fix commit if the trigger races the push. Wait for the push to complete before triggering, or verify the commit SHA in the run's "Checkout" step output.
+
 - **Raw localStorage calls outside storage.js**: `picksDatabase.js`, `bankroll.js`, and `EditBetModal.jsx` all had direct `localStorage.getItem/setItem` calls that bypassed try/catch and the key catalog. All reads/writes must go through `loadFromStorage`/`saveToStorage`. This also means `PR_STORAGE_KEYS` is the single source of truth — key string changes only need to happen in one place.
 
 ---
