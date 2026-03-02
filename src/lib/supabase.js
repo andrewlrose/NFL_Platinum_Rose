@@ -317,6 +317,10 @@ export async function syncPick(pick) {
       graded_at:     pick.gradedAt ? new Date(pick.gradedAt).toISOString() : null,
       created_at:    pick.createdAt ? new Date(pick.createdAt).toISOString() : new Date().toISOString(),
       updated_at:    new Date().toISOString(),
+      // Extended fields (populated for podcast/expert picks)
+      rationale:     pick.rationale || null,
+      expert:        pick.expert    || null,
+      units:         pick.units     ?? null,
     }, { onConflict: 'id' });
   } catch (e) {
     console.warn('[supabase] syncPick failed (non-fatal):', e.message);
@@ -373,6 +377,10 @@ export async function loadUserPicks() {
       visitorScore: r.visitor_score ?? null,
       gradedAt:     r.graded_at ?? null,
       createdAt:    r.created_at,
+      // Extended fields (populated for podcast/expert picks)
+      rationale:    r.rationale   ?? null,
+      expert:       r.expert      ?? null,
+      units:        r.units !== null ? Number(r.units) : null,
     }));
   } catch (e) {
     console.warn('[supabase] loadUserPicks failed (non-fatal):', e.message);
