@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target, Briefcase, Database } from 'lucide-react';
+import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target, Briefcase, Database, Bot } from 'lucide-react';
 import { getNFLWeekInfo } from '../../lib/constants';
 
 export default function Header({ 
@@ -17,6 +17,7 @@ export default function Header({
   onSave,
   onReset,
   onOpenStorage,
+  onOpenAgentStatus,
 }) {
   
   const NavTab = ({ id, label, icon: Icon }) => (
@@ -114,6 +115,7 @@ export default function Header({
                     <IconButton onClick={onReset} icon={RotateCcw} label="Reset Card" colorClass="text-rose-400 hover:text-rose-300 hover:border-rose-500/30" />
                     <div className="h-6 w-px bg-slate-800 mx-1"></div>
                     <IconButton onClick={onOpenStorage} icon={Database} label="Data Manager" colorClass="text-[#00d2be] hover:text-white hover:border-[#00d2be]/30" />
+                    <IconButton onClick={onOpenAgentStatus} icon={Bot} label="Agent Status" colorClass="text-purple-400 hover:text-purple-300 hover:border-purple-500/30" />
                 </div>
             </div>
         </div>

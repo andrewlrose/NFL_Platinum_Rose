@@ -44,6 +44,7 @@ import FuturesPortfolio from './components/futures/FuturesPortfolio';
 import FuturesEntryModal from './components/modals/FuturesEntryModal';
 import StorageBackupModal from './components/modals/StorageBackupModal';
 import PodcastIngestModal from './components/modals/PodcastIngestModal';
+import AgentStatusModal from './components/modals/AgentStatusModal';
 
 function App() {
   // --- UI State (local to App) ---
@@ -51,6 +52,7 @@ function App() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [betEntryGame, setBetEntryGame] = useState(null);
   const [podcastModalOpen, setPodcastModalOpen] = useState(false);
+  const [agentStatusOpen, setAgentStatusOpen] = useState(false);
 
   // --- Custom Hooks ---
   const {
@@ -139,7 +141,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-gray-200 font-sans pb-20 selection:bg-[#00d2be] selection:text-black">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }} onOpenStorage={() => openModal('storage')} />
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }} onOpenStorage={() => openModal('storage')} onOpenAgentStatus={() => setAgentStatusOpen(true)} />
       <main className="max-w-7xl mx-auto px-4 py-8">
         {activeTab === 'dashboard' && <div className="animate-in fade-in zoom-in duration-300"><Dashboard schedule={gamesWithSplits} stats={stats} simResults={simResults} onGameClick={setSelectedGame} onShowInjuries={(game) => { setSelectedGame(game); openModal('injuryReport'); }} onAddBankrollBet={(game) => { setBetEntryGame(game); openModal('betEntry'); }} /></div>}
         {activeTab === 'standings' && <div className="max-w-5xl mx-auto animate-in fade-in zoom-in duration-300"><ExpertLeaderboard expertConsensus={expertConsensus} refreshKey={picksRefreshKey + autoGraded} /></div>}
@@ -175,6 +177,7 @@ function App() {
       {modals.storage && <StorageBackupModal isOpen onClose={() => closeModal('storage')} />
       }
       <PodcastIngestModal isOpen={podcastModalOpen} onClose={() => setPodcastModalOpen(false)} onPicksImported={() => setPicksRefreshKey(k => k + 1)} />
+      <AgentStatusModal isOpen={agentStatusOpen} onClose={() => setAgentStatusOpen(false)} />
     </div>
   );
 }
