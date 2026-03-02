@@ -8,7 +8,7 @@ on:
       dry_run:
         description: 'Dry run (discover only, no transcription)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
       max_per_run:
         description: 'Max episodes to process per run'
@@ -38,7 +38,8 @@ jobs:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           OPENAI_API_KEY:            ${{ secrets.OPENAI_API_KEY }}
-          GROQ_API_KEY:              ${{ secrets.GROQ_API_KEY }}  # optional — free Whisper; if set, skips OpenAI Whisper cost
+          GROQ_API_KEY:              ${{ secrets.GROQ_API_KEY }}         # optional — free Whisper; takes priority over AssemblyAI
+          ASSEMBLYAI_API_KEY:        ${{ secrets.ASSEMBLYAI_API_KEY }}   # optional — fallback if Groq rate-limited
           DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
           MAX_PER_RUN:               ${{ inputs.max_per_run || '3' }}
         run: node agents/podcast-ingest.js

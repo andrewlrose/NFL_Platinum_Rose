@@ -1,12 +1,16 @@
 // agents/podcast-ingest.js
-// PodcastIngestAgent — polls configured RSS feeds, transcribes new episodes via
-// OpenAI Whisper, extracts NFL picks + intel via GPT-4o, writes to Supabase.
+// PodcastIngestAgent — polls configured RSS feeds, transcribes new episodes,
+// extracts NFL picks + intel via GPT-4o, writes to Supabase.
 //
 // Runtime:    Node.js 20+ ESM (GitHub Actions)
-// Schedule:   Every 6 hours (see .github/workflows/podcast-ingest.yml)
+// Schedule:   Every Friday 8am UTC (see .github/workflows/podcast-ingest.yml)
 // Env vars:   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY
-// Optional:   DRY_RUN=true   — discover episodes but skip transcription + writes
-//             MAX_PER_RUN=2  — limit new episodes processed per run (default: 3)
+// Optional:   GROQ_API_KEY       — free Whisper via Groq (7200 sec/hr limit)
+//             ASSEMBLYAI_API_KEY — fallback if Groq rate-limited; passes URL directly, no download
+//             DRY_RUN=true       — discover episodes but skip transcription + writes
+//             MAX_PER_RUN=2      — limit new episodes processed per run (default: 3)
+//
+// Transcription priority: Groq → AssemblyAI → OpenAI Whisper
 
 import { createClient }    from '@supabase/supabase-js';
 import { createWriteStream, readFileSync, unlinkSync, statSync } from 'node:fs';
@@ -22,18 +26,22 @@ const MAX_AUDIO_BYTES  = 24 * 1024 * 1024; // 24 MB (Whisper limit is 25 MB)
 const MAX_PER_RUN      = parseInt(process.env.MAX_PER_RUN ?? '3', 10);
 const DRY_RUN          = process.env.DRY_RUN === 'true';
 
-const SUPABASE_URL     = process.env.SUPABASE_URL;
-const SUPABASE_KEY     = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OPENAI_KEY       = process.env.OPENAI_API_KEY;
-const GROQ_KEY         = process.env.GROQ_API_KEY;  // optional — free Whisper via Groq
+const SUPABASE_URL      = process.env.SUPABASE_URL;
+const SUPABASE_KEY      = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const OPENAI_KEY        = process.env.OPENAI_API_KEY;
+const GROQ_KEY          = process.env.GROQ_API_KEY;          // optional — free Whisper via Groq
+const ASSEMBLYAI_KEY    = process.env.ASSEMBLYAI_API_KEY;    // optional — fallback if Groq rate-limited
 
-// Use Groq for transcription if GROQ_API_KEY is set (free tier, drop-in compatible).
-// Falls back to OpenAI Whisper ($0.006/min) if not.
+// Transcription provider priority:
+//   1. Groq         — free, 7200 sec/hr limit, drop-in Whisper-compatible
+//   2. AssemblyAI   — paid (~$0.37/hr Best), no file download needed, no size/rate limit
+//   3. OpenAI       — paid ($0.006/min), last resort
 const TRANSCRIBE_URL   = GROQ_KEY
   ? 'https://api.groq.com/openai/v1/audio/transcriptions'
   : 'https://api.openai.com/v1/audio/transcriptions';
 const TRANSCRIBE_KEY   = GROQ_KEY ?? OPENAI_KEY;
 const TRANSCRIBE_MODEL = GROQ_KEY ? 'whisper-large-v3' : 'whisper-1';
+const USE_ASSEMBLYAI   = !!ASSEMBLYAI_KEY && !GROQ_KEY; // only use if Groq unavailable
 
 // ─── Supabase client ──────────────────────────────────────────────────────────
 
@@ -472,28 +480,39 @@ async function run() {
         .update({ status: 'transcribing' })
         .eq('id', episodeId);
 
-      let tmpFile = null;
+      let tmpFile  = null;
+      let modelUsed = 'whisper+gpt-4o'; // updated below per provider
       try {
-        // 5a. Download audio
-        console.log(`    ⬇ Downloading audio...`);
-        const { filePath, isPartial, sizeBytes } = await fetchWithRetry(
-          () => downloadAudio(ep.audio_url)
-        );
-        tmpFile = filePath;
+        let transcript;
 
-        console.log(`    📦 ${(sizeBytes / 1024 / 1024).toFixed(1)} MB${isPartial ? ' (partial)' : ''}`);
+        if (USE_ASSEMBLYAI) {
+          // 5a. AssemblyAI path — submit URL directly, no download needed
+          modelUsed  = 'assemblyai+gpt-4o';
+          transcript = await transcribeWithAssemblyAI(ep.audio_url);
 
-        // Update file_size + is_partial in DB
-        await supabase
-          .from('podcast_episodes')
-          .update({ file_size_bytes: sizeBytes, is_partial: isPartial })
-          .eq('id', episodeId);
+        } else {
+          // 5a. Whisper path (Groq or OpenAI) — download first
+          modelUsed = GROQ_KEY ? 'groq-whisper-large-v3+gpt-4o' : 'whisper-1+gpt-4o';
+          console.log(`    ⬇ Downloading audio...`);
+          const { filePath, isPartial, sizeBytes } = await fetchWithRetry(
+            () => downloadAudio(ep.audio_url)
+          );
+          tmpFile = filePath;
 
-        // 5b. Whisper transcription
-        console.log(`    🎤 Transcribing via Whisper...`);
-        const transcript = await fetchWithRetry(() => transcribeAudio(filePath));
-        const wordCount  = transcript.split(/\s+/).length;
-        console.log(`    ✍ ${wordCount.toLocaleString()} words transcribed`);
+          console.log(`    📦 ${(sizeBytes / 1024 / 1024).toFixed(1)} MB${isPartial ? ' (partial)' : ''}`);
+
+          // Update file_size + is_partial in DB
+          await supabase
+            .from('podcast_episodes')
+            .update({ file_size_bytes: sizeBytes, is_partial: isPartial })
+            .eq('id', episodeId);
+
+          // 5b. Whisper transcription
+          console.log(`    🎤 Transcribing via Whisper...`);
+          transcript = await fetchWithRetry(() => transcribeAudio(filePath));
+          const wordCount = transcript.split(/\s+/).length;
+          console.log(`    ✍ ${wordCount.toLocaleString()} words transcribed`);
+        }
 
         // 5c. Mark as 'extracting'
         await supabase
@@ -518,7 +537,7 @@ async function run() {
             picks:           picks,
             intel:           intel,
             whisper_minutes: whisperMinutes,
-            model_used:      'whisper-1+gpt-4o',
+            model_used:      modelUsed,
           });
 
         if (txErr) throw new Error(`Transcript insert failed: ${txErr.message}`);

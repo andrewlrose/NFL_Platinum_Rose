@@ -36,6 +36,13 @@ VITE_OPENAI_API_KEY=...        # OpenAI API key (for transcript analysis)
 VITE_SUPABASE_URL=...          # https://aambmuzfcojxqvbzhngp.supabase.co
 VITE_SUPABASE_ANON_KEY=...     # Supabase anon/public JWT (read-only)
 ```
+GHA-only secrets (not in .env):
+```
+OPENAI_API_KEY                 # GPT-4o extraction (agents)
+GROQ_API_KEY                   # Free Whisper transcription, priority 1 (7200 sec/hr)
+ASSEMBLYAI_API_KEY             # Paid fallback transcription, priority 2 (no rate limit, URL-based)
+SUPABASE_SERVICE_ROLE_KEY      # Bypasses RLS for agent writes
+```
 Accessed via `import.meta.env.VITE_*` in browser code.
 Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 
@@ -55,7 +62,7 @@ Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 ## localStorage Keys
 All keys are catalogued in `PR_STORAGE_KEYS` in `src/lib/storage.js`. Use `loadFromStorage`/`saveToStorage`/`clearStorage` — never call `localStorage` directly.
 
-**Sync architecture:** localStorage is the PRIMARY store (instant reads, offline-capable). Supabase is a fire-and-forget sync layer. On every write to `pr_picks_v1` or `nfl_bankroll_data_v1`, the change is upserted to Supabase in the background. On app boot, `hydrateFromSupabase()` in App.jsx fetches any records missing from localStorage (restores data after browser clear or on a new device).
+**Sync architecture:** localStorage is the PRIMARY store (instant reads, offline-capable). Supabase is a fire-and-forget sync layer. On every write to `pr_picks_v1` or `nfl_bankroll_data_v1`, the change is upserted to Supabase in the background. On app boot, `hydrateFromSupabase()` in App.jsx fetches any records missing from localStorage (restores data after browser clear or on a new device). The **PickExtractionAgent** (GHA) also writes directly to `user_picks` with `source='EXPERT'`, adding `rationale`, `expert`, and `units` columns (migration 005); these are hydrated into localStorage on next boot.
 
 | Key | Purpose | Permanence | Managed By |
 |-----|---------|------------|------------|
