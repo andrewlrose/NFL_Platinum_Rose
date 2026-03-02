@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 
 // --- Hooks ---
 import { useModals } from './hooks/useModals';
@@ -16,10 +16,10 @@ import { loadUserPicks, loadUserBets } from './lib/supabase';
 // --- Components ---
 import Header from './components/layout/Header';
 import Dashboard from './components/dashboard/Dashboard';
-import ExpertLeaderboard from './components/dashboard/ExpertLeaderboard';
+const ExpertLeaderboard = lazy(() => import('./components/dashboard/ExpertLeaderboard'));
 import MatchupWizardModal from './components/modals/MatchupWizardModal';
 import MyCardModal from './components/modals/MyCardModal';
-import DevLab from './components/dev-lab/DevLab';
+const DevLab = lazy(() => import('./components/dev-lab/DevLab'));
 import SplitsModal from './components/modals/SplitsModal';
 import WongTeaserModal from './components/modals/WongTeaserModal';
 import PulseModal from './components/modals/PulseModal';
@@ -34,13 +34,13 @@ import BetEntryModal from './components/modals/BetEntryModal';
 import BetImportModal from './components/modals/BetImportModal';
 import PendingBetsModal from './components/modals/PendingBetsModal';
 import EditBetModal from './components/modals/EditBetModal';
-import BankrollDashboard from './components/bankroll/BankrollDashboard';
-import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
-import OddsCenter from './components/odds/OddsCenter';
-import PicksTracker from './components/picks-tracker/PicksTracker';
+const BankrollDashboard = lazy(() => import('./components/bankroll/BankrollDashboard'));
+const AnalyticsDashboard = lazy(() => import('./components/analytics/AnalyticsDashboard'));
+const OddsCenter = lazy(() => import('./components/odds/OddsCenter'));
+const PicksTracker = lazy(() => import('./components/picks-tracker/PicksTracker'));
 import ManualGradeModal from './components/modals/ManualGradeModal';
 import BankrollSettingsModal from './components/modals/BankrollSettingsModal';
-import FuturesPortfolio from './components/futures/FuturesPortfolio';
+const FuturesPortfolio = lazy(() => import('./components/futures/FuturesPortfolio'));
 import FuturesEntryModal from './components/modals/FuturesEntryModal';
 import StorageBackupModal from './components/modals/StorageBackupModal';
 import PodcastIngestModal from './components/modals/PodcastIngestModal';
@@ -143,15 +143,17 @@ function App() {
     <div className="min-h-screen bg-[#0f0f0f] text-gray-200 font-sans pb-20 selection:bg-[#00d2be] selection:text-black">
       <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }} onOpenStorage={() => openModal('storage')} onOpenAgentStatus={() => setAgentStatusOpen(true)} />
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {activeTab === 'dashboard' && <div className="animate-in fade-in zoom-in duration-300"><Dashboard schedule={gamesWithSplits} stats={stats} simResults={simResults} onGameClick={setSelectedGame} onShowInjuries={(game) => { setSelectedGame(game); openModal('injuryReport'); }} onAddBankrollBet={(game) => { setBetEntryGame(game); openModal('betEntry'); }} /></div>}
-        {activeTab === 'standings' && <div className="max-w-5xl mx-auto animate-in fade-in zoom-in duration-300"><ExpertLeaderboard expertConsensus={expertConsensus} refreshKey={picksRefreshKey + autoGraded} /></div>}
-        {activeTab === 'mycard' && <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300"><MyCardModal bets={myBets} onRemoveBet={removeBet} onLockBets={handleLockBets} onClearCard={clearBets} /></div>}
-        {activeTab === 'devlab' && <DevLab games={schedule} stats={stats} savedResults={simResults} onSimComplete={setSimResults} />}
-        {activeTab === 'bankroll' && <div className="animate-in fade-in zoom-in duration-300"><BankrollDashboard onAddBet={() => openModal('betEntry')} onShowCalculator={() => openModal('unitCalculator')} onImportBets={() => openModal('betImport')} onShowPending={() => openModal('pendingBets')} onShowSettings={() => openModal('bankrollSettings')} /></div>}
-        {activeTab === 'analytics' && <div className="animate-in fade-in zoom-in duration-300"><AnalyticsDashboard /></div>}
-        {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
-        {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} onAutoGrade={runGradingCheck} autoGrading={checking} onOpenPodcastModal={() => setPodcastModalOpen(true)} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
-        {activeTab === 'futures' && <div className="animate-in fade-in zoom-in duration-300"><FuturesPortfolio onAddPosition={() => openModal('futuresEntry')} /></div>}
+        <Suspense fallback={<div className="flex items-center justify-center py-24 text-[#00d2be] font-mono text-sm">Loading...</div>}>
+          {activeTab === 'dashboard' && <div className="animate-in fade-in zoom-in duration-300"><Dashboard schedule={gamesWithSplits} stats={stats} simResults={simResults} onGameClick={setSelectedGame} onShowInjuries={(game) => { setSelectedGame(game); openModal('injuryReport'); }} onAddBankrollBet={(game) => { setBetEntryGame(game); openModal('betEntry'); }} /></div>}
+          {activeTab === 'standings' && <div className="max-w-5xl mx-auto animate-in fade-in zoom-in duration-300"><ExpertLeaderboard expertConsensus={expertConsensus} refreshKey={picksRefreshKey + autoGraded} /></div>}
+          {activeTab === 'mycard' && <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300"><MyCardModal bets={myBets} onRemoveBet={removeBet} onLockBets={handleLockBets} onClearCard={clearBets} /></div>}
+          {activeTab === 'devlab' && <DevLab games={schedule} stats={stats} savedResults={simResults} onSimComplete={setSimResults} />}
+          {activeTab === 'bankroll' && <div className="animate-in fade-in zoom-in duration-300"><BankrollDashboard onAddBet={() => openModal('betEntry')} onShowCalculator={() => openModal('unitCalculator')} onImportBets={() => openModal('betImport')} onShowPending={() => openModal('pendingBets')} onShowSettings={() => openModal('bankrollSettings')} /></div>}
+          {activeTab === 'analytics' && <div className="animate-in fade-in zoom-in duration-300"><AnalyticsDashboard /></div>}
+          {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
+          {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} onAutoGrade={runGradingCheck} autoGrading={checking} onOpenPodcastModal={() => setPodcastModalOpen(true)} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
+          {activeTab === 'futures' && <div className="animate-in fade-in zoom-in duration-300"><FuturesPortfolio onAddPosition={() => openModal('futuresEntry')} /></div>}
+        </Suspense>
       </main>
 
       {/* --- LAZY-MOUNTED MODALS --- */}

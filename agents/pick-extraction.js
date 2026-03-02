@@ -298,6 +298,7 @@ async function run() {
   console.log(`\n📋 Found ${transcripts.length} unpromoted transcript(s) with picks\n`);
 
   let totalPicks    = 0;
+  let totalSkipped  = 0;
   let totalUpserted = 0;
   let totalErrors   = 0;
 
@@ -322,10 +323,24 @@ async function run() {
       continue;
     }
 
-    // Build user_picks rows
+    // Build user_picks rows — skip non-NFL picks (UFC, NBA, etc.)
     const rows = [];
     for (let i = 0; i < picks.length; i++) {
       const pick = picks[i];
+
+      // Guard: require at least one team to resolve to a known NFL abbreviation.
+      // Picks where neither team matches (e.g. UFC fighters, NBA teams) are
+      // silently skipped — they can't be matched or graded in this app.
+      const abbr1 = resolveTeam(pick.team1);
+      const abbr2 = resolveTeam(pick.team2);
+      if (!abbr1 && !abbr2) {
+        const t1 = pick.team1 ?? '?';
+        const t2 = pick.team2 ?? '?';
+        console.log(`   [${i + 1}] ⏭ SKIPPED (non-NFL): "${t1}" vs "${t2}" — ${pick.type ?? 'unknown type'}`);
+        totalSkipped++;
+        continue;
+      }
+
       try {
         const row = buildUserPick(pick, i, episode, feedName, gameLookup);
         rows.push(row);
@@ -372,6 +387,7 @@ async function run() {
   console.log('\n📊 Run complete');
   console.log(`   Transcripts: ${transcripts.length}`);
   console.log(`   Picks built: ${totalPicks}`);
+  console.log(`   Skipped:     ${totalSkipped}  (non-NFL — UFC/NBA/etc.)`);
   console.log(`   Upserted:    ${totalUpserted}`);
   console.log(`   Errors:      ${totalErrors}`);
 
