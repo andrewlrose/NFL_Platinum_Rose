@@ -230,6 +230,85 @@ async function transcribeAudio(filePath) {
   return res.text(); // whisper-1 + response_format=text returns plain string
 }
 
+// ─── AssemblyAI transcription ─────────────────────────────────────────────────
+
+/**
+ * Submits an audio URL to AssemblyAI for transcription and polls until complete.
+ * AssemblyAI accepts a public URL directly — no file download required.
+ * Docs: https://www.assemblyai.com/docs/api-reference/transcripts/submit
+ *
+ * @param {string} audioUrl  Public URL of the audio file
+ * @returns {Promise<string>} Plain-text transcript
+ */
+async function transcribeWithAssemblyAI(audioUrl) {
+  if (!ASSEMBLYAI_KEY) throw new Error('ASSEMBLYAI_API_KEY is not set');
+
+  console.log(`    🎤 Using AssemblyAI (URL-based, no download)`);
+
+  const ASSEMBLYAI_BASE = 'https://api.assemblyai.com/v2';
+  const headers = {
+    'Authorization': ASSEMBLYAI_KEY,
+    'Content-Type':  'application/json',
+  };
+
+  // 1. Submit transcription job
+  const submitRes = await fetch(`${ASSEMBLYAI_BASE}/transcript`, {
+    method:  'POST',
+    headers,
+    body:    JSON.stringify({ audio_url: audioUrl, language_code: 'en' }),
+    signal:  AbortSignal.timeout(30_000),
+  });
+
+  if (!submitRes.ok) {
+    const err = await submitRes.text();
+    throw new Error(`AssemblyAI submit failed: ${err}`);
+  }
+
+  const { id: transcriptId } = await submitRes.json();
+  if (!transcriptId) throw new Error('AssemblyAI: no transcript ID returned');
+
+  console.log(`    ⏳ AssemblyAI job submitted — id: ${transcriptId}`);
+
+  // 2. Poll until complete (status: queued → processing → completed | error)
+  const POLL_INTERVAL_MS = 5_000;
+  const MAX_WAIT_MS      = 25 * 60 * 1000; // 25 min ceiling (podcast episodes can be long)
+  const startPoll        = Date.now();
+
+  while (true) {
+    if (Date.now() - startPoll > MAX_WAIT_MS) {
+      throw new Error(`AssemblyAI: timed out after ${MAX_WAIT_MS / 60000} min`);
+    }
+
+    await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
+
+    const pollRes = await fetch(`${ASSEMBLYAI_BASE}/transcript/${transcriptId}`, {
+      headers,
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!pollRes.ok) {
+      const err = await pollRes.text();
+      throw new Error(`AssemblyAI poll failed: ${err}`);
+    }
+
+    const result = await pollRes.json();
+
+    if (result.status === 'completed') {
+      const wordCount = result.words?.length ?? result.text?.split(/\s+/).length ?? 0;
+      console.log(`    ✍ AssemblyAI complete — ${wordCount.toLocaleString()} words`);
+      return result.text ?? '';
+    }
+
+    if (result.status === 'error') {
+      throw new Error(`AssemblyAI transcription error: ${result.error ?? 'unknown'}`);
+    }
+
+    // Still queued or processing — log progress
+    const elapsedMin = ((Date.now() - startPoll) / 60000).toFixed(1);
+    console.log(`    ⏳ AssemblyAI status: ${result.status} (${elapsedMin}m elapsed)`);
+  }
+}
+
 // ─── Pick extraction via GPT-4o ───────────────────────────────────────────────
 
 const EXTRACTION_SYSTEM = `You are an NFL betting analyst. 

@@ -68,7 +68,7 @@ export default function ReviewPicksModal({ isOpen, onClose, stagedPicks, onConfi
                       
                       {/* Context */}
                       <div className="text-[10px] text-slate-500 italic border-t border-slate-700/50 pt-2 flex gap-2">
-                          <span className="font-bold text-slate-600">Context:</span> "{pick.analysis ? pick.analysis.substring(0, 100) : ''}..."
+                          <span className="font-bold text-slate-600">Context:</span> "{pick.rationale ? pick.rationale.substring(0, 100) : ''}..."
                       </div>
                   </div>
 
