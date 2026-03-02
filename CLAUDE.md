@@ -221,6 +221,8 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 - **GHA runs check out the commit at trigger time**: If you push a fix and immediately re-trigger a workflow, the run may still use the pre-fix commit if the trigger races the push. Wait for the push to complete before triggering, or verify the commit SHA in the run's "Checkout" step output.
 
+- **React.lazy tabs must stay lazy**: As of a3335f8, the 7 non-landing tabs (standings, devlab, bankroll, analytics, odds, picks, futures) are lazy-loaded via `React.lazy()` with a `<Suspense>` wrapper in App.jsx. This dropped index.js from ~700KB to 466KB. Do NOT revert to static imports — it bloats the initial bundle. Dashboard stays eager (landing page). Modals are conditionally mounted (already OK).
+
 - **Raw localStorage calls outside storage.js**: `picksDatabase.js`, `bankroll.js`, and `EditBetModal.jsx` all had direct `localStorage.getItem/setItem` calls that bypassed try/catch and the key catalog. All reads/writes must go through `loadFromStorage`/`saveToStorage`. This also means `PR_STORAGE_KEYS` is the single source of truth — key string changes only need to happen in one place.
 
 ---
