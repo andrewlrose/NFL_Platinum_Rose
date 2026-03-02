@@ -507,11 +507,21 @@ async function run() {
             .update({ file_size_bytes: sizeBytes, is_partial: isPartial })
             .eq('id', episodeId);
 
-          // 5b. Whisper transcription
+          // 5b. Whisper transcription — fall through to AssemblyAI if Groq rate-limited
           console.log(`    🎤 Transcribing via Whisper...`);
-          transcript = await fetchWithRetry(() => transcribeAudio(filePath));
-          const wordCount = transcript.split(/\s+/).length;
-          console.log(`    ✍ ${wordCount.toLocaleString()} words transcribed`);
+          try {
+            transcript = await fetchWithRetry(() => transcribeAudio(filePath));
+            const wordCount = transcript.split(/\s+/).length;
+            console.log(`    ✍ ${wordCount.toLocaleString()} words transcribed`);
+          } catch (err) {
+            if (err instanceof RateLimitError && ASSEMBLYAI_KEY) {
+              console.warn(`    ⚠ Groq rate-limited — falling back to AssemblyAI`);
+              modelUsed  = 'assemblyai+gpt-4o';
+              transcript = await transcribeWithAssemblyAI(ep.audio_url);
+            } else {
+              throw err; // propagate — no fallback available
+            }
+          }
         }
 
         // 5c. Mark as 'extracting'
