@@ -84,3 +84,32 @@ Verify after changes to `agents/podcast-ingest.js`, `PodcastIngestModal.jsx`, `s
 - [ ] **Only `status='done'` episodes returned** — pending/error/transcribing episodes not shown in UI
 - [ ] **Groq path** — if `GROQ_API_KEY` secret is set, agent logs "Using Groq (free) Whisper (whisper-large-v3)"
 - [ ] **OpenAI fallback** — if only `OPENAI_API_KEY` set, agent logs "Using OpenAI Whisper (whisper-1)"
+- [ ] **AssemblyAI fallback** — if `GROQ_API_KEY` + `ASSEMBLYAI_API_KEY` both set and Groq hits rate limit, agent logs "⚠ Groq rate-limited — falling back to AssemblyAI" and episode completes (not marked error)
+- [ ] **AssemblyAI-only path** — if only `ASSEMBLYAI_API_KEY` set (no Groq), agent skips file download, passes URL directly, polls for completion
+- [ ] **model_used stored** — `podcast_transcripts.model_used` reflects actual provider: `groq-whisper-large-v3+gpt-4o`, `assemblyai+gpt-4o`, or `whisper-1+gpt-4o`
+- [ ] **OpenAI key valid** — GPT-4o extraction succeeds; 401 means `OPENAI_API_KEY` GHA secret needs rotating at platform.openai.com/account/api-keys
+
+---
+
+## Pick Extraction Agent — Feature Test Plan
+Verify after changes to `agents/pick-extraction.js`, `pick-extraction.yml`, `005_pick_extraction.sql`, or `src/lib/supabase.js` (`loadUserPicks`):
+
+### GitHub Actions Agent
+- [ ] **Dry run passes** — workflow runs with `dry_run=true`, exits 0, logs picks without writing to `user_picks`; `picks_promoted_at` remains NULL in Supabase
+- [ ] **Live run** — workflow runs with `dry_run=false`, exits 0; logs "Upserted N picks" for at least 1 transcript
+- [ ] **Picks in Supabase** — after live run, `user_picks` table has rows with `source='EXPERT'`, non-empty `expert`, non-empty `rationale`
+- [ ] **Promoted flag set** — `podcast_transcripts.picks_promoted_at` is non-NULL for processed transcripts
+- [ ] **Idempotent** — re-running agent immediately processes 0 transcripts (all have `picks_promoted_at` set); `user_picks` row count unchanged
+- [ ] **Team matching** — picks with recognisable teams (e.g. "Chiefs") resolve to a schedule game ID, not a synthetic `podcast_UNK_vs_UNK` ID
+- [ ] **Error exits 1** — if upsert fails (e.g. malformed row), agent exits 1
+- [ ] **Groq rate limit handled gracefully** — when Groq returns `rate_limit_exceeded`, episode is reset to `status='pending'` (not `'error'`), agent stops early without marking errors, exits 0
+- [ ] **OpenAI key valid** — GPT-4o extraction succeeds; 401 invalid_api_key means `OPENAI_API_KEY` GHA secret needs updating at platform.openai.com/account/api-keys
+
+### Supabase / Data Layer
+- [ ] **Migration 005 applied** — `podcast_transcripts` has `picks_promoted_at` column; `user_picks` has `rationale`, `expert`, `units`
+- [ ] **`loadUserPicks()` maps new fields** — after boot hydration, picks in localStorage have `rationale`, `expert`, `units` populated (check via App.jsx: `window.__picks = loadPicks()`)
+
+### Boot Hydration (App.jsx)
+- [ ] **Expert picks hydrate on boot** — clear localStorage, hard-refresh app; expert picks written by the agent appear in Picks Tracker after `hydrateFromSupabase()` completes
+- [ ] **No duplicates** — picks already in localStorage are NOT duplicated by hydration (dedup by ID)
+- [ ] **Source label** — hydrated expert picks show source chip "EXPERT" in Picks Tracker UI
