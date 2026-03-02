@@ -350,27 +350,24 @@ async function run() {
     const guids = episodes.map(e => e.guid);
     const { data: existing } = await supabase
       .from('podcast_episodes')
-      .select('guid')
+      .select('guid, id, status')
       .in('guid', guids);
 
-    const knownGuids = new Set((existing ?? []).map(r => r.guid));
-    const newEps     = episodes.filter(e => !knownGuids.has(e.guid));
-    console.log(`  ↳ ${newEps.length} new (${knownGuids.size} already known)`);
-
-    if (newEps.length === 0) continue;
+    const knownMap   = new Map((existing ?? []).map(r => [r.guid, r]));
+    const newEps     = episodes.filter(e => !knownMap.has(e.guid));
+    console.log(`  ↳ ${newEps.length} new (${knownMap.size} already known)`);
 
     // 4. Insert new episodes as 'pending' in Supabase
-    const insertRows = newEps.map(ep => ({
-      feed_id:       feed.id,
-      guid:          ep.guid,
-      title:         ep.title,
-      pub_date:      ep.pub_date,
-      audio_url:     ep.audio_url,
-      duration_secs: ep.duration_secs,
-      status:        'pending',
-    }));
-
-    if (!DRY_RUN) {
+    if (newEps.length > 0 && !DRY_RUN) {
+      const insertRows = newEps.map(ep => ({
+        feed_id:       feed.id,
+        guid:          ep.guid,
+        title:         ep.title,
+        pub_date:      ep.pub_date,
+        audio_url:     ep.audio_url,
+        duration_secs: ep.duration_secs,
+        status:        'pending',
+      }));
       const { error: insertErr } = await supabase
         .from('podcast_episodes')
         .insert(insertRows);
@@ -382,8 +379,43 @@ async function run() {
 
     totalDiscovered += newEps.length;
 
-    // 5. Process each new episode (up to MAX_PER_RUN total across all feeds)
+    // 4b. Also pick up any already-discovered but unprocessed episodes from DB
+    //     (status='pending' or 'error') so they don't get stuck forever.
+    const { data: queued } = await supabase
+      .from('podcast_episodes')
+      .select('id, guid, title, audio_url, duration_secs')
+      .eq('feed_id', feed.id)
+      .in('status', ['pending', 'error'])
+      .order('pub_date', { ascending: false })
+      .limit(10);
+
+    // Merge: new episodes (use RSS data) + queued-from-DB (use DB row).
+    // Use a Map keyed by guid to deduplicate.
+    const toProcessMap = new Map();
     for (const ep of newEps) {
+      toProcessMap.set(ep.guid, { ...ep, _fromRss: true });
+    }
+    for (const row of (queued ?? [])) {
+      if (!toProcessMap.has(row.guid)) {
+        toProcessMap.set(row.guid, {
+          guid:          row.guid,
+          title:         row.title ?? '(untitled)',
+          audio_url:     row.audio_url,
+          duration_secs: row.duration_secs,
+          _dbId:         row.id,   // already in DB — skip the id lookup step
+        });
+      }
+    }
+
+    const toProcess = [...toProcessMap.values()];
+    if (toProcess.length === 0) {
+      console.log(`  ✅ No episodes to process`);
+      continue;
+    }
+    console.log(`  ↳ ${toProcess.length} episode(s) queued for processing`);
+
+    // 5. Process each episode (up to MAX_PER_RUN total across all feeds)
+    for (const ep of toProcess) {
       if (totalProcessed >= MAX_PER_RUN) {
         console.log(`  ⏭ Reached MAX_PER_RUN (${MAX_PER_RUN}) — remaining episodes queued`);
         break;
@@ -392,9 +424,9 @@ async function run() {
 
       console.log(`\n  🎙 "${ep.title.slice(0, 70)}"`);
 
-      // Fetch the episode's DB id (just inserted)
-      let episodeId = null;
-      if (!DRY_RUN) {
+      // Fetch the episode's DB id (use cached _dbId for pre-existing rows)
+      let episodeId = ep._dbId ?? null;
+      if (!DRY_RUN && !episodeId) {
         const { data: row } = await supabase
           .from('podcast_episodes')
           .select('id')
