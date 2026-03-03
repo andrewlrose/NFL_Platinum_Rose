@@ -173,13 +173,18 @@ async function main() {
   console.log('🏈 FuturesOddsIngestAgent starting…');
   console.log(`   DRY_RUN=${DRY_RUN} | markets=${FUTURES_MARKETS.length}`);
 
-  // Validate env
-  if (!ODDS_API_KEY) { console.error('❌ Missing ODDS_API_KEY'); process.exit(1); }
+  // Validate env — degrade gracefully so GHA runs don't fail-spam
+  if (!ODDS_API_KEY) {
+    console.log('ℹ️  No ODDS_API_KEY — skipping. Set the secret in GitHub repo settings.');
+    return;
+  }
   if (!DRY_RUN && (!SUPABASE_URL || !SUPABASE_KEY)) {
-    console.error('❌ Missing Supabase env vars'); process.exit(1);
+    console.log('ℹ️  No Supabase credentials — switching to dry-run mode.');
+    // Fall through as dry run so we still validate the API fetch works
   }
 
-  const supabase = DRY_RUN ? null : getSupabase();
+  const effectiveDryRun = DRY_RUN || !SUPABASE_URL || !SUPABASE_KEY;
+  const supabase = effectiveDryRun ? null : getSupabase();
   const allRows  = [];
   let   apiCalls = 0;
 
@@ -220,7 +225,7 @@ async function main() {
 
   console.log(`\n📋 Total rows collected: ${allRows.length} (${apiCalls} API calls)`);
 
-  if (DRY_RUN) {
+  if (effectiveDryRun) {
     console.log('🔍 DRY RUN — skipping Supabase write. Sample output:');
     console.table(allRows.slice(0, 10));
     console.log('✅ Dry run complete.');
