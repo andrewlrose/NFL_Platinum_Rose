@@ -276,10 +276,12 @@ export default function FuturesMarketBrowser() {
         <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3 flex items-start gap-3">
           <AlertCircle size={15} className="text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-amber-300 text-xs font-bold">No futures odds in database</p>
+            <p className="text-amber-300 text-xs font-bold">No futures odds available yet</p>
             <p className="text-slate-500 text-[11px] mt-0.5">
-              Run <strong className="text-slate-400">GitHub Actions → Futures Odds Ingest → Run workflow</strong> to populate,
-              or wait for the daily cron (10:00 UTC).
+              Futures markets (Super Bowl, Conference, Division winners) are typically posted by sportsbooks
+              in the spring/summer. During the offseason, TheOddsAPI may return empty results.
+              The <code className="text-amber-400/80">FuturesOddsIngestAgent</code> runs daily at 10:00 UTC
+              and will auto-populate once books start posting 2026 season odds.
             </p>
           </div>
         </div>

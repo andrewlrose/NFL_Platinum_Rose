@@ -70,9 +70,9 @@ async function fetchWithRetry(url, retries = MAX_RETRIES) {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url);
-      if (res.status === 422) {
+      if (res.status === 422 || res.status === 404) {
         // Market not available (offseason / no odds posted yet)
-        console.log(`  ⚠️  422 — market not available: ${url.split('?')[0].split('/').pop()}`);
+        console.log(`  ⚠️  ${res.status} — market not available: ${url.split('?')[0].split('/').pop()}`);
         return null;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
