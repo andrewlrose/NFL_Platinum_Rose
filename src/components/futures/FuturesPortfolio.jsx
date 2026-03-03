@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import HedgeCalculator from './HedgeCalculator';
 import FuturesOddsMonitor from './FuturesOddsMonitor';
+import FuturesMarketBrowser from './FuturesMarketBrowser';
 import ParlayTracker from './ParlayTracker';
 import PlayoffBracket from './PlayoffBracket';
 import {
@@ -40,11 +41,12 @@ const statusBg = {
 // ── Sub-tab enum ─────────────────────────────────────────────────────────────
 const SUBTABS = [
   { id: 'positions', label: 'Positions',  icon: Layers },
+  { id: 'market',    label: 'Market',     icon: Trophy },
   { id: 'exposure',  label: 'Exposure',   icon: BarChart3 },
   { id: 'hedge',     label: 'Hedge Calc', icon: Calculator },
   { id: 'monitor',   label: 'Odds Monitor', icon: Activity },
   { id: 'parlays',   label: 'Parlays',    icon: GitMerge },
-  { id: 'bracket',   label: 'Playoff Bracket', icon: Trophy },
+  { id: 'bracket',   label: 'Playoff Bracket', icon: Award },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -263,6 +265,7 @@ export default function FuturesPortfolio({ onAddPosition }) {
 
       {/* Content */}
       {subTab === 'positions' && <PositionsView />}
+      {subTab === 'market'    && <FuturesMarketBrowser />}
       {subTab === 'exposure'  && <ExposureView />}
       {subTab === 'hedge'     && (
         <HedgeCalculator
