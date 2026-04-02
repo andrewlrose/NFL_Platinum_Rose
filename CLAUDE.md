@@ -236,7 +236,7 @@ Context is a finite resource — preserve it by delegating exploration and resea
 
 ## Reference Docs (load on demand)
 - `docs/ARCHITECTURE.md` — Component/hook/lib internals; load when editing any `src/` file
-- `docs/AGENTS.md` — Agent system, GitHub Actions workflows, Supabase tables; load when working in `agents/` or `.github/`
+- `docs/PIPELINE_AGENTS.md` — GHA pipeline agent system, workflows, Supabase tables; load when working in `agents/` or `.github/`
 - `docs/TESTING.md` — Verification checklists; load after changes to App.jsx, storage, or parsers
 - `docs/ROADMAP.md` — Feature tracking & completed phases; load for planning tasks
 - `docs/HANDOFF.md` — `/handoff` command output format; load on `/handoff`

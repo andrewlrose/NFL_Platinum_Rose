@@ -82,7 +82,7 @@ export default function ManualGradeModal({ isOpen, onClose, gameData, onGraded }
                         ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
                         : 'bg-purple-500/20 text-purple-400 border-purple-500/30'
                     }`}>
-                      {p.source === 'AI_LAB' ? 'AI' : 'GU'}
+                      {p.source === 'AI_LAB' ? 'AI' : p.source === 'EXPERT' ? 'EX' : p.source}
                     </span>
                     <span className="text-white font-bold">
                       {p.pickType === 'spread'

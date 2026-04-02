@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { User, Trash2, Eraser, Award, Calendar, AlertCircle, Pencil, Check, X, Shield } from 'lucide-react';
+import { User, Trash2, Eraser, Award, Calendar, AlertCircle, Pencil, Check, X, Shield, BookmarkPlus } from 'lucide-react';
+import { addExpertPick } from '../../lib/picksDatabase';
 
 export default function ExpertManagerModal({ isOpen, onClose, experts, expertConsensus, onUpdatePick, onDeletePick, onClearExpert }) {
   const [selectedExpertName, setSelectedExpertName] = useState(null);
@@ -151,8 +152,19 @@ export default function ExpertManagerModal({ isOpen, onClose, experts, expertCon
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <button onClick={() => handleStartEdit(pick)} className="p-2 text-slate-500 hover:text-indigo-400 hover:bg-indigo-950/50 rounded-lg transition-colors"><Pencil size={16} /></button>
-                                                            <button onClick={() => onDeletePick(pick.gameId, pick)} className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                                                            <button onClick={() => handleStartEdit(pick)} className="p-2 text-slate-500 hover:text-indigo-400 hover:bg-indigo-950/50 rounded-lg transition-colors" title="Edit pick"><Pencil size={16} /></button>
+                                                            <button
+                                                              onClick={() => {
+                                                                const saved = addExpertPick(pick);
+                                                                if (saved) alert(`✅ ${pick.expert}'s pick sent to Picks Tracker!`);
+                                                                else alert('Already tracked or required fields missing.');
+                                                              }}
+                                                              className="p-2 text-slate-500 hover:text-emerald-400 hover:bg-emerald-950/50 rounded-lg transition-colors"
+                                                              title="Send to Picks Tracker"
+                                                            >
+                                                              <BookmarkPlus size={16} />
+                                                            </button>
+                                                            <button onClick={() => onDeletePick(pick.gameId, pick)} className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/50 rounded-lg transition-colors" title="Delete pick"><Trash2 size={16} /></button>
                                                         </>
                                                     )}
                                                 </div>

@@ -14,8 +14,168 @@ import {
     BET_STATUS, 
     BET_TYPES,
     exportBankrollData,
-    importBankrollData 
+    importBankrollData,
+    calculateKellyUnit,
+    getRecommendedUnit
 } from '../../lib/bankroll';
+
+// ── Kelly Criterion Sizing Calculator ──────────────────────────────────────
+
+function KellyCalculator({ bankroll = 1000, unitSize = 50 }) {
+    const [winProb, setWinProb]     = useState(55);
+    const [odds, setOdds]           = useState(-110);
+    const [riskProfile, setProfile] = useState('moderate');
+    const [expanded, setExpanded]   = useState(false);
+
+    // Decimal odds of profit: -110 → 100/110 ≈ 0.909; +150 → 1.5
+    const decimalB = odds > 0 ? odds / 100 : 100 / Math.abs(odds);
+    const p = winProb / 100;
+    const q = 1 - p;
+    const kellyFraction = (decimalB * p - q) / decimalB;
+    const cappedFull    = Math.min(Math.max(kellyFraction, 0), 0.25);
+
+    const fullKelly    = bankroll * cappedFull;
+    const halfKelly    = fullKelly / 2;
+    const quarterKelly = fullKelly / 4;
+    const recommended  = getRecommendedUnit(winProb, bankroll, riskProfile);
+    const hasEdge      = kellyFraction > 0;
+    const breakEvenWin = 1 / (1 + decimalB) * 100;
+
+    const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+    const pct = (n) => `${(n * 100).toFixed(2)}%`;
+
+    const tierColor = (amount) => {
+        const pctOfBankroll = amount / bankroll;
+        if (pctOfBankroll > 0.1) return 'text-rose-400';
+        if (pctOfBankroll > 0.05) return 'text-amber-400';
+        return 'text-emerald-400';
+    };
+
+    return (
+        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+            {/* Header / toggle */}
+            <button
+                onClick={() => setExpanded(e => !e)}
+                className="w-full flex items-center justify-between p-4 hover:bg-slate-700/50 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-900/40 rounded-lg">
+                        <Calculator className="text-indigo-400" size={18} />
+                    </div>
+                    <div className="text-left">
+                        <p className="text-white font-semibold text-sm">Kelly Criterion Sizer</p>
+                        <p className="text-slate-400 text-xs">Optimal stake sizing based on edge &amp; odds</p>
+                    </div>
+                </div>
+                <TrendingUp size={16} className={`text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            </button>
+
+            {expanded && (
+                <div className="p-5 border-t border-slate-700 space-y-6">
+                    {/* Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                                Win Probability (%)
+                            </label>
+                            <input
+                                type="number" min="1" max="99" step="1"
+                                value={winProb}
+                                onChange={e => setWinProb(Math.min(99, Math.max(1, Number(e.target.value))))}
+                                className="w-full bg-slate-900 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                            />
+                            <p className="text-[10px] text-slate-500 mt-1">Break-even: {breakEvenWin.toFixed(1)}%</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                                Odds (American)
+                            </label>
+                            <input
+                                type="number" step="5"
+                                value={odds}
+                                onChange={e => setOdds(Number(e.target.value))}
+                                className="w-full bg-slate-900 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                                placeholder="-110"
+                            />
+                            <p className="text-[10px] text-slate-500 mt-1">Decimal profit: {decimalB.toFixed(3)}x</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                                Risk Profile
+                            </label>
+                            <select
+                                value={riskProfile}
+                                onChange={e => setProfile(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="conservative">Conservative (1u max 3%)</option>
+                                <option value="moderate">Moderate (2u max 5%)</option>
+                                <option value="aggressive">Aggressive (3u max 10%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Edge indicator */}
+                    {!hasEdge && (
+                        <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/20 rounded-lg p-3">
+                            <AlertTriangle size={14} className="text-rose-400 shrink-0" />
+                            <p className="text-rose-300 text-xs font-medium">
+                                No positive edge detected at {winProb}% / {odds > 0 ? '+' : ''}{odds}.
+                                Kelly recommends <strong>no bet</strong> ({(kellyFraction * 100).toFixed(2)}% fraction).
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Sizing results */}
+                    {hasEdge && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { label: 'Full Kelly', amount: fullKelly, pctFrac: cappedFull, desc: 'Max theoretical' },
+                                { label: 'Half Kelly', amount: halfKelly, pctFrac: cappedFull / 2, desc: 'Recommended' },
+                                { label: 'Quarter Kelly', amount: quarterKelly, pctFrac: cappedFull / 4, desc: 'Conservative' },
+                                { label: 'Recommended', amount: recommended.amount, pctFrac: recommended.percentage / 100, desc: riskProfile + ' profile' },
+                            ].map(tier => (
+                                <div key={tier.label} className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{tier.label}</p>
+                                    <p className={`text-xl font-black ${tierColor(tier.amount)}`}>{fmt(tier.amount)}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1">{pct(tier.pctFrac)} of bankroll</p>
+                                    <p className="text-[10px] text-slate-600 mt-0.5">{tier.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Comparison to current unit size */}
+                    {hasEdge && (
+                        <div className="bg-slate-900/60 rounded-lg p-4 border border-slate-700/50">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">vs. Your Current Unit</p>
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-slate-500" />
+                                    <span className="text-sm text-slate-300">Current unit: <strong className="text-white">{fmt(unitSize)}</strong> ({pct(unitSize / bankroll)})</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-indigo-400" />
+                                    <span className="text-sm text-slate-300">½ Kelly: <strong className={tierColor(halfKelly)}>{fmt(halfKelly)}</strong></span>
+                                </div>
+                                {halfKelly > unitSize * 1.5 && (
+                                    <span className="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">
+                                        ↑ Edge suggests sizing up
+                                    </span>
+                                )}
+                                {halfKelly < unitSize * 0.5 && (
+                                    <span className="text-xs bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
+                                        ↓ Overbet for this edge
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function BankrollDashboard({ onAddBet, onShowCalculator, onImportBets, onShowPending, onShowSettings }) {
     const [analytics, setAnalytics] = useState(null);
@@ -286,6 +446,9 @@ export default function BankrollDashboard({ onAddBet, onShowCalculator, onImport
                     </div>
                 </div>
             </div>
+
+            {/* Kelly Criterion Sizing Calculator */}
+            <KellyCalculator bankroll={analytics.currentBankroll} unitSize={settings.unitSize} />
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">

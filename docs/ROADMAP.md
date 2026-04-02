@@ -35,7 +35,7 @@
 
 ---
 
-## Agent Roadmap (see docs/AGENTS.md for detail)
+## Agent Roadmap (see docs/PIPELINE_AGENTS.md for detail)
 
 | Agent | Status |
 |-------|--------|
