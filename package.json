@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "update-schedule": "node scripts/update-schedule.js",
-    "test:smoke": "playwright test"
+    "test:smoke": "playwright test",
+    "resume": "node scripts/gen_resume.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
