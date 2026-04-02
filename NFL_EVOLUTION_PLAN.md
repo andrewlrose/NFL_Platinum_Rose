@@ -140,9 +140,9 @@ Same table format as NCAA AGENTS.md, adapted for NFL scope constraints.
 
 ---
 
-## Phase 3: Dev Agent Architecture
-**Time:** ~60 min  
-**Deliverables:** `agents/dev/` subdirectory with adapted YAML-frontmatter agent prompts
+## Phase 3: Dev Agent Architecture ✅
+**Status:** Complete  
+**Deliverables:** `agents/dev/` subdirectory with 15 adapted YAML-frontmatter agent prompts
 
 ### The Current Problem
 The NFL `agents/` directory is flat: `agents/futures-odds-ingest.js`, `agents/nfl-auto-grade.js`, etc. These are **pipeline agents** (GHA workflows). They stay where they are.
