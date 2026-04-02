@@ -1,7 +1,7 @@
 # WORKING-CONTEXT.md — NFL Platinum Rose
 > **Live operational state. Update this file at every session close.**
 > **Read this at session start before touching any file.**
-> Last updated: 2026-04-02 | Branch: `main` | HEAD: d02defc
+> Last updated: 2026-04-02 | Branch: `main` | HEAD: d4ffd54
 
 ---
 
@@ -23,7 +23,7 @@ Reference: NFL_EVOLUTION_PLAN.md (6-phase migration plan)
 | **Phase 1** | Governance Foundation | ✅ Done | SOUL.md, RULES.md, WORKING-CONTEXT.md, TASK_BOARD.md, AGENTS.md |
 | **Phase 2** | Contexts + Hooks + Rules | ✅ Done | contexts/ (5), hooks/hooks.json, rules/ (4) |
 | **Phase 3** | Dev Agent Architecture | ✅ Done | agents/dev/ — 15 adapted YAML-frontmatter agent prompts |
-| **Phase 4** | Product Agent Layer | 🔴 Not started | agents/product/tier1/, agents/manifests/ |
+| **Phase 4** | Product Agent Layer | ✅ Done | BETTING.md, INTEL.md (tier1), betting.manifest.json |
 | **Phase 5** | CLAUDE.md Consolidation | 🔴 Not started | Orchestration directives, session protocols, anti-patterns trigger |
 | **Phase 6** | NFL-Specific Additions | 🔴 Not started | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json |
 
@@ -52,14 +52,16 @@ None currently. Phase 2 can begin in next session.
 
 ```
 Branch: main
-Commit: d02defc — Phase 3: Dev Agent Architecture (15 agent prompts)
+Commit: d4ffd54 — Phase 4: Product Agent Layer (BETTING, INTEL, manifest)
 ```
 
 ---
 
 ## Next Session Priority
 
-**Phase 4: Product Agent Layer**
-1. Create `agents/product/tier1/` with BETTING.md and INTEL.md
-2. Create `agents/manifests/betting.manifest.json` adapted for NFL
-3. See `NFL_EVOLUTION_PLAN.md` Phase 4 section for full details.
+**Phase 5: CLAUDE.md Consolidation**
+1. Add Orchestration Directives (agent routing, lock protocol awareness)
+2. Add Self-Improvement Rule (anti-patterns trigger)
+3. Add Session Protocols (session-start/close checklists)
+4. Add Context Management rules
+5. See `NFL_EVOLUTION_PLAN.md` Phase 5 section for full details.

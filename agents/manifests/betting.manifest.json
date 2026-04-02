@@ -1,0 +1,155 @@
+{
+  "_meta": {
+    "agent": "BETTING",
+    "version": "1.0.0",
+    "description": "Context manifest for the NFL BETTING product agent. Defines model, context loader steps, tool schemas, persistence, and display config.",
+    "contextBudget": "~6000 tokens injected before first response"
+  },
+  "model": {
+    "default": "claude-sonnet-4-5",
+    "upgradeOn": ["hedge calculation", "multi-leg parlay analysis", "contradicting model signals"],
+    "upgradeTo": "claude-opus-4"
+  },
+  "contextLoader": [
+    {
+      "step": 1,
+      "label": "current_picks",
+      "description": "Load open picks and bets from localStorage",
+      "sources": [
+        { "type": "localStorage", "key": "pr_picks_v1", "format": "json", "fallback": "[]" },
+        { "type": "localStorage", "key": "nfl_bankroll_data_v1", "format": "json", "fallback": "{ \"bets\": [] }" }
+      ],
+      "inject": "Merge into a single array of open picks + bets. Label source (picks vs bankroll). Include: team, line, odds, bet_type, result, date_placed, amount_units."
+    },
+    {
+      "step": 2,
+      "label": "bankroll_config",
+      "description": "Load bankroll configuration for exposure checks",
+      "sources": [
+        { "type": "localStorage", "key": "nfl_bankroll_data_v1", "format": "json", "fallback": "{}" }
+      ],
+      "inject": "Extract: unit_size, current_balance, max_daily_units, max_single_bet_units. If missing, use defaults: unit_size=25, max_daily_units=10, max_single_bet_units=3."
+    },
+    {
+      "step": 3,
+      "label": "futures_portfolio",
+      "description": "Load open futures positions and exposure",
+      "sources": [
+        { "type": "localStorage", "key": "nfl_futures_portfolio_v1", "format": "json", "fallback": "{ \"positions\": [] }" }
+      ],
+      "inject": "Include: team, market, odds_at_entry, stake, current_odds_estimate, exposure. Use for hedge calculations."
+    },
+    {
+      "step": 4,
+      "label": "today_context",
+      "description": "Inject current date, NFL week, and active game count",
+      "sources": [
+        { "type": "runtime", "value": "new Date().toISOString().split('T')[0]" },
+        { "type": "fetch", "url": "./schedule.json", "format": "json", "fallback": "[]" }
+      ],
+      "inject": "Today's date, current NFL week (derived from schedule), number of games today and this week."
+    }
+  ],
+  "tools": [
+    {
+      "name": "log_pick",
+      "description": "Record a new pick or bet to the Creator's tracker",
+      "parameters": {
+        "team": { "type": "string", "required": true },
+        "line": { "type": "number", "required": true, "description": "Spread or total line" },
+        "odds": { "type": "number", "required": true, "description": "American odds (e.g., -110)" },
+        "bet_type": {
+          "type": "string",
+          "required": true,
+          "enum": ["spread", "moneyline", "total", "team_total", "teaser", "parlay", "player_prop", "sgp", "future", "other"]
+        },
+        "sport": { "type": "string", "default": "nfl" },
+        "amount_units": { "type": "number", "required": true, "description": "Wager in units" },
+        "notes": { "type": "string", "description": "Rationale or context for the pick" },
+        "book": { "type": "string", "description": "Sportsbook where the bet is placed" }
+      },
+      "writes": "localStorage:pr_picks_v1",
+      "confirmation": "Always confirm with Creator before executing. Never auto-log."
+    },
+    {
+      "name": "get_odds",
+      "description": "Retrieve current odds from all 8 sportsbooks for a given game",
+      "parameters": {
+        "game_id": { "type": "string", "description": "Game identifier from schedule" },
+        "market": { "type": "string", "enum": ["spreads", "totals", "h2h"], "default": "spreads" }
+      },
+      "reads": "supabase:odds_snapshots",
+      "returns": "[{ home, away, spread, total, ml_home, ml_away, book, last_updated }]",
+      "rateNote": "TheOddsAPI: 500 req/month free plan. Prefer Supabase cached data."
+    },
+    {
+      "name": "get_line_movement",
+      "description": "Return opening vs. current line with directional movement",
+      "parameters": {
+        "game_id": { "type": "string", "required": true }
+      },
+      "reads": "supabase:line_movements",
+      "returns": "{ game, open_spread, current_spread, open_total, current_total, direction, magnitude, sharp_flag }"
+    },
+    {
+      "name": "analyze_matchup",
+      "description": "Return model projections and intel summary for an NFL game",
+      "parameters": {
+        "home_team": { "type": "string", "required": true },
+        "away_team": { "type": "string", "required": true }
+      },
+      "reads": ["public/schedule.json", "public/weekly_stats.json", "supabase:odds_snapshots"],
+      "returns": "{ home_proj, away_proj, predicted_margin, predicted_total, key_intel_bullets[], model_confidence }"
+    },
+    {
+      "name": "get_injury_report",
+      "description": "Return current injury designations for both teams",
+      "parameters": {
+        "team_id": { "type": "string", "required": true, "description": "ESPN team ID or team abbreviation" }
+      },
+      "reads": "espn:injuries",
+      "returns": "[{ player, position, status, injury_type, impact_estimate }]"
+    },
+    {
+      "name": "calculate_hedge",
+      "description": "Calculate hedge amounts for profit locking or loss cutting",
+      "parameters": {
+        "original_bet_amount": { "type": "number", "required": true },
+        "original_odds": { "type": "number", "required": true },
+        "hedge_odds": { "type": "number", "required": true },
+        "target_profit_or_loss": { "type": "number", "description": "Target guaranteed amount (positive = profit)" }
+      },
+      "returns": "{ hedge_amount, locked_profit, worst_case, best_case, recommendation }"
+    },
+    {
+      "name": "calculate_teaser",
+      "description": "Evaluate teaser value — checks key number crossings (3, 7) and Wong qualification",
+      "parameters": {
+        "legs": {
+          "type": "array",
+          "items": {
+            "team": { "type": "string" },
+            "spread": { "type": "number" },
+            "teaser_points": { "type": "number", "default": 6 }
+          },
+          "required": true
+        },
+        "odds": { "type": "number", "description": "Teaser odds (e.g., -120 for standard 2-team 6pt)" }
+      },
+      "returns": "{ legs_analysis[], crosses_key_numbers, wong_qualified, ev_estimate, recommendation }"
+    }
+  ],
+  "persistenceKeys": {
+    "chatHistory": "nfl_betting_agent_chat_v1",
+    "sessionState": "nfl_betting_agent_session_v1"
+  },
+  "displayConfig": {
+    "headerColor": "emerald",
+    "icon": "chip",
+    "agentLabel": "BETTING",
+    "statusBar": {
+      "show": true,
+      "fields": ["open_picks_count", "daily_units_used", "bankroll_balance"]
+    }
+  }
+}
