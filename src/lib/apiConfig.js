@@ -4,10 +4,11 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // --- API Keys (from .env via Vite) ---
-export const ODDS_API_KEY    = import.meta.env.VITE_ODDS_API_KEY    || '';
-export const OPENAI_API_KEY  = import.meta.env.VITE_OPENAI_API_KEY  || '';
-export const SUPABASE_URL    = import.meta.env.VITE_SUPABASE_URL    || '';
+export const ODDS_API_KEY      = import.meta.env.VITE_ODDS_API_KEY      || '';
+export const OPENAI_API_KEY    = import.meta.env.VITE_OPENAI_API_KEY    || '';
+export const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL      || '';
 export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
 // --- TheOddsAPI ---
 export const ODDS_API = {
@@ -48,4 +49,13 @@ export const SUPABASE = {
     LINE_MOVEMENTS:  'line_movements',
     GAME_RESULTS:    'game_results',
   },
+};
+
+// --- Anthropic ---
+export const ANTHROPIC_API = {
+  BASE_URL: 'https://api.anthropic.com/v1/messages',
+  VERSION: '2023-06-01',
+  // Model IDs per agents/manifests/betting.manifest.json
+  MODEL_DEFAULT: 'claude-sonnet-4-5',
+  MODEL_UPGRADE: 'claude-opus-4',
 };

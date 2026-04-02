@@ -41,6 +41,7 @@ const PicksTracker = lazy(() => import('./components/picks-tracker/PicksTracker'
 import ManualGradeModal from './components/modals/ManualGradeModal';
 import BankrollSettingsModal from './components/modals/BankrollSettingsModal';
 const FuturesPortfolio = lazy(() => import('./components/futures/FuturesPortfolio'));
+const AgentChat = lazy(() => import('./components/agent/AgentChat'));
 import FuturesEntryModal from './components/modals/FuturesEntryModal';
 import StorageBackupModal from './components/modals/StorageBackupModal';
 import PodcastIngestModal from './components/modals/PodcastIngestModal';
@@ -153,6 +154,7 @@ function App() {
           {activeTab === 'odds' && <div className="animate-in fade-in zoom-in duration-300"><OddsCenter /></div>}
           {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} onAutoGrade={runGradingCheck} autoGrading={checking} onOpenPodcastModal={() => setPodcastModalOpen(true)} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
           {activeTab === 'futures' && <div className="animate-in fade-in zoom-in duration-300"><FuturesPortfolio onAddPosition={() => openModal('futuresEntry')} /></div>}
+          {activeTab === 'agent' && <div className="animate-in fade-in zoom-in duration-300"><AgentChat /></div>}
         </Suspense>
       </main>
 

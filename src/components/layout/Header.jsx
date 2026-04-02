@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target, Briefcase, Database, Bot } from 'lucide-react';
+import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target, Briefcase, Database, Bot, MessageSquare } from 'lucide-react';
 import { getNFLWeekInfo } from '../../lib/constants';
 
 export default function Header({ 
@@ -133,6 +133,7 @@ export default function Header({
             <NavTab id="picks" label="Picks Tracker" icon={Target} />
             <NavTab id="futures" label="Futures" icon={Briefcase} />
             <NavTab id="devlab" label="AI Dev Lab" icon={Mic2} />
+            <NavTab id="agent" label="Agent" icon={MessageSquare} />
         </div>
       </div>
       
