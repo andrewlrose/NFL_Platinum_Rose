@@ -1,7 +1,7 @@
 # WORKING-CONTEXT.md — NFL Platinum Rose
 > **Live operational state. Update this file at every session close.**
 > **Read this at session start before touching any file.**
-> Last updated: 2026-04-02 | Branch: `main` | HEAD: bf0de90
+> Last updated: 2026-04-02 | Branch: `main` | HEAD: 91be412
 
 ---
 
@@ -21,7 +21,7 @@ Reference: NFL_EVOLUTION_PLAN.md (6-phase migration plan)
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
 | **Phase 1** | Governance Foundation | ✅ Done | SOUL.md, RULES.md, WORKING-CONTEXT.md, TASK_BOARD.md, AGENTS.md |
-| **Phase 2** | Contexts + Hooks + Rules | 🔴 Not started | contexts/, hooks/hooks.json, rules/ directory |
+| **Phase 2** | Contexts + Hooks + Rules | ✅ Done | contexts/ (5), hooks/hooks.json, rules/ (4) |
 | **Phase 3** | Dev Agent Architecture | 🔴 Not started | agents/dev/ subdirectory with YAML-frontmatter prompts |
 | **Phase 4** | Product Agent Layer | 🔴 Not started | agents/product/tier1/, agents/manifests/ |
 | **Phase 5** | CLAUDE.md Consolidation | 🔴 Not started | Orchestration directives, session protocols, anti-patterns trigger |
@@ -52,7 +52,7 @@ None currently. Phase 2 can begin in next session.
 
 ```
 Branch: main
-Commit: bf0de90 — Phase 1: Governance foundation (SOUL, RULES, WORKING-CONTEXT, TASK_BOARD, AGENTS)
+Commit: 91be412 — Phase 2: Contexts + Hooks + Rules
 ```
 
 ---

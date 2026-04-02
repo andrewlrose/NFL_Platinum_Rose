@@ -1,0 +1,89 @@
+{
+  "_meta": {
+    "description": "Platinum Rose NFL — Quality Gate Hooks",
+    "version": "1.0.0",
+    "note": "Self-enforced until Claude Code CLI is active. When CLI is active, these become executable pre-commit scripts.",
+    "autoExecute": false
+  },
+  "hooks": {
+    "pre-commit": [
+      {
+        "id": "no-console-log",
+        "description": "Detect console.log statements left in changed files",
+        "command": "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(js|jsx)$' | xargs grep -l 'console\\.log' 2>/dev/null",
+        "failMessage": "console.log detected in staged file(s). Remove before committing.",
+        "autoFix": false,
+        "severity": "error"
+      },
+      {
+        "id": "lint-staged",
+        "description": "Run ESLint on staged JS/JSX files",
+        "command": "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(js|jsx)$' | xargs npx eslint --max-warnings 0 2>/dev/null",
+        "failMessage": "ESLint errors in staged files. Run: npx eslint src/ to see details.",
+        "autoFix": false,
+        "severity": "error"
+      },
+      {
+        "id": "protect-hot-files",
+        "description": "Warn if App.jsx, storage.js, or picksDatabase.js are staged without a task brief",
+        "detectFiles": [
+          "src/App.jsx",
+          "src/lib/storage.js",
+          "src/lib/picksDatabase.js",
+          "AGENT_LOCK.json"
+        ],
+        "failMessage": "Hot file staged. Confirm PM lock exists in AGENT_LOCK.json before committing.",
+        "autoFix": false,
+        "severity": "warn"
+      },
+      {
+        "id": "protect-localStorage-keys",
+        "description": "Detect changes to canonical localStorage key strings",
+        "detectPattern": "pr_picks_v1|nfl_bankroll_data_v1|nfl_futures_portfolio_v1|nfl_expert_consensus|nfl_splits|nfl_my_bets",
+        "files": ["src/lib/storage.js", "src/lib/picksDatabase.js", "src/lib/bankroll.js", "src/lib/futures.js"],
+        "failMessage": "localStorage key name change detected. Migration helper REQUIRED before committing.",
+        "autoFix": false,
+        "severity": "error"
+      },
+      {
+        "id": "test-gate",
+        "description": "Run test suite and fail if any tests fail",
+        "command": "npm test -- --run",
+        "failMessage": "Test suite failed. Fix failing tests before committing.",
+        "autoFix": false,
+        "severity": "error",
+        "skipFor": ["docs-only", "config-only"]
+      },
+      {
+        "id": "build-check",
+        "description": "Verify production build succeeds after src/ changes",
+        "command": "npm run build",
+        "failMessage": "Build failed. Fix errors before committing.",
+        "autoFix": false,
+        "severity": "error",
+        "runWhen": "src/ files staged"
+      }
+    ],
+    "format-on-stop": [
+      {
+        "id": "format-js",
+        "description": "Run ESLint --fix on changed files when dev session ends",
+        "command": "git diff --name-only | grep -E '\\.(js|jsx)$' | xargs npx eslint --fix 2>/dev/null",
+        "autoFix": true,
+        "severity": "info"
+      }
+    ]
+  },
+  "selfEnforcementChecklist": {
+    "description": "Manual checklist to run before every commit until hooks are auto-executed",
+    "items": [
+      "[ ] No console.log in changed files",
+      "[ ] ESLint passes on changed files: npx eslint {files}",
+      "[ ] Hot files staged? → verify AGENT_LOCK.json has matching lock",
+      "[ ] localStorage key names unchanged (or migration helper committed)",
+      "[ ] npm test → all passing",
+      "[ ] npm run build → 0 errors",
+      "[ ] git diff --stat → staged files match PM-delegated scope"
+    ]
+  }
+}
