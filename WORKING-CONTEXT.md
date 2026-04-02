@@ -1,7 +1,7 @@
 # WORKING-CONTEXT.md — NFL Platinum Rose
 > **Live operational state. Update this file at every session close.**
 > **Read this at session start before touching any file.**
-> Last updated: 2026-04-02 | Branch: `main` | HEAD: d4ffd54
+> Last updated: 2026-04-02 | Branch: `main` | HEAD: a95e624
 
 ---
 
@@ -24,7 +24,7 @@ Reference: NFL_EVOLUTION_PLAN.md (6-phase migration plan)
 | **Phase 2** | Contexts + Hooks + Rules | ✅ Done | contexts/ (5), hooks/hooks.json, rules/ (4) |
 | **Phase 3** | Dev Agent Architecture | ✅ Done | agents/dev/ — 15 adapted YAML-frontmatter agent prompts |
 | **Phase 4** | Product Agent Layer | ✅ Done | BETTING.md, INTEL.md (tier1), betting.manifest.json |
-| **Phase 5** | CLAUDE.md Consolidation | 🔴 Not started | Orchestration directives, session protocols, anti-patterns trigger |
+| **Phase 5** | CLAUDE.md Consolidation | ✅ Done | Orchestration Directives, Session Protocols, Custom Commands, Prompting Discipline |
 | **Phase 6** | NFL-Specific Additions | 🔴 Not started | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json |
 
 ---
@@ -52,16 +52,16 @@ None currently. Phase 2 can begin in next session.
 
 ```
 Branch: main
-Commit: d4ffd54 — Phase 4: Product Agent Layer (BETTING, INTEL, manifest)
+Commit: a95e624 — Phase 5: CLAUDE.md Consolidation
 ```
 
 ---
 
 ## Next Session Priority
 
-**Phase 5: CLAUDE.md Consolidation**
-1. Add Orchestration Directives (agent routing, lock protocol awareness)
-2. Add Self-Improvement Rule (anti-patterns trigger)
-3. Add Session Protocols (session-start/close checklists)
-4. Add Context Management rules
-5. See `NFL_EVOLUTION_PLAN.md` Phase 5 section for full details.
+**Phase 6: NFL-Specific Additions**
+1. Create `docs/ANTI_PATTERNS.md` (seed with known NFL patterns)
+2. Create `HANDOFF_PROMPT.md` (single-file handoff)
+3. Create `AGENT_LOCK.json` (empty lock registry)
+4. Create `docs/GOTCHAS.md` (NFL quirks)
+5. See `NFL_EVOLUTION_PLAN.md` Phase 6 section for full details.

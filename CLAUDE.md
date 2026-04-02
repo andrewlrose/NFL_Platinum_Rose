@@ -8,6 +8,14 @@ Integrates real-time odds from 8 sportsbooks, tracks betting performance, manage
 **Workspace**: `E:\dev\projects\NFL_Dashboard`
 **Dev URL**: http://localhost:5173/platinum-rose-app/
 
+## Orchestration Directives
+1. **Agent-first**: Route work to the specialist agent with deepest domain knowledge. See `AGENTS.md` routing guide.
+2. **Context check**: Read `WORKING-CONTEXT.md` at session start. Current mode determines current priorities.
+3. **Rules are laws**: `RULES.md` must-never rules require explicit Creator approval to override.
+4. **Anti-patterns are supreme**: Read `docs/ANTI_PATTERNS.md` before touching dates, team names, storage keys, or scoring logic.
+5. **Quality gates are self-enforced**: Run tests before closing tasks, lint changed files, check for stray `console.log` before commit.
+6. **Hot files require PM lock**: `App.jsx`, `storage.js`, `picksDatabase.js`, `CLAUDE.md`, `AGENT_LOCK.json` — claim explicit scope before editing.
+
 ## Key Commands
 ```bash
 npm run dev              # Start dev server (Vite)
@@ -16,6 +24,8 @@ npm run preview          # Preview production build
 npm run lint             # ESLint
 npm run update-schedule  # Refresh schedule.json from external source
 ```
+
+> Before touching dates, team names, or storage keys: **see `docs/ANTI_PATTERNS.md`** first.
 
 ## File Structure Conventions
 - Components: `src/components/{category}/{ComponentName}.jsx`
@@ -110,6 +120,43 @@ DraftKings, FanDuel, BetMGM, Caesars, BetOnline, Bookmaker, PointsBet, Unibet
 
 ---
 
+## Session Protocols
+
+### Session Start
+- **Tight turnaround (< 4 hrs since last session):** Use the resume command → HANDOFF_PROMPT.md only.
+- **Overnight gap or unsure if tree is clean:** Paste `agents/dev/SESSION_STARTER_PROMPT.md` activation block first — it runs live git/vitest/server checks.
+- Either way: read `WORKING-CONTEXT.md` before touching any file.
+
+### Resume Command Format (Gen-4 canonical)
+```
+Resume Platinum Rose NFL. HEAD = {commit} ({branch}). Suite: {N/N}. {one-sentence state}. Next: {task}. Read HANDOFF_PROMPT.md for full context before touching any file.
+```
+- NEVER paste a resume command without HEAD commit + test count
+
+### Session Close (every session, in order)
+```bash
+git add -A
+git commit -m "S{N}: {description}"
+git push origin main
+# Then run /handoff to update HANDOFF_PROMPT.md
+```
+- Commit message format: `S{session number}: {what changed}`
+
+### Git Rejected Push Recovery
+- **1–3 commits ahead, no agent conflicts**: `git push --force-with-lease origin main`
+- **Diverged history**: `git pull --rebase origin main` then `git push origin main`
+- **Never** use `git push --force` (without `--lease`)
+- Check `AGENT_LOCK.json` before force-pushing — concurrent agent writes can cause divergence
+
+---
+
+## Custom Commands
+
+### /handoff
+Produce: (1) session summary with CRITICAL / IMPORTANT / Blockers labels + **Resume Command printed at the bottom**, (2) a self-contained context briefing block with all modified files, current state, next steps, and a Resume Command that points the next session to `HANDOFF_PROMPT.md` for details, and (3) overwrite `HANDOFF_PROMPT.md` with the context briefing.
+
+---
+
 ## Workflow & Process
 
 ### Plan Before You Build
@@ -126,9 +173,10 @@ DraftKings, FanDuel, BetMGM, Caesars, BetOnline, Bookmaker, PointsBet, Unibet
 - For grading/scoring changes: manually verify at least one bet grades correctly end-to-end
 
 ### Self-Improvement Rule
-- After ANY user correction: immediately update the Anti-Patterns section of this file with the new lesson
-- Don't wait — capture it while it's fresh
+- After ANY user correction: immediately add a new entry to `docs/ANTI_PATTERNS.md` under the appropriate category
+- Don't wait for `/handoff` — capture it while it's fresh
 - Pattern format: `**Bold title**: What went wrong, why, and the rule to avoid it`
+- Also update the Anti-Patterns section below if the pattern is critical enough for inline reference
 
 ### Context Management
 Context is a finite resource — preserve it by delegating exploration and research to subagents.
@@ -152,6 +200,18 @@ Context is a finite resource — preserve it by delegating exploration and resea
 - Don't subagent a 1-file read that returns a short answer — spawning overhead > just reading it
 - Batch related investigations into one subagent instead of 3 separate spawns
 - Never subagent an edit that depends on uncommitted changes from earlier in the conversation — the subagent can't see them
+
+**Project-specific triggers** — always delegate when asked to:
+- "What's already done vs. missing?" across hooks/modals/App.jsx
+- Audit for an anti-pattern across the whole `src/` tree
+- Investigate a build/runtime error spanning multiple files
+- Investigate runtime errors spanning picksDatabase.js + bankroll.js + App.jsx
+
+### Prompting Discipline (Creator habits)
+Every **feature request** must include: phase number, target file(s), spec doc reference, and a gate-check condition.
+Every **bug report** must include: exact observed output, exact observed input, and affected file — **no pre-diagnosis**. Pre-diagnosis anchors the AI on wrong paths.
+For any file touching `commence_time`, `Date()`, or team name comparison: start the prompt with "See `docs/ANTI_PATTERNS.md` — {Date & Time | Team Name Matching} section before writing any code."
+If a previous session's fix is incomplete, **amend the original bug entry** — do not file a new bug ID unless it's a genuinely new symptom in a different file.
 
 ---
 
@@ -240,3 +300,7 @@ Context is a finite resource — preserve it by delegating exploration and resea
 - `docs/TESTING.md` — Verification checklists; load after changes to App.jsx, storage, or parsers
 - `docs/ROADMAP.md` — Feature tracking & completed phases; load for planning tasks
 - `docs/HANDOFF.md` — `/handoff` command output format; load on `/handoff`
+- `docs/ANTI_PATTERNS.md` — Categorized anti-patterns; load before touching dates, team names, storage keys
+- `AGENTS.md` — Agent routing guide + lock protocol; load when delegating work
+- `WORKING-CONTEXT.md` — Live operational state; load at session start
+- `RULES.md` — Must-always / must-never rules; load for any code change
