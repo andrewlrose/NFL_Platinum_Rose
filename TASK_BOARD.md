@@ -14,16 +14,6 @@
 
 ## 📋 BACKLOG
 
-### Governance Migration (NFL_EVOLUTION_PLAN.md)
-
-| ID | Task | Priority | Notes |
-|----|------|----------|-------|
-| F-1 | Phase 2: Contexts + Hooks + Rules | P0 | 5 context files, hooks/hooks.json, rules/ directory |
-| F-2 | Phase 3: Dev Agent Architecture | P0 | agents/dev/ with YAML-frontmatter prompts |
-| F-3 | Phase 4: Product Agent Layer | P1 | agents/product/tier1/, agents/manifests/ |
-| F-4 | Phase 5: CLAUDE.md Consolidation | P1 | Orchestration directives, session protocols |
-| F-5 | Phase 6: NFL-Specific Additions | P1 | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json |
-
 ### Features
 
 | ID | Task | Priority | Notes |
@@ -46,6 +36,11 @@
 | ID | Task | Completed | Notes |
 |----|------|-----------|-------|
 | F-0 | Phase 1: Governance Foundation | 2026-04-02 | SOUL.md, RULES.md, WORKING-CONTEXT.md, TASK_BOARD.md, AGENTS.md |
+| F-1 | Phase 2: Contexts + Hooks + Rules | 2026-04-02 | contexts/ (5), hooks/hooks.json, rules/ (4) |
+| F-2 | Phase 3: Dev Agent Architecture | 2026-04-02 | agents/dev/ — 15 adapted YAML-frontmatter prompts |
+| F-3 | Phase 4: Product Agent Layer | 2026-04-02 | BETTING.md, INTEL.md (tier1), betting.manifest.json |
+| F-4 | Phase 5: CLAUDE.md Consolidation | 2026-04-02 | Orchestration directives, session protocols, commands |
+| F-5 | Phase 6: NFL-Specific Additions | 2026-04-02 | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json, GOTCHAS.md, gen_resume.js |
 
 ---
 

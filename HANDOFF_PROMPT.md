@@ -7,20 +7,33 @@
 
 ## Last Session Summary
 
-**Session:** Initial setup (Governance Migration Phase 6)
+**Session:** Governance Migration — Complete + Push
 **Date:** 2026-04-02
 **Branch:** `main`
 
-### What Was Done
-- Phase 1: Governance Foundation (SOUL.md, RULES.md, WORKING-CONTEXT.md, TASK_BOARD.md, AGENTS.md)
-- Phase 2: Contexts + Hooks + Rules (contexts/, hooks/hooks.json, rules/)
-- Phase 3: Dev Agent Architecture (15 agent prompts in agents/dev/)
-- Phase 4: Product Agent Layer (BETTING.md, INTEL.md, betting.manifest.json)
-- Phase 5: CLAUDE.md Consolidation (orchestration directives, session protocols, commands)
-- Phase 6: NFL-Specific Additions (ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json, GOTCHAS.md, gen_resume.js)
+### CRITICAL
+- All 6 phases of `NFL_EVOLUTION_PLAN.md` are **DONE** and pushed to origin.
+- HEAD `3b9b6c3` is live on `origin/main`.
+
+### IMPORTANT
+- Governance layer is fully operational: 15 dev agent prompts, 2 product agent prompts, AGENT_LOCK.json, TASK_BOARD.md, ANTI_PATTERNS.md, GOTCHAS.md, gen_resume.js all in place.
+- TASK_BOARD.md backlog items F-1 through F-5 (governance phases) are now DONE. Next backlog item is **F-6: Agent Chat POC (BETTING agent)** at P1 priority.
+- No tests modified or added this session. Playwright smoke test (`tests/smoke.spec.js`) exists but was not run.
 
 ### Blockers
 None.
+
+### What Was Done
+- Phases 1–6 of governance migration (already committed in prior turns)
+- Resolved `git push` rejection via `git pull --rebase origin main` (remote had 1 new commit `825367a` — auto-schedule update)
+- Pushed 7 rebased commits: `825367a..3b9b6c3`
+
+### Files Modified This Session (cumulative across all 6 phases)
+- **Created:** `SOUL.md`, `RULES.md`, `WORKING-CONTEXT.md`, `TASK_BOARD.md`, root `AGENTS.md`, `docs/PIPELINE_AGENTS.md`
+- **Created:** `contexts/` (5 files), `hooks/hooks.json`, `rules/common/` (3 files), `rules/javascript/conventions.md`
+- **Created:** `agents/dev/` (15 prompt files), `agents/product/tier1/` (2 files), `agents/manifests/betting.manifest.json`
+- **Created:** `docs/ANTI_PATTERNS.md`, `docs/GOTCHAS.md`, `HANDOFF_PROMPT.md`, `AGENT_LOCK.json`, `scripts/gen_resume.js`
+- **Modified:** `CLAUDE.md` (orchestration directives, session protocols, commands, context management), `package.json` (`resume` script), `NFL_EVOLUTION_PLAN.md` (all phases ✅)
 
 ---
 
@@ -28,23 +41,26 @@ None.
 
 ```
 Branch: main
-HEAD: (update after commit)
-Tree: clean
-Tests: not yet configured (Playwright smoke test exists)
+HEAD: 3b9b6c3 — Phase 6: NFL-Specific Additions
+Tree: clean (no uncommitted changes)
+Tests: Playwright smoke test exists (not run this session)
+Remote: origin/main synced at 3b9b6c3
 ```
 
 ---
 
 ## What To Do Next
 
-1. **Push all governance commits to origin** — 6+ local commits ahead of remote
-2. **Begin feature development** — governance layer is complete; consult `docs/ROADMAP.md` for next features
-3. **Run `npm run resume`** to generate canonical resume command for next session
+1. **Start feature development** — governance layer is complete
+2. **Consult `docs/ROADMAP.md`** for feature priorities
+3. **Next backlog item:** F-6 Agent Chat POC (BETTING agent) — port from NCAA: `anthropicClient.js`, `agentTools.js`, `AgentChat.jsx`
+4. **Update TASK_BOARD.md** — mark F-1 through F-5 as DONE (PM agent responsibility)
+5. **Run `npm run resume`** to generate canonical resume command
 
 ---
 
 ## Resume Command
 
 ```
-Resume Platinum Rose NFL. HEAD = {commit} (main). Suite: N/A. Governance migration complete (6 phases). Next: push to origin + consult ROADMAP.md. Read HANDOFF_PROMPT.md for full context before touching any file.
+Resume Platinum Rose NFL. HEAD = 3b9b6c3 (main). Suite: N/A. Governance migration complete (6 phases, pushed). Next: F-6 Agent Chat POC (BETTING agent). Read HANDOFF_PROMPT.md for full context before touching any file.
 ```
