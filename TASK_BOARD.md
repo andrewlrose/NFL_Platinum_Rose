@@ -18,8 +18,6 @@
 
 | ID | Task | Priority | Notes |
 |----|------|----------|-------|
-| F-6 | Agent Chat POC (BETTING agent) | P1 | Port from NCAA: anthropicClient.js, agentTools.js, AgentChat.jsx |
-| F-7 | DFS Lineup Agent | P2 | DraftKings/FanDuel NFL lineup construction |
 | F-8 | Props Agent | P2 | Player props, SGPs, backup-depth analysis |
 | F-9 | Weekly Betting Analyst agent | P2 | Sunday slate: best bets, teasers, round robins, correlated parlays |
 
@@ -42,6 +40,7 @@
 | F-4 | Phase 5: CLAUDE.md Consolidation | 2026-04-02 | Orchestration directives, session protocols, commands |
 | F-5 | Phase 6: NFL-Specific Additions | 2026-04-02 | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json, GOTCHAS.md, gen_resume.js |
 | F-6 | Agent Chat POC (BETTING agent) | 2026-04-02 | anthropicClient.js, agentTools.js, AgentChat.jsx — Agent tab live |
+| F-7 | DFS Lineup Optimizer | 2026-04-02 | DFSOptimizer.jsx — DK/FD platform toggle, greedy optimizer, lock/exclude, save lineups |
 
 ---
 

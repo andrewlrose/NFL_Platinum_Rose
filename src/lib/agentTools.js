@@ -216,6 +216,19 @@ export async function executeTool(name, input) {
   }
 }
 
+// ─── OpenAI Function-Call Format ──────────────────────────────────────────────
+// OpenAI requires { type: 'function', function: { name, description, parameters } }
+// instead of Anthropic's { name, description, input_schema }.
+
+export const OPENAI_BETTING_TOOLS = BETTING_TOOLS.map(t => ({
+  type: 'function',
+  function: {
+    name: t.name,
+    description: t.description,
+    parameters: t.input_schema,
+  },
+}));
+
 // ─── Individual Tool Implementations ─────────────────────────────────────────
 
 async function toolGetOdds({ teams } = {}) {

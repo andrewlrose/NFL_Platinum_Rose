@@ -13,13 +13,13 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Bot, User, Wrench, ChevronDown, ChevronRight, Trash2, AlertCircle, Key, CheckCircle2 } from 'lucide-react';
-import { runAgentTurn } from '../../lib/anthropicClient.js';
+import { runAgentTurn, runOpenAIAgentTurn } from '../../lib/anthropicClient.js';
 import { BETTING_TOOLS, executeTool } from '../../lib/agentTools.js';
 import { loadFromStorage, saveToStorage } from '../../lib/storage.js';
 import { getBankrollData } from '../../lib/bankroll.js';
 import { loadPicks } from '../../lib/picksDatabase.js';
 import { getNFLWeekInfo } from '../../lib/constants.js';
-import { ANTHROPIC_API_KEY, ANTHROPIC_API } from '../../lib/apiConfig.js';
+import { ANTHROPIC_API_KEY, ANTHROPIC_API, OPENAI_API_KEY } from '../../lib/apiConfig.js';
 
 // ─── localStorage keys (from betting.manifest.json persistenceKeys) ──────────
 const CHAT_HISTORY_KEY = 'nfl_betting_agent_chat_v1';
@@ -225,13 +225,18 @@ function ApiKeySetup({ onKeySet }) {
 
 // ─── Status Bar ───────────────────────────────────────────────────────────────
 
-function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, isLoading }) {
+function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, isLoading, provider }) {
+  const modelLabel = provider === 'anthropic'
+    ? (ANTHROPIC_API.MODEL_DEFAULT || 'claude-sonnet-4-5')
+    : 'gpt-4o-mini';
   return (
     <div className="flex items-center gap-4 px-4 py-2 bg-slate-900/80 border-b border-slate-800 text-xs text-slate-500">
       <div className="flex items-center gap-1.5">
         <span className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
         <span className="text-slate-400 font-bold">BETTING</span>
       </div>
+      <div className="h-3 w-px bg-slate-700" />
+      <span className="text-slate-500 font-mono">{modelLabel}</span>
       <div className="h-3 w-px bg-slate-700" />
       <span>{weekLabel}</span>
       <div className="h-3 w-px bg-slate-700" />
@@ -250,10 +255,28 @@ function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, isLoading 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AgentChat() {
-  // API key
-  const envKey = ANTHROPIC_API_KEY;
-  const storedKey = loadFromStorage(USER_API_KEY_KEY, '');
-  const [apiKey, setApiKey] = useState(envKey || storedKey || '');
+  // Provider + API key detection (priority: env vars → stored key → manual entry)
+  // env vars: VITE_ANTHROPIC_API_KEY takes precedence over VITE_OPENAI_API_KEY
+  const envKey      = ANTHROPIC_API_KEY || OPENAI_API_KEY || '';
+  const envProvider = ANTHROPIC_API_KEY ? 'anthropic' : (OPENAI_API_KEY ? 'openai' : null);
+
+  // Stored key is { key, provider } JSON (or legacy plain string for backwards compat)
+  const storedRaw  = loadFromStorage(USER_API_KEY_KEY, '');
+  let storedKey = '', storedProvider = null;
+  if (storedRaw) {
+    try {
+      const parsed = JSON.parse(storedRaw);
+      storedKey      = parsed.key || '';
+      storedProvider = parsed.provider || null;
+    } catch {
+      // Legacy plain string — detect from prefix
+      storedKey      = typeof storedRaw === 'string' ? storedRaw : '';
+      storedProvider = storedKey.startsWith('sk-ant-') ? 'anthropic' : (storedKey.startsWith('sk-') ? 'openai' : null);
+    }
+  }
+
+  const [apiKey, setApiKey]     = useState(envKey || storedKey || '');
+  const [provider, setProvider] = useState(envProvider || storedProvider || 'openai');
 
   // Conversation state (Anthropic messages format — includes tool_result messages)
   const [messages, setMessages] = useState(() => {
@@ -333,7 +356,8 @@ export default function AgentChat() {
     setMessages(updatedMessages);
 
     try {
-      const finalMessages = await runAgentTurn({
+      const runFn = provider === 'anthropic' ? runAgentTurn : runOpenAIAgentTurn;
+      const finalMessages = await runFn({
         apiKey,
         systemPrompt: systemPromptRef.current,
         messages: updatedMessages,
@@ -360,7 +384,7 @@ export default function AgentChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, apiKey]);
+  }, [input, isLoading, messages, apiKey, provider]);
 
   const clearHistory = useCallback(() => {
     if (window.confirm('Clear all conversation history?')) {
@@ -373,7 +397,7 @@ export default function AgentChat() {
   if (!apiKey) {
     return (
       <div className="h-[calc(100vh-120px)] bg-slate-950 rounded-xl border border-slate-800">
-        <ApiKeySetup onKeySet={setApiKey} />
+        <ApiKeySetup onKeySet={(k, p) => { setApiKey(k); setProvider(p); }} />
       </div>
     );
   }
@@ -404,12 +428,14 @@ export default function AgentChat() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { saveToStorage(USER_API_KEY_KEY, ''); setApiKey(''); }}
-            className="text-[10px] text-slate-600 hover:text-slate-400 px-2 py-1 rounded border border-slate-800 hover:border-slate-600 transition-colors"
-          >
-            Change Key
-          </button>
+          {!envKey && (
+            <button
+              onClick={() => { saveToStorage(USER_API_KEY_KEY, ''); setApiKey(''); setProvider(null); }}
+              className="text-[10px] text-slate-600 hover:text-slate-400 px-2 py-1 rounded border border-slate-800 hover:border-slate-600 transition-colors"
+            >
+              Change Key
+            </button>
+          )}
           <button
             onClick={clearHistory}
             className="p-1.5 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
@@ -426,6 +452,7 @@ export default function AgentChat() {
         bankrollBalance={bankrollBalance}
         weekLabel={weekLabel}
         isLoading={isLoading}
+        provider={provider}
       />
 
       {/* Messages */}

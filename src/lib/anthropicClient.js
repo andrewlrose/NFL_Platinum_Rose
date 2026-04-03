@@ -1,23 +1,25 @@
 // src/lib/anthropicClient.js
 // ═══════════════════════════════════════════════════════════════════════════════
-// Anthropic Claude API Client — Browser-side, fetch-based.
-// Handles the Anthropic Messages API including multi-turn tool use loops.
+// AI Agent Client — supports Anthropic Claude AND OpenAI GPT (function calling).
 //
-// Security note: Uses VITE_ANTHROPIC_API_KEY (same browser-key pattern as
-// VITE_OPENAI_API_KEY already in use). Personal-app only; never commit real keys.
+// Internal storage format is Anthropic-style messages so the UI rendering layer
+// is provider-agnostic.  OpenAI requests/responses are converted on the way in
+// and out.
+//
+// Providers:
+//   'anthropic' — uses VITE_ANTHROPIC_API_KEY, model claude-sonnet-4-5
+//   'openai'    — uses VITE_OPENAI_API_KEY,    model gpt-4o-mini (default)
+//
+// Security note: browser-direct API calls. Personal app only.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { ANTHROPIC_API } from './apiConfig.js';
 
-// ─── Core API Call ───────────────────────────────────────────────────────────
+const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
 
-/**
- * POST a single request to the Anthropic Messages API.
- * @param {string} apiKey
- * @param {{ model, system, messages, tools, maxTokens }} config
- * @returns {Promise<object>} - Raw Anthropic API response
- * @throws {Error} - On HTTP error or API-level error
- */
+// ─── Anthropic Core Call ─────────────────────────────────────────────────────
+
 async function callAnthropic(apiKey, { model, system, messages, tools, maxTokens }) {
   const body = {
     model: model || ANTHROPIC_API.MODEL_DEFAULT,
@@ -33,7 +35,6 @@ async function callAnthropic(apiKey, { model, system, messages, tools, maxTokens
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': ANTHROPIC_API.VERSION,
-      // Required for direct browser access per Anthropic's CORS policy
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify(body),
@@ -41,42 +42,184 @@ async function callAnthropic(apiKey, { model, system, messages, tools, maxTokens
 
   if (!response.ok) {
     const errBody = await response.json().catch(() => ({}));
-    const msg = errBody?.error?.message || `Anthropic API error: ${response.status}`;
-    throw new Error(msg);
+    throw new Error(errBody?.error?.message || `Anthropic API error: ${response.status}`);
   }
-
   return response.json();
 }
 
-// ─── Agent Turn (Tool Loop) ──────────────────────────────────────────────────
+// ─── OpenAI Format Conversion Helpers ────────────────────────────────────────
 
 /**
- * Run a full agent turn, including multi-step tool use loop.
- *
- * Algorithm:
- *   1. POST messages to API
- *   2. If response contains tool_use blocks → execute tools via executeToolFn
- *   3. Append tool_result messages and loop
- *   4. Break when stop_reason === 'end_turn' or message has no tool_use blocks
- *
- * @param {object} params
- * @param {string}   params.apiKey         - Anthropic API key
- * @param {string}   params.systemPrompt   - Full system prompt (with context injected)
- * @param {object[]} params.messages        - Existing conversation (Anthropic format)
- * @param {object[]} params.tools           - Anthropic-format tool definitions
- * @param {string}   [params.model]         - Model override
- * @param {Function} params.executeToolFn   - (name, input) → Promise<any>
- * @param {Function} [params.onStep]        - Called with each step event:
- *   { type: 'assistant', message }
- *   { type: 'tool_start', id, name, input }
- *   { type: 'tool_result', id, name, result }
- *   { type: 'error', error }
- * @returns {Promise<object[]>} - Updated messages array including all new turns
+ * Convert Anthropic-format tool definitions to OpenAI function-call format.
+ * Anthropic: { name, description, input_schema }
+ * OpenAI:    { type: 'function', function: { name, description, parameters } }
  */
+export function toOpenAITools(anthropicTools) {
+  return (anthropicTools || []).map(t => ({
+    type: 'function',
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.input_schema,
+    },
+  }));
+}
+
+/**
+ * Convert our internal Anthropic-style messages array to the OpenAI messages array.
+ * Handles: plain user strings, tool_result blobs, assistant text+tool_use blocks.
+ */
+function toOpenAIMessages(systemPrompt, messages) {
+  const result = [{ role: 'system', content: systemPrompt }];
+
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      if (typeof msg.content === 'string') {
+        result.push({ role: 'user', content: msg.content });
+      } else if (Array.isArray(msg.content)) {
+        // Tool results — one OpenAI "tool" message per result
+        for (const block of msg.content) {
+          if (block.type === 'tool_result') {
+            result.push({
+              role: 'tool',
+              tool_call_id: block.tool_use_id,
+              content: typeof block.content === 'string' ? block.content : JSON.stringify(block.content),
+            });
+          }
+        }
+      }
+    } else if (msg.role === 'assistant') {
+      const blocks = Array.isArray(msg.content) ? msg.content : [];
+      const textBlocks = blocks.filter(b => b.type === 'text');
+      const toolBlocks  = blocks.filter(b => b.type === 'tool_use');
+
+      const openaiMsg = {
+        role: 'assistant',
+        content: textBlocks.map(b => b.text).join('') || null,
+      };
+
+      if (toolBlocks.length > 0) {
+        openaiMsg.tool_calls = toolBlocks.map(b => ({
+          id: b.id,
+          type: 'function',
+          function: {
+            name: b.name,
+            arguments: JSON.stringify(b.input),
+          },
+        }));
+      }
+
+      result.push(openaiMsg);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Convert an OpenAI assistant message to Anthropic-style.
+ * { role, content, tool_calls } → { role: 'assistant', content: [text?, tool_use*] }
+ */
+function fromOpenAIAssistant(msg) {
+  const blocks = [];
+  if (msg.content) blocks.push({ type: 'text', text: msg.content });
+  for (const tc of msg.tool_calls || []) {
+    let input = {};
+    try { input = JSON.parse(tc.function.arguments); } catch { /* malformed */ }
+    blocks.push({ type: 'tool_use', id: tc.id, name: tc.function.name, input });
+  }
+  return { role: 'assistant', content: blocks };
+}
+
+// ─── OpenAI Agent Turn ────────────────────────────────────────────────────────
+
+/**
+ * Run a full agent turn against the OpenAI API (function-calling loop).
+ * Stores messages in Anthropic-style format for UI compatibility.
+ *
+ * Same signature as runAgentTurn — provider-transparent to the caller.
+ */
+export async function runOpenAIAgentTurn({ apiKey, systemPrompt, messages, tools, model, executeToolFn, onStep }) {
+  const allMessages = [...messages];
+  const openaiTools = toOpenAITools(tools);
+  let iterations = 0;
+  const MAX_ITERATIONS = 10;
+
+  while (iterations < MAX_ITERATIONS) {
+    iterations++;
+
+    const openaiMessages = toOpenAIMessages(systemPrompt, allMessages);
+
+    let data;
+    try {
+      const resp = await fetch(OPENAI_COMPLETIONS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model || OPENAI_DEFAULT_MODEL,
+          messages: openaiMessages,
+          tools: openaiTools.length > 0 ? openaiTools : undefined,
+          tool_choice: openaiTools.length > 0 ? 'auto' : undefined,
+        }),
+      });
+      if (!resp.ok) {
+        const errBody = await resp.json().catch(() => ({}));
+        throw new Error(errBody?.error?.message || `OpenAI API error: ${resp.status}`);
+      }
+      data = await resp.json();
+    } catch (err) {
+      if (onStep) onStep({ type: 'error', error: err });
+      throw err;
+    }
+
+    const choice    = data.choices[0];
+    const rawMsg    = choice.message;
+    const assistantMsg = fromOpenAIAssistant(rawMsg);
+
+    allMessages.push(assistantMsg);
+    if (onStep) onStep({ type: 'assistant', message: assistantMsg });
+
+    const toolCalls = rawMsg.tool_calls || [];
+    if (toolCalls.length === 0 || choice.finish_reason === 'stop') break;
+
+    const toolResultContents = [];
+    for (const tc of toolCalls) {
+      let input = {};
+      try { input = JSON.parse(tc.function.arguments); } catch { /* malformed */ }
+
+      if (onStep) onStep({ type: 'tool_start', id: tc.id, name: tc.function.name, input });
+
+      let result;
+      try {
+        result = await executeToolFn(tc.function.name, input);
+      } catch (e) {
+        result = { error: `Tool execution failed: ${e.message}` };
+      }
+
+      if (onStep) onStep({ type: 'tool_result', id: tc.id, name: tc.function.name, result });
+
+      toolResultContents.push({
+        type: 'tool_result',
+        tool_use_id: tc.id,
+        content: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+      });
+    }
+
+    allMessages.push({ role: 'user', content: toolResultContents });
+  }
+
+  return allMessages;
+}
+
+// ─── Anthropic Agent Turn ─────────────────────────────────────────────────────
+
 export async function runAgentTurn({ apiKey, systemPrompt, messages, tools, model, executeToolFn, onStep }) {
   const allMessages = [...messages];
   let iterations = 0;
-  const MAX_ITERATIONS = 10; // safety guard against infinite tool loops
+  const MAX_ITERATIONS = 10;
 
   while (iterations < MAX_ITERATIONS) {
     iterations++;
@@ -94,16 +237,13 @@ export async function runAgentTurn({ apiKey, systemPrompt, messages, tools, mode
       throw err;
     }
 
-    // Add assistant message to history
     const assistantMsg = { role: 'assistant', content: response.content };
     allMessages.push(assistantMsg);
     if (onStep) onStep({ type: 'assistant', message: assistantMsg });
 
-    // Check if we're done (no tool calls)
     const toolUseBlocks = response.content.filter(b => b.type === 'tool_use');
     if (toolUseBlocks.length === 0 || response.stop_reason === 'end_turn') break;
 
-    // Execute each tool and collect results
     const toolResultContents = [];
     for (const block of toolUseBlocks) {
       if (onStep) onStep({ type: 'tool_start', id: block.id, name: block.name, input: block.input });
@@ -124,7 +264,6 @@ export async function runAgentTurn({ apiKey, systemPrompt, messages, tools, mode
       });
     }
 
-    // Add tool results as the next user message (Anthropic format)
     allMessages.push({ role: 'user', content: toolResultContents });
   }
 
@@ -133,10 +272,6 @@ export async function runAgentTurn({ apiKey, systemPrompt, messages, tools, mode
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/**
- * Extract the final text response from a messages array.
- * Finds the last assistant message and returns its text content blocks joined.
- */
 export function extractFinalText(messages) {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -149,10 +284,6 @@ export function extractFinalText(messages) {
   return '';
 }
 
-/**
- * Extract all tool call events from a messages array (for display).
- * Returns [{ id, name, input, result }] in order of occurrence.
- */
 export function extractToolCalls(messages) {
   const calls = [];
   const resultMap = {};
@@ -176,3 +307,6 @@ export function extractToolCalls(messages) {
 
   return calls.map(c => ({ ...c, result: resultMap[c.id] ?? null }));
 }
+
+
+
