@@ -1,0 +1,123 @@
+{
+  "_meta": {
+    "agent": "PROPS",
+    "version": "1.0.0",
+    "description": "Context manifest for the NFL PROPS agent (F-8). Player props, SGPs, backup-depth analysis.",
+    "contextBudget": "~5000 tokens injected before first response"
+  },
+  "model": {
+    "default": "claude-sonnet-4-5",
+    "upgradeOn": ["multi-leg SGP with >=3 legs", "contradicting volume signals"],
+    "upgradeTo": "claude-opus-4"
+  },
+  "contextLoader": [
+    {
+      "step": 1,
+      "label": "open_props",
+      "description": "Load currently-tracked prop picks",
+      "sources": [
+        { "type": "localStorage", "key": "nfl_props_picks_v1", "format": "json", "fallback": "[]" }
+      ],
+      "inject": "List open props (result === 'pending') with player, market, line, direction, odds, units."
+    },
+    {
+      "step": 2,
+      "label": "today_context",
+      "description": "Current date, NFL week, active slate",
+      "sources": [
+        { "type": "runtime", "value": "new Date().toISOString().split('T')[0]" },
+        { "type": "fetch", "url": "./schedule.json", "format": "json", "fallback": "[]" }
+      ],
+      "inject": "Today's date, current NFL week, upcoming games."
+    }
+  ],
+  "tools": [
+    {
+      "name": "get_player_props",
+      "description": "Retrieve prop lines for a team/player",
+      "parameters": {
+        "team":   { "type": "string", "required": true },
+        "player": { "type": "string" },
+        "market": { "type": "string", "default": "all" }
+      },
+      "reads": ["supabase:odds_snapshots", "public/weekly_stats.json"],
+      "note": "Stubbed until paid TheOddsAPI player-props endpoint is wired."
+    },
+    {
+      "name": "analyze_prop",
+      "description": "Projection vs line for a specific prop",
+      "parameters": {
+        "player":    { "type": "string", "required": true },
+        "team":      { "type": "string", "required": true },
+        "opponent":  { "type": "string" },
+        "market":    { "type": "string", "required": true },
+        "line":      { "type": "number", "required": true },
+        "direction": { "type": "string", "enum": ["over", "under"], "required": true }
+      },
+      "returns": "{ projection, edge, tier, key_factors[], recommendation }"
+    },
+    {
+      "name": "get_prop_line_shop",
+      "description": "Best line across 4 synthetic books (stubbed)",
+      "parameters": {
+        "player": { "type": "string", "required": true },
+        "market": { "type": "string", "required": true }
+      }
+    },
+    {
+      "name": "build_sgp",
+      "description": "Combined odds with correlation haircut",
+      "parameters": {
+        "legs":             { "type": "array", "required": true },
+        "correlation_hint": { "type": "string", "enum": ["positive", "negative", "independent"] }
+      },
+      "returns": "{ legs[], correlation_type, independent_parlay_price, approx_sgp_price, implied_win_probability }"
+    },
+    {
+      "name": "check_backup_depth",
+      "description": "Injury flags + position volume impact",
+      "parameters": {
+        "team":     { "type": "string", "required": true },
+        "position": { "type": "string", "enum": ["QB", "RB", "WR", "TE", "ALL"], "default": "ALL" }
+      },
+      "reads": "espn:injuries"
+    },
+    {
+      "name": "get_prop_correlations",
+      "description": "Known NFL stat correlations matrix",
+      "parameters": {}
+    },
+    {
+      "name": "log_prop",
+      "description": "Record a prop or SGP to the Prop Tracker",
+      "parameters": {
+        "player":     { "type": "string" },
+        "team":       { "type": "string" },
+        "market":     { "type": "string" },
+        "line":       { "type": "number" },
+        "direction":  { "type": "string", "enum": ["over", "under", "yes", "sgp"] },
+        "odds":       { "type": "number", "required": true },
+        "units":      { "type": "number", "required": true },
+        "book":       { "type": "string" },
+        "game_context": { "type": "string" },
+        "notes":      { "type": "string" },
+        "legs":       { "type": "array" }
+      },
+      "writes": "localStorage:nfl_props_picks_v1",
+      "confirmation": "Always confirm with Creator before executing. Never auto-log."
+    }
+  ],
+  "persistenceKeys": {
+    "chatHistory": "nfl_props_agent_chat_v1",
+    "propsPicks":  "nfl_props_picks_v1"
+  },
+  "displayConfig": {
+    "headerColor": "violet",
+    "icon": "zap",
+    "agentLabel": "PROPS",
+    "statusBar": {
+      "show": true,
+      "fields": ["open_props_count", "week_label"]
+    }
+  }
+}

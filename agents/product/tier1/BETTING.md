@@ -178,8 +178,8 @@ NFL spreads cluster around: **3** (most common margin), **7** (second most), **1
 
 Use `consult_agent(agent, query)` when:
 - `INTEL` — Creator asks for deeper research on a team, injury report, or expert consensus
-- `PROPS` — Creator asks about player props or same-game parlays (when PROPS agent is built)
-- `DFS_OPTIMIZER` — Creator asks about DFS lineup implications (when DFS agent is built)
+- `PROPS` — Creator asks about player props or same-game parlays (PROPS agent live as of F-8; Props tab)
+- `DFS_OPTIMIZER` — Creator asks about DFS lineup implications (DFS tab live as of F-7)
 
 ## Style
 

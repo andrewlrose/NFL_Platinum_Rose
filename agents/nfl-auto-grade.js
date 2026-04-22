@@ -64,8 +64,8 @@ async function fetchWithRetry(url, retries = MAX_RETRIES) {
  *   seasonType: 2 = regular season, 3 = postseason
  */
 function getNFLWeekInfo() {
-  const SEASON_YEAR  = 2025;
-  const SEASON_START = new Date('2025-09-02T00:00:00'); // Tue before Week 1 kickoff
+  const SEASON_YEAR  = 2026;
+  const SEASON_START = new Date('2026-09-08T00:00:00'); // Tue before Week 1 kickoff
   const now          = new Date();
 
   if (now < SEASON_START) {
@@ -144,7 +144,7 @@ function parseGames(data, week, seasonType) {
 
     results.push({
       espn_id:    event.id,
-      season:     2025,
+      season:     2026,
       week,
       home_team:  homeComp.team?.displayName ?? '',
       away_team:  awayComp.team?.displayName ?? '',
@@ -206,7 +206,7 @@ function getMockGames() {
   return [
     {
       espn_id: 'DRY_RUN_MOCK_1',
-      season: 2025, week: 5, home_team: 'Kansas City Chiefs', away_team: 'San Francisco 49ers',
+      season: 2026, week: 5, home_team: 'Kansas City Chiefs', away_team: 'San Francisco 49ers',
       home_score: 24, away_score: 17, status: 'final',
       game_date: new Date().toISOString().split('T')[0],
       fetched_at: new Date().toISOString(),

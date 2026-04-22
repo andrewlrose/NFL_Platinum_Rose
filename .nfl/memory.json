@@ -1,0 +1,23 @@
+{
+  "project_name": "NFL_Dashboard",
+  "schema_version": "1.0",
+  "created": "2026-04-18",
+  "last_updated": "2026-04-18",
+  "last_session_date": null,
+  "session_count": 0,
+  "health": {
+    "status": "offseason",
+    "last_activity": "2026-04-18"
+  },
+  "status_summary": "NFL betting dashboard -- React + Vite + Supabase. Off-season mode. 6 active Claude hooks. Next: add session memory, HANDOFF.md auto-gen, port 8 skills from NCAA.",
+  "open_tasks": [
+    "Port 8 skills from NCAA Dashboard",
+    "Add build-handoff.js Stop hook",
+    "Add .nfl/memory.json cross-session state",
+    "Add lessons-learned.md pattern accumulator"
+  ],
+  "blocked_tasks": [],
+  "completed_tasks": [],
+  "recent_decisions": [],
+  "self_improvement_queue": []
+}

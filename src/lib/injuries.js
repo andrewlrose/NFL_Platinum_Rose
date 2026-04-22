@@ -6,9 +6,9 @@ import { normalizeTeam } from './teams.js';
 // Try multiple ESPN API endpoints for injury data
 const ESPN_INJURY_APIS = [
     "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{TEAM_ID}/injuries",
-    "http://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2024/types/2/teams/{TEAM_ID}/injuries", 
     "http://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/{TEAM_ID}/injuries",
-    "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/{TEAM_ID}/injuries"
+    "http://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2026/types/2/teams/{TEAM_ID}/injuries",
+    "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2026/types/2/teams/{TEAM_ID}/injuries"
 ];
 
 // Team ID mapping for ESPN API

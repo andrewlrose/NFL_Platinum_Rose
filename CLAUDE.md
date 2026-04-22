@@ -59,8 +59,8 @@ Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 ## Tab Routing (App.jsx)
 | `activeTab` | Component |
 |-------------|-----------|
-| `'dashboard'` | `<Dashboard>` — Main matchup card grid |
-| `'standings'` | `<Standings>` — Expert leaderboard |
+| `'dashboard'` | `<Dashboard>` — Main matchup card grid (eager import; landing page) |
+| `'standings'` | `<ExpertLeaderboard>` — Expert leaderboard |
 | `'mycard'` | `<MyCardModal>` — Personal betting card |
 | `'devlab'` | `<DevLab>` — Monte Carlo simulation lab |
 | `'bankroll'` | `<BankrollDashboard>` — Bankroll management |
@@ -68,6 +68,9 @@ Centralized in `src/lib/apiConfig.js` — all endpoints and keys in one file.
 | `'odds'` | `<OddsCenter>` — Live odds + line movements |
 | `'picks'` | `<PicksTracker>` — Pick tracking + grading |
 | `'futures'` | `<FuturesPortfolio>` — Futures positions, exposure, hedge lab |
+| `'agent'` | `<AgentChat>` — BETTING Tier-1 agent chat (F-6) |
+| `'props'` | `<PropsAgentChat>` — PROPS Tier-1 agent chat (F-8; violet theme, Zap icon) |
+| `'dfs'` | `<DFSOptimizer>` — DraftKings/FanDuel lineup builder (F-7) |
 
 ## localStorage Keys
 All keys are catalogued in `PR_STORAGE_KEYS` in `src/lib/storage.js`. Use `loadFromStorage`/`saveToStorage`/`clearStorage` — never call `localStorage` directly.
@@ -90,6 +93,7 @@ All keys are catalogued in `PR_STORAGE_KEYS` in `src/lib/storage.js`. Use `loadF
 | `cached_odds_time` | Cache timestamp for odds | ephemeral | LiveOddsDashboard.jsx |
 | `lineMovements` | Line movements from in-browser tracking (fallback; Supabase is primary) | ephemeral | enhancedOddsApi.js |
 | `PR_OPENAI_KEY` | User-provided OpenAI key | persistent | AudioUploadModal.jsx |
+| `nfl_props_picks_v1` | Player-prop picks logged by PROPS agent (`log_prop` tool); separate from `pr_picks_v1`. No auto-grading yet | **critical** | PropsAgentChat.jsx via propsTools.js |
 
 **Permanence rules:**
 - **critical** — `removeFromStorage()` is blocked; only explicit user action via StorageBackupModal can clear
@@ -281,7 +285,7 @@ If a previous session's fix is incomplete, **amend the original bug entry** — 
 
 - **GHA runs check out the commit at trigger time**: If you push a fix and immediately re-trigger a workflow, the run may still use the pre-fix commit if the trigger races the push. Wait for the push to complete before triggering, or verify the commit SHA in the run's "Checkout" step output.
 
-- **React.lazy tabs must stay lazy**: As of a3335f8, the 7 non-landing tabs (standings, devlab, bankroll, analytics, odds, picks, futures) are lazy-loaded via `React.lazy()` with a `<Suspense>` wrapper in App.jsx. This dropped index.js from ~700KB to 466KB. Do NOT revert to static imports — it bloats the initial bundle. Dashboard stays eager (landing page). Modals are conditionally mounted (already OK).
+- **React.lazy tabs must stay lazy**: The non-landing tabs are lazy-loaded via `React.lazy()` with a `<Suspense>` wrapper in App.jsx. As of F-8 the lazy set is: `standings`, `devlab`, `bankroll`, `analytics`, `odds`, `picks`, `futures`, `agent`, `props`, `dfs` (10 tabs). This originally dropped index.js from ~700KB to 466KB and must stay intact — do NOT revert to static imports. `dashboard` stays eager (landing page). Modals are conditionally mounted (already OK). New tabs should also be added via `const X = lazy(() => import(...))`.
 
 - **Raw localStorage calls outside storage.js**: `picksDatabase.js`, `bankroll.js`, and `EditBetModal.jsx` all had direct `localStorage.getItem/setItem` calls that bypassed try/catch and the key catalog. All reads/writes must go through `loadFromStorage`/`saveToStorage`. This also means `PR_STORAGE_KEYS` is the single source of truth — key string changes only need to happen in one place.
 

@@ -55,6 +55,19 @@
 - Pipeline agents are JS files in `agents/`: `odds-ingest.js`, `nfl-auto-grade.js`, `pick-extraction.js`, `podcast-ingest.js`, `futures-odds-ingest.js`.
 - All pipeline agents use `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS) — this key is **GHA-only**, never exposed to browser.
 
+## Season Year Handling (2025 → 2026 partial bump)
+
+- React app + `agents/nfl-auto-grade.js` were bumped from SEASON 2025 → 2026 on 2026-04-17. ESPN injury endpoints try `seasons/2026` first, fall back to `seasons/2025` (the `seasons/2024` fallback was dropped in the same pass).
+- **Python scripts (`scripts/*.py`) intentionally still say `SEASON = 2025`.** Reason: 2026 regular-season data won't exist until September 2026; bumping the Python scripts prematurely would wipe or overwrite `public/weekly_stats.json` with empty 2026 data. This is a deliberate deferred task — revisit late August 2026 as part of preseason setup.
+- PlayoffBracket `DEFAULT_SEEDS` now comments "2026-27 projected seedings" but the team list stays static — override via the UI seed picker, not in code.
+
+## Props Agent (F-8) Known Limitations
+
+- TheOddsAPI free tier does **not** return prop markets. `propsTools.js::get_player_props` and `get_prop_line_shop` read real odds snapshots when available, then fall back to **stubs scaled by team PPG** — always flagged to the Creator. Paid-tier upgrade is the future fix.
+- `build_sgp` pricing uses a **correlation-haircut approximation**: `positive` × 0.80, `negative` × 1.05, `independent` × 0.95. Not a real book quote — transparent in every response.
+- `check_backup_depth` surfaces starter-OUT status + heuristic volume impact. Does NOT return real depth chart data (no free source).
+- Prop picks log to `nfl_props_picks_v1`, NOT `pr_picks_v1`. No auto-grading pipeline agent yet — picks stay `PENDING` until manually graded or F-10 (PropsAutoGradeAgent) is built.
+
 ## Vite / Build
 
 - Base path is `/platinum-rose-app/` for GitHub Pages deployment.

@@ -1,5 +1,5 @@
 # Platinum Rose — Master Agent Registry (NFL)
-> **Last updated:** 2026-04-02 | **Total agents:** 15 dev + 6 product (Tier 1 + Tier 2 planned)
+> **Last updated:** 2026-04-17 | **Total agents:** 15 dev + 4 product Tier 1 built (BETTING, PROPS, DFS_OPTIMIZER live; INTEL live as chat surface) + 5 Tier 2 planned
 > **Lock protocol:** See `AGENT_LOCK.json` + PM_PROMPT.md §Lock Management for file-mutex rules
 > **Orchestration rule:** The PM agent is the only agent that writes to `AGENT_LOCK.json` and `TASK_BOARD.md` directly. All other agents work within PM-delegated file scope.
 > **Pipeline agents:** For GHA pipeline agents (OddsIngest, AutoGrade, etc.), see `docs/PIPELINE_AGENTS.md`.
@@ -39,16 +39,17 @@
 
 ---
 
-## Category B: Product Action Agents — Tier 1 (planned)
-> Built in Phase 4. Run inside Agent Chat UI. Each has a context manifest loaded per-conversation.
-> Prompts will live in `agents/product/tier1/` when built.
+## Category B: Product Action Agents — Tier 1
 
-| # | Agent | File (planned) | Domain | Core Tools | Status |
-|---|-------|---------------|--------|-----------|--------|
-| 1 | **BETTING** | `betting.md` | Spreads, totals, ML, futures, hedging, picks | `log_pick`, `get_odds`, `get_line_movement`, `analyze_matchup`, `get_injury_report`, `calculate_hedge` | Phase 4 |
-| 2 | **INTEL** | `intel.md` | Research synthesis, dossier queries, source reviews | `query_dossier`, `get_latest_intel`, `get_expert_picks`, `get_source_summary`, `flag_contradiction` | Phase 4 |
-| 3 | **PROPS** | `props.md` | Player props, line analysis, prop stacks, SGPs | `get_prop_lines`, `get_player_stats`, `build_prop_stack`, `get_backup_depth`, `log_pick` | Phase 4 |
-| 4 | **DFS_OPTIMIZER** | `dfs_optimizer.md` | DraftKings/FanDuel lineup construction, ownership analysis | `get_slate`, `get_projections`, `optimize_lineup`, `analyze_ownership`, `get_correlation_stacks` | Phase 4 |
+> Tier 1 agents run inside the Agent Chat UI (Agent / Props tabs) or as standalone tools (DFS). Each has a context manifest loaded per-conversation.
+> Prompts live in `agents/product/tier1/`.
+
+| # | Agent | File | Domain | Core Tools | Status |
+|---|-------|------|--------|-----------|--------|
+| 1 | **BETTING** | `BETTING.md` | Spreads, totals, ML, futures, hedging, picks | `get_odds`, `get_line_movement`, `analyze_matchup`, `get_injury_report`, `calculate_hedge`, `calculate_teaser`, `log_pick` | ✅ Live (Agent tab) |
+| 2 | **INTEL** | `INTEL.md` | Research synthesis, dossier queries, source reviews | `query_team`, `get_latest_intel`, `get_expert_picks`, `get_source_summary`, `flag_contradiction` | 📝 Manifest drafted — chat surface reuses Agent tab |
+| 3 | **PROPS** | `PROPS.md` | Player props, line analysis, prop stacks, SGPs, backup-depth flags | `get_player_props`, `analyze_prop`, `get_prop_line_shop`, `build_sgp`, `check_backup_depth`, `get_prop_correlations`, `log_prop` | ✅ Live (Props tab) — prop lines stubbed until TheOddsAPI paid tier |
+| 4 | **DFS_OPTIMIZER** | _(DFSOptimizer.jsx)_ | DraftKings/FanDuel lineup construction, lock/exclude, save lineups | In-component greedy optimizer (no Tier-1 manifest yet) | ✅ Live (DFS tab) |
 
 ---
 

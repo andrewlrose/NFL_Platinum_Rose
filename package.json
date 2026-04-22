@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "update-schedule": "node scripts/update-schedule.js",
     "test:smoke": "playwright test",
-    "resume": "node scripts/gen_resume.js"
+    "resume": "node scripts/gen_resume.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "overnight": "node scripts/overnight.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -27,6 +30,7 @@
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.1.5",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
@@ -34,6 +38,7 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.1.5"
   }
 }

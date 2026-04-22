@@ -253,7 +253,7 @@ export default function ExpertLeaderboard({ expertConsensus, refreshKey }) {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Expert Leaderboard</h2>
-            <p className="text-xs text-slate-500">Live accuracy tracking — Season 2025</p>
+            <p className="text-xs text-slate-500">Live accuracy tracking — Season 2026</p>
           </div>
         </div>
 

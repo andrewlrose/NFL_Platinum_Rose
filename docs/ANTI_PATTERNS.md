@@ -20,7 +20,7 @@
 
 - **React.memo comparator must match actual prop names**: If comparator checks `g1.overUnder` but the game object uses `g1.total`, field changes are invisible to the memo. Always verify field names match the actual data object.
 
-- **React.lazy tabs must stay lazy**: The 7 non-landing tabs (standings, devlab, bankroll, analytics, odds, picks, futures) are lazy-loaded via `React.lazy()` with a `<Suspense>` wrapper in App.jsx. This dropped index.js from ~700KB to 466KB. Do NOT revert to static imports — it bloats the initial bundle. Dashboard stays eager (landing page).
+- **React.lazy tabs must stay lazy**: The non-landing tabs are lazy-loaded via `React.lazy()` with a `<Suspense>` wrapper in App.jsx. As of F-8 the lazy set is: `standings`, `devlab`, `bankroll`, `analytics`, `odds`, `picks`, `futures`, `agent`, `props`, `dfs` (10 tabs). This originally dropped index.js from ~700KB to 466KB. Do NOT revert to static imports — it bloats the initial bundle. Dashboard stays eager (landing page). Any new tab must also be `lazy()`-imported.
 
 ---
 

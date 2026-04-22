@@ -430,10 +430,10 @@ Use this table to track progress as you work through the plan:
 |-------|--------|-------|
 | Phase 1: Foundation | ✅ Complete | SOUL.md, RULES.md, WORKING-CONTEXT.md, TASK_BOARD.md, AGENTS.md — 2026-04-02 |
 | Phase 2: Contexts + Rules | ✅ Complete | contexts/ (5), hooks/hooks.json, rules/ (4) — 2026-04-02 |
-| Phase 3: Dev Agents | ⬜ Not started | |
-| Phase 4: Product Agents | ⬜ Not started | |
-| Phase 5: CLAUDE.md merge | ⬜ Not started | |
-| Phase 6: NFL Additions | ⬜ Ongoing | ANTI_PATTERNS seeds written above |
+| Phase 3: Dev Agents | ✅ Complete | agents/dev/ — 15 YAML-frontmatter prompts — 2026-04-02 |
+| Phase 4: Product Agents | ✅ Complete | BETTING.md, INTEL.md, PROPS.md + betting/props manifests — 2026-04-17 |
+| Phase 5: CLAUDE.md merge | ✅ Complete | Orchestration Directives, Session Protocols, Anti-Patterns trigger — 2026-04-02 |
+| Phase 6: NFL Additions | ✅ Complete | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json, GOTCHAS.md, gen_resume.js — 2026-04-02 |
 
 ---
 

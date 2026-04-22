@@ -47,6 +47,7 @@ Add at: GitHub repo → Settings → Secrets and variables → Actions
 
 | Agent | Purpose | Priority |
 |-------|---------|----------|
+| **PropsAutoGradeAgent** | Poll box-score stat lines, grade picks in `user_props_picks` / `nfl_props_picks_v1` (F-8 PROPS agent writes picks but has no grader yet) | MEDIUM |
 | **TwitterIngestAgent** | Extract NFL picks from bookmarked tweets | LOW |
 
 ## Planned Hooks (browser-side bridge to agents)

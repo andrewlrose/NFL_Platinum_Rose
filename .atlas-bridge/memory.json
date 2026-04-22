@@ -1,0 +1,52 @@
+{
+  "project_name": "NFL_Dashboard",
+  "bridge_version": "1.0",
+  "last_updated": "2026-04-17",
+  "last_atlas_sync": null,
+  "session_count": 0,
+  "health": {
+    "status": "stale",
+    "days_since_push": 14,
+    "open_pr_count": 0,
+    "last_commit_msg": "Unknown",
+    "last_commit_author": "andrewlrose"
+  },
+  "status_summary": "NFL betting analytics dashboard. 15 dev agents + 4 product Tier-1 + 5 GHA pipeline agents. Manifest-based agent tools, Supabase + localStorage dual-write, multi-model routing (Sonnet/Opus). 8 shipped features. Last push 14 days ago — off-season slump expected.",
+  "alerts": [
+    {
+      "id": "nfl_stale_push",
+      "message": "NFL_Dashboard last push 14 days ago — off-season expected; verify no pending PR",
+      "severity": "info",
+      "timestamp": "2026-04-17T00:00:00",
+      "resolved": false
+    }
+  ],
+  "metrics": {
+    "test_count": 12,
+    "agent_count": 24,
+    "skills_count": 0,
+    "hooks_count": 7,
+    "governance_docs": ["CLAUDE.md", "SOUL.md", "RULES.md", "AGENTS.md"],
+    "maturity_tier": 1,
+    "primary_season": "NFL (Sep-Jan)",
+    "off_season": true,
+    "features_shipped": 8
+  },
+  "open_tasks": [
+    {
+      "id": "nfl_wave2_memory",
+      "description": "Wire NFL .atlas-bridge memory.json into active session sync — Wave 2",
+      "priority": 2,
+      "created_at": "2026-04-17T00:00:00",
+      "owner": "ATLAS"
+    },
+    {
+      "id": "nfl_skills_gap",
+      "description": "NFL Dashboard has 0 SKILL.md files — port from NCAA or create net-new for off-season",
+      "priority": 3,
+      "created_at": "2026-04-17T00:00:00",
+      "owner": "Andy"
+    }
+  ],
+  "session_log": []
+}

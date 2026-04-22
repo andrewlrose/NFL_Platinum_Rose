@@ -3,11 +3,11 @@ export const APP_VERSION = "v2.0 (GitHub Live)";
 
 /**
  * Derive current NFL week from date.
- * 2025 season: Week 1 = Sep 4, 2025. Regular season = 18 weeks.
+ * 2026 season: Week 1 = Sep 10, 2026. Regular season = 18 weeks.
  * Returns { week: number, phase: string, label: string }
  */
 export const getNFLWeekInfo = () => {
-    const SEASON_START = new Date('2025-09-02T00:00:00'); // Tuesday before Week 1 kickoff
+    const SEASON_START = new Date('2026-09-08T00:00:00'); // Tuesday before Week 1 kickoff
     const now = new Date();
     
     // Before season

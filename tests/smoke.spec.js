@@ -57,6 +57,7 @@ const TABS = [
   'Picks Tracker',
   'Futures',
   'AI Dev Lab',
+  'Props',
 ];
 
 // ─── Modal config ─────────────────────────────────────────────────────────────

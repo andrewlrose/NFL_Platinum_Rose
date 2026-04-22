@@ -1,5 +1,5 @@
 # Platinum Rose — Task Board (NFL)
-> **Last updated:** 2026-04-02
+> **Last updated:** 2026-04-17
 > **Owner:** PM agent is the sole writer of this file.
 
 ---
@@ -18,7 +18,6 @@
 
 | ID | Task | Priority | Notes |
 |----|------|----------|-------|
-| F-8 | Props Agent | P2 | Player props, SGPs, backup-depth analysis |
 | F-9 | Weekly Betting Analyst agent | P2 | Sunday slate: best bets, teasers, round robins, correlated parlays |
 
 ### Bugs
@@ -41,6 +40,7 @@
 | F-5 | Phase 6: NFL-Specific Additions | 2026-04-02 | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json, GOTCHAS.md, gen_resume.js |
 | F-6 | Agent Chat POC (BETTING agent) | 2026-04-02 | anthropicClient.js, agentTools.js, AgentChat.jsx — Agent tab live |
 | F-7 | DFS Lineup Optimizer | 2026-04-02 | DFSOptimizer.jsx — DK/FD platform toggle, greedy optimizer, lock/exclude, save lineups |
+| F-8 | Props Agent | 2026-04-17 | propsTools.js (7 tools), PropsAgentChat.jsx, PROPS.md + manifest, Props tab — stubbed data sources flagged |
 
 ---
 

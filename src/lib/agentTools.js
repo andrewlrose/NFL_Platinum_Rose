@@ -369,7 +369,7 @@ async function toolGetInjuryReport({ team }) {
 
   const urls = [
     `${ESPN_API.INJURIES_URL}/${teamId}/injuries`,
-    `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2025/types/2/teams/${teamId}/injuries`,
+    `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2026/types/2/teams/${teamId}/injuries`,
   ];
 
   for (const url of urls) {

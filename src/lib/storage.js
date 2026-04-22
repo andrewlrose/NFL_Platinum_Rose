@@ -97,6 +97,12 @@ export const PR_STORAGE_KEYS = {
     permanence: 'persistent',
     description: 'User-provided OpenAI API key',
   },
+  // Props Agent (F-8) ————————————————————————————————————————————————————
+  PROPS_PICKS: {
+    key: 'nfl_props_picks_v1',
+    permanence: 'critical',
+    description: 'Logged player prop picks and SGP legs (PROPS agent)',
+  },
 };
 
 // Convenience set of all critical keys (never wipe these)

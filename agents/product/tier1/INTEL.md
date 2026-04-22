@@ -199,7 +199,7 @@ When coverage is MINIMAL or EMPTY, present: "⚠️ Coverage for [Team] is [leve
 
 Use `consult_agent(agent, query)` when:
 - `BETTING` — Creator wants to act on the intel brief (make a pick)
-- `PROPS` — Creator asks about player-specific prop implications from injuries (when PROPS agent is built)
+- `PROPS` — Creator asks about player-specific prop implications from injuries (PROPS agent is live as of F-8; chat surface is the Props tab)
 
 ## Style
 

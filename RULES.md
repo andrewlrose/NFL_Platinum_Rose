@@ -1,5 +1,5 @@
 # Platinum Rose — Governance Rules
-> **Last updated:** 2026-04-02
+> **Last updated:** 2026-04-17
 > **Authority:** These rules apply to all agents, all sessions. Creator approval required to override any must-never rule.
 > **Source:** Consolidated from `CLAUDE.md`, anti-patterns section, and confirmed architecture decisions.
 
@@ -34,6 +34,7 @@
 | `cached_odds_time` | LiveOddsDashboard.jsx | ephemeral |
 | `lineMovements` | enhancedOddsApi.js | ephemeral |
 | `PR_OPENAI_KEY` | AudioUploadModal.jsx | persistent |
+| `nfl_props_picks_v1` | PropsAgentChat.jsx (via `log_prop` tool) | **critical** |
 
 **Permanence rules:**
 - **critical** — `removeFromStorage()` is blocked; only explicit user action via StorageBackupModal can clear

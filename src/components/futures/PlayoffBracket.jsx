@@ -15,7 +15,8 @@ import { loadFromStorage, saveToStorage } from '../../lib/storage';
 // ── Constants ─────────────────────────────────────────────────────────────────
 const BRACKET_KEY = 'pr_playoff_bracket_v1';
 
-// Default demo bracket — realistic 2025-26 seedings
+// Default demo bracket — realistic 2026-27 projected seedings.
+// These are starting-point defaults users can override in-app via the seed picker.
 const DEFAULT_SEEDS = {
   afc: ['Chiefs', 'Bills', 'Ravens', 'Texans', 'Steelers', 'Chargers', 'Broncos'],
   nfc: ['Eagles', 'Lions', 'Vikings', 'Rams', 'Buccaneers', 'Commanders', 'Packers'],

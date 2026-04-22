@@ -42,6 +42,7 @@ import ManualGradeModal from './components/modals/ManualGradeModal';
 import BankrollSettingsModal from './components/modals/BankrollSettingsModal';
 const FuturesPortfolio = lazy(() => import('./components/futures/FuturesPortfolio'));
 const AgentChat = lazy(() => import('./components/agent/AgentChat'));
+const PropsAgentChat = lazy(() => import('./components/agent/PropsAgentChat'));
 const DFSOptimizer = lazy(() => import('./components/dfs/DFSOptimizer'));
 import FuturesEntryModal from './components/modals/FuturesEntryModal';
 import StorageBackupModal from './components/modals/StorageBackupModal';
@@ -156,6 +157,7 @@ function App() {
           {activeTab === 'picks' && <div className="animate-in fade-in zoom-in duration-300"><PicksTracker onOpenGradeModal={(gameData) => { setGradeGameData(gameData); openModal('gradeModal'); }} onAutoGrade={runGradingCheck} autoGrading={checking} onOpenPodcastModal={() => setPodcastModalOpen(true)} key={`picks-${picksRefreshKey}-${autoGraded}`} /></div>}
           {activeTab === 'futures' && <div className="animate-in fade-in zoom-in duration-300"><FuturesPortfolio onAddPosition={() => openModal('futuresEntry')} /></div>}
           {activeTab === 'agent' && <div className="animate-in fade-in zoom-in duration-300"><AgentChat /></div>}
+          {activeTab === 'props' && <div className="animate-in fade-in zoom-in duration-300"><PropsAgentChat /></div>}
           {activeTab === 'dfs' && <div className="animate-in fade-in zoom-in duration-300"><DFSOptimizer /></div>}
         </Suspense>
       </main>

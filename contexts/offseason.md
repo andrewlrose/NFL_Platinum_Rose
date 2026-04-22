@@ -28,7 +28,7 @@
 
 - Pushing directly to `main` without creator approval
 - Releasing without passing test suite
-- Removing critical storage keys (`pr_picks_v1`, `nfl_bankroll_data_v1`, `nfl_futures_portfolio_v1`, `nfl_expert_consensus`)
+- Removing critical storage keys (`pr_picks_v1`, `nfl_bankroll_data_v1`, `nfl_futures_portfolio_v1`, `nfl_expert_consensus`, `nfl_props_picks_v1`)
 
 ---
 
@@ -48,8 +48,11 @@
 
 ## Offseason Priority Checklist
 
-- [ ] Complete governance migration (Phases 2–6 from NFL_EVOLUTION_PLAN.md)
-- [ ] Agent Chat POC (BETTING agent)
-- [ ] DFS/Props agent infrastructure
-- [ ] Weekly Betting Analyst agent prompt
+- [x] Complete governance migration (Phases 2–6 from NFL_EVOLUTION_PLAN.md)
+- [x] Agent Chat POC — BETTING agent (F-6, 2026-04-02)
+- [x] DFS agent infrastructure — F-7 DFS Lineup Optimizer (2026-04-02)
+- [x] Props agent infrastructure — F-8 PROPS agent (2026-04-17; prop lines stubbed until paid TheOddsAPI tier)
+- [ ] Weekly Betting Analyst Tier-1 agent (F-9, next)
 - [ ] Bundle size audit + optimization
+- [ ] Props auto-grade pipeline agent (future F-10)
+- [ ] Python scripts season bump to 2026 (deferred until late-August 2026 — data availability)

@@ -319,7 +319,7 @@ const generateBetId = () => {
 
 const getCurrentWeek = () => {
     // Simple week calculation - could be enhanced
-    const start = new Date('2025-09-01'); // Season start
+    const start = new Date('2026-09-01'); // Season start
     const now = new Date();
     const diffTime = Math.abs(now - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -332,7 +332,7 @@ const getTimeframeCutoff = (timeframe) => {
         case 'today': return new Date(now.setHours(0, 0, 0, 0));
         case 'week': return new Date(now.setDate(now.getDate() - 7));
         case 'month': return new Date(now.setMonth(now.getMonth() - 1));
-        case 'season': return new Date('2025-09-01');
+        case 'season': return new Date('2026-09-01');
         default: return new Date(0);
     }
 };

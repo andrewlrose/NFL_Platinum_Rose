@@ -12,7 +12,7 @@ export default function Standings({ experts }) {
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-white">Expert Standings</h2>
-                    <p className="text-xs text-gray-500">Track record vs Spread (Season 2025)</p>
+                    <p className="text-xs text-gray-500">Track record vs Spread (Season 2026)</p>
                 </div>
             </div>
             

@@ -11,7 +11,7 @@ Run after changes to App.jsx, storage logic, or parsers:
 - [ ] Dashboard loads schedule and displays matchup cards
 - [ ] Sync Odds loads data without burning extra API calls
 - [ ] Picks Tracker loads picks from localStorage
-- [ ] All 9 tabs render without crashing
+- [ ] All 12 tabs render without crashing (dashboard, mycard, bankroll, analytics, odds, standings, picks, futures, devlab, agent, props, dfs)
 - [ ] Bulk import (Action Network) parses and updates splits
 - [ ] AI transcript analysis extracts and stages picks
 - [ ] Picks Tracker → "Podcast Intel" button opens modal without crash

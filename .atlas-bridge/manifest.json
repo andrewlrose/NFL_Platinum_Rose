@@ -1,0 +1,36 @@
+{
+  "project_name": "NFL_Dashboard",
+  "project_path": "E:/dev/projects/NFL_Dashboard",
+  "stack": "node",
+  "bridge_version": "1.0",
+  "pm_type": "cli",
+  "agent_count": 24,
+  "agent_names": [
+    "line-shopper",
+    "expert-picks",
+    "edge-analyzer",
+    "schedule-updater",
+    "performance-tracker",
+    "simulation-engine",
+    "odds-aggregator",
+    "injury-monitor",
+    "weather-factor",
+    "model-router"
+  ],
+  "task_board_path": "TASK_BOARD.md",
+  "working_context_path": "contexts/WORKING-CONTEXT.md",
+  "capabilities": [
+    "real_time_odds_8_sportsbooks",
+    "expert_picks_aggregation",
+    "simulation_based_edge_analysis",
+    "line_shopping",
+    "performance_tracking",
+    "multi_model_routing",
+    "supabase_dual_write",
+    "github_actions_pipeline"
+  ],
+  "github_repo": "NFL_Platinum_Rose",
+  "dev_url": "http://localhost:5173/platinum-rose-app/",
+  "test_command": "npm run lint",
+  "test_count": 12
+}
