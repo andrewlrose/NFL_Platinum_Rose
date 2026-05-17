@@ -22,6 +22,7 @@ const DEFAULT_YEAR = 2026;
 const DEFAULT_SEASON_TYPE = 2; // regular season
 const DEFAULT_START_WEEK = 1;
 const DEFAULT_END_WEEK = 18;
+const POSTSEASON_TYPE = 3;
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
@@ -34,6 +35,7 @@ function parseArgs(argv) {
     startWeek: DEFAULT_START_WEEK,
     endWeek: DEFAULT_END_WEEK,
     dryRun: false,
+    includePlayoffs: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -43,6 +45,7 @@ function parseArgs(argv) {
     else if (arg === '--start-week') out.startWeek = Number(argv[++i]);
     else if (arg === '--end-week') out.endWeek = Number(argv[++i]);
     else if (arg === '--dry-run') out.dryRun = true;
+    else if (arg === '--include-playoffs') out.includePlayoffs = true;
   }
 
   if (Number.isNaN(out.year) || Number.isNaN(out.startWeek) || Number.isNaN(out.endWeek)) {
@@ -69,10 +72,85 @@ function canonicalFromEspnTeam(teamObj) {
   };
 }
 
-function makeGameId({ season, seasonType, week, awayAbbrev, homeAbbrev }) {
+function makeGameId({ season, seasonType, week, awayAbbrev, homeAbbrev, espnEventId }) {
   const a = String(awayAbbrev || 'UNK').toUpperCase();
   const h = String(homeAbbrev || 'UNK').toUpperCase();
+
+  const hasUnknownMatchup =
+    a === 'TBD' || h === 'TBD' || a === 'UNK' || h === 'UNK';
+
+  if (hasUnknownMatchup && espnEventId) {
+    return `nfl_${season}_${seasonType}_w${String(week).padStart(2, '0')}_espn_${espnEventId}`;
+  }
+
   return `nfl_${season}_${seasonType}_w${String(week).padStart(2, '0')}_${a}_at_${h}`;
+}
+
+function projectedKickoffUtc(year, playoffWeek, slot) {
+  // Approximate NFL playoff windows for representation/projection use.
+  // year=2026 -> postseason occurs in Jan/Feb 2027.
+  const y = year + 1;
+  if (playoffWeek === 1) {
+    // Wild Card weekend window.
+    return new Date(Date.UTC(y, 0, 9 + Math.floor((slot - 1) / 2), 21, 0, 0)).toISOString();
+  }
+  if (playoffWeek === 2) {
+    // Divisional weekend window.
+    return new Date(Date.UTC(y, 0, 16 + Math.floor((slot - 1) / 2), 21, 0, 0)).toISOString();
+  }
+  if (playoffWeek === 3) {
+    // Conference championships.
+    return new Date(Date.UTC(y, 0, 24, 21, 0, 0)).toISOString();
+  }
+  // Super Bowl (approx first/second Sunday in Feb depending calendar year).
+  return new Date(Date.UTC(y, 1, 7, 23, 30, 0)).toISOString();
+}
+
+function projectedPlayoffSlots(year) {
+  const rounds = [
+    { week: 1, stage: 'wildcard', slots: 6 },
+    { week: 2, stage: 'divisional', slots: 4 },
+    { week: 3, stage: 'conference', slots: 2 },
+    { week: 4, stage: 'superbowl', slots: 1 },
+  ];
+
+  const rows = [];
+  for (const round of rounds) {
+    for (let slot = 1; slot <= round.slots; slot += 1) {
+      const slotTag = String(slot).padStart(2, '0');
+      const gameId = `nfl_${year}_${POSTSEASON_TYPE}_w${String(round.week).padStart(2, '0')}_${round.stage}_slot${slotTag}`;
+      rows.push({
+        game_id: gameId,
+        espn_event_id: null,
+        season: year,
+        season_type: POSTSEASON_TYPE,
+        week: round.week,
+        kickoff_utc: projectedKickoffUtc(year, round.week, slot),
+        home_team: 'TBD',
+        away_team: 'TBD',
+        home_abbrev: 'TBD',
+        away_abbrev: 'TBD',
+        status: 'projected',
+        updated_at: new Date().toISOString(),
+
+        // Frontend cache compatibility fields
+        id: gameId,
+        visitor: 'TBD',
+        home: 'TBD',
+        visitorName: 'TBD',
+        homeName: 'TBD',
+        time: new Date(projectedKickoffUtc(year, round.week, slot)).toLocaleString('en-US', {
+          weekday: 'short',
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: 'America/New_York',
+        }).replace(':00 ', ' '),
+        spread: 0,
+        total: 0,
+      });
+    }
+  }
+  return rows;
 }
 
 async function fetchWeek(year, seasonType, week) {
@@ -107,6 +185,7 @@ async function fetchWeek(year, seasonType, week) {
       week,
       awayAbbrev: away.abbreviation,
       homeAbbrev: home.abbreviation,
+      espnEventId: String(event.id),
     });
 
     rows.push({
@@ -196,6 +275,19 @@ async function upsertGames(supabase, rows) {
   }
 }
 
+async function deleteProjectedPlayoffs(supabase, year) {
+  const { error } = await supabase
+    .from('games')
+    .delete()
+    .eq('season', year)
+    .eq('season_type', POSTSEASON_TYPE)
+    .eq('status', 'projected');
+
+  if (error) {
+    throw new Error(`Failed deleting projected playoffs: ${error.message}`);
+  }
+}
+
 function writeScheduleCache(rows) {
   const cacheRows = rows
     .map((r) => ({
@@ -223,7 +315,7 @@ async function run() {
   const cfg = parseArgs(process.argv.slice(2));
   console.log(`\n[${new Date().toISOString()}] ScheduleIngestAgent start`);
   console.log(
-    `  year=${cfg.year} seasonType=${cfg.seasonType} weeks=${cfg.startWeek}-${cfg.endWeek} dryRun=${cfg.dryRun}`
+    `  year=${cfg.year} seasonType=${cfg.seasonType} weeks=${cfg.startWeek}-${cfg.endWeek} includePlayoffs=${cfg.includePlayoffs} dryRun=${cfg.dryRun}`
   );
 
   const allRows = [];
@@ -231,6 +323,29 @@ async function run() {
     const rows = await fetchWeek(cfg.year, cfg.seasonType, week);
     console.log(`  Week ${week}: ${rows.length} game(s)`);
     allRows.push(...rows);
+  }
+
+  if (cfg.includePlayoffs) {
+    const playoffRows = [];
+    for (let week = 1; week <= 4; week += 1) {
+      const rows = await fetchWeek(cfg.year, POSTSEASON_TYPE, week);
+      playoffRows.push(...rows);
+      console.log(`  Playoffs week ${week}: ${rows.length} ESPN game(s)`);
+    }
+
+    const realByWeek = new Map();
+    for (const row of playoffRows) {
+      const key = row.week;
+      realByWeek.set(key, (realByWeek.get(key) || 0) + 1);
+    }
+
+    const projected = projectedPlayoffSlots(cfg.year).filter((p) => {
+      const realCount = realByWeek.get(p.week) || 0;
+      return realCount === 0;
+    });
+
+    allRows.push(...playoffRows, ...projected);
+    console.log(`  Playoff projected placeholders added: ${projected.length}`);
   }
 
   const validation = validateRows(allRows);
@@ -253,6 +368,10 @@ async function run() {
   if (!supabase) {
     console.log('  Missing SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY: skipping DB upsert.');
     return;
+  }
+
+  if (cfg.includePlayoffs) {
+    await deleteProjectedPlayoffs(supabase, cfg.year);
   }
 
   await upsertGames(supabase, allRows);
