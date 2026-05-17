@@ -1,5 +1,5 @@
 # Platinum Rose — Task Board (NFL)
-> **Last updated:** 2026-04-17
+> **Last updated:** 2026-05-17
 > **Owner:** PM agent is the sole writer of this file.
 
 ---
@@ -8,7 +8,24 @@
 
 | ID | Task | Assignee | Notes |
 |----|------|----------|-------|
-| — | (empty) | — | — |
+| DS-1 | 2026 Data Sprint Kickoff (scope + sequencing) | PM Agent | Concrete implementation sequence locked: DS-2 (schedule spine) → DS-3 (futures breadth) → DS-4 (research intel ingest). |
+
+### Data Sprint — Source Priority (Locked 2026-05-17)
+
+1. TheOddsAPI (futures + market snapshots)
+2. ESPN (season schedule + game metadata)
+3. Action Network / BettingPros / VSiN (written research)
+4. Podcast feeds (existing extraction path)
+
+### Data Sprint — Core Tables (target state)
+
+| Table | Purpose | Status |
+|------|---------|--------|
+| `games` | Canonical 2026 season schedule spine (game_id, week, kickoff, home/away, status) | planned |
+| `game_odds_snapshots` | Time-series ML/spread/total by book and market | planned |
+| `futures_odds_snapshots` | Super Bowl/conference/division/awards futures snapshots | partial (SB live) |
+| `research_intel_notes` | Parsed article/podcast research with source attribution and confidence | planned |
+| `research_pick_signals` | Structured picks/leans extracted from intel sources | planned |
 
 ---
 
@@ -18,7 +35,16 @@
 
 | ID | Task | Priority | Notes |
 |----|------|----------|-------|
-| F-9 | Weekly Betting Analyst agent | P2 | Sunday slate: best bets, teasers, round robins, correlated parlays |
+| DS-2 | Build 2026 season schedule spine (`games`) | P0 | Ingest ESPN schedule into new canonical `games` table and local cache (`public/schedule.json`) with deterministic `game_id`; drives all weekly joins. |
+| DS-3 | Expand futures ingest breadth (`futures_odds_snapshots`) | P0 | Extend `agents/futures-odds-ingest.js` from Super Bowl-only to conference/division (+ awards where available), including explicit unavailable-market handling and run receipts. |
+| DS-4 | Research intel ingest v1 (`research_intel_notes`, `research_pick_signals`) | P1 | Add article + podcast normalization pipeline with source metadata, publish timestamps, and extracted picks/angles for BETTING context preload. |
+| F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | P1 | Agent opens with best plays unprompted; "best plays" command triggers proactive output; replaces passive Q&A for game-day use |
+| F-10 | Performance feedback loop | P1 | ROI aggregation by bet type/team/situation; calibration signals injected into BETTING agent context at session start |
+| F-11 | Article ingestion pipeline | P2 | Action Network, BettingPros, VSiN written content; same pattern as podcast pipeline → extract picks/angles → user_picks; blocked on RSS/scrape decision |
+| F-12 | Hermes/Obsidian NFL betting vault integration | P1 | Read + write path; BETTING agent writes session notes/angles/outcomes to vault post-session; reads coach tendencies/stats/DVOA/EPA at session start; blocked on Hermes MCP architecture |
+| F-13 | Twitter/X sharp-account ingestion | P2 | Creator has dedicated X account for Platinum Rose; follow list of sharp accounts; blocked on X API access decision |
+| F-14 | Vault pre-load (reference data) | P2 | Historical stats, team rosters, coaching data, game strategy books into NFL vault; offseason work; blocked on vault path |
+| F-15 | Props auto-grade GHA agent | P3 | Grades nfl_props_picks_v1; parallel to nfl-auto-grade.js |
 
 ### Bugs
 
@@ -48,7 +74,7 @@
 
 | ID | Task | Blocker | Notes |
 |----|------|---------|-------|
-| — | (none) | — | — |
+| DS-4 | Source access decisions | RSS/API availability for Action Network, BettingPros, VSiN (fallback: approved scraping path) |
 
 ---
 
