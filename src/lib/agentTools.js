@@ -11,6 +11,7 @@ import { getLatestOddsSnapshot, getLineMovementsDB } from './supabase.js';
 import { addPick } from './picksDatabase.js';
 import { PR_STORAGE_KEYS } from './storage.js';
 import { LOCAL_DATA, ESPN_API } from './apiConfig.js';
+import { normalizeTeam, getTeamAbbreviation } from './teams.js';
 
 // ─── ESPN Team ID Mapping ─────────────────────────────────────────────────────
 // Used by get_injury_report tool
@@ -310,12 +311,25 @@ async function toolAnalyzeMatchup({ home_team, away_team }) {
   const homeLower = home_team.toLowerCase();
   const awayLower = away_team.toLowerCase();
 
-  // Find matching game in schedule
+  // Normalize inputs to canonical abbreviations for reliable schedule lookup
+  const homeCanon = normalizeTeam(home_team);
+  const awayCanon = normalizeTeam(away_team);
+  const homeAbbr = homeCanon ? getTeamAbbreviation(homeCanon) : null;
+  const awayAbbr = awayCanon ? getTeamAbbreviation(awayCanon) : null;
+
+  // Find matching game in schedule — prefer exact abbreviation match, fall
+  // back to fuzzy string match so the tool still works with partial inputs.
   const game = schedule.find(g => {
-    const h = (g.home || g.home_team || '').toLowerCase();
-    const v = (g.visitor || g.away_team || g.away || '').toLowerCase();
-    return (h.includes(homeLower) || homeLower.includes(h)) &&
-           (v.includes(awayLower) || awayLower.includes(v));
+    const h = g.home || g.home_abbrev || '';
+    const v = g.visitor || g.away_abbrev || '';
+    if (homeAbbr && awayAbbr) {
+      return h === homeAbbr && v === awayAbbr;
+    }
+    // Fuzzy fallback when normalization fails (unknown/misspelled team names)
+    const hLower = h.toLowerCase();
+    const vLower = v.toLowerCase();
+    return (hLower.includes(homeLower) || homeLower.includes(hLower)) &&
+           (vLower.includes(awayLower) || awayLower.includes(vLower));
   });
 
   // Find stats entries

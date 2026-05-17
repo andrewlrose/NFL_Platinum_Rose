@@ -28,7 +28,7 @@
 
 | Table | Purpose | Status |
 |------|---------|--------|
-| `games` | Canonical 2026 season schedule spine (game_id, week, kickoff, home/away, status) | planned |
+| `games` | Canonical 2026 season schedule spine (game_id, week, kickoff, home/away, status) | **live — 272 games (weeks 1–18), migration 007 applied, ingest agent active** |
 | `game_odds_snapshots` | Time-series ML/spread/total by book and market | planned |
 | `futures_odds_snapshots` | Super Bowl/conference/division/awards futures snapshots | partial (SB live) |
 | `research_intel_notes` | Parsed article/podcast research with source attribution and confidence | live validated (NFL-only ingest filter active) |
@@ -42,7 +42,7 @@
 
 | ID | Task | Priority | Notes |
 |----|------|----------|-------|
-| DS-2 | Build 2026 season schedule spine (`games`) | P0 | Ingest ESPN schedule into new canonical `games` table and local cache (`public/schedule.json`) with deterministic `game_id`; enforce team normalization (`skills/team-normalization.md`) on all joins. |
+| DS-2 | Build 2026 season schedule spine (`games`) | P0 | ~~Ingest ESPN schedule into new canonical `games` table and local cache (`public/schedule.json`) with deterministic `game_id`; enforce team normalization (`skills/team-normalization.md`) on all joins.~~ → **Done — see DONE section.** |
 | DS-3 | Expand futures ingest breadth (`futures_odds_snapshots`) | P0 | Extend `agents/futures-odds-ingest.js` from Super Bowl-only to conference/division (+ awards where available), including explicit unavailable-market handling and run receipts; keep `dotenv/config` server-agent env pattern. |
 | DS-4 | Research intel ingest v1 (`research_intel_notes`, `research_pick_signals`) | P1 | Add article + podcast normalization pipeline with source metadata, publish timestamps, and extracted picks/angles for BETTING context preload. |
 | F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | P1 | In progress — proactive Sunday opening + `Best Plays` command implemented in AgentChat; pending prompt tuning and game-day output validation. |
@@ -74,6 +74,7 @@
 | F-6 | Agent Chat POC (BETTING agent) | 2026-04-02 | anthropicClient.js, agentTools.js, AgentChat.jsx — Agent tab live |
 | F-7 | DFS Lineup Optimizer | 2026-04-02 | DFSOptimizer.jsx — DK/FD platform toggle, greedy optimizer, lock/exclude, save lineups |
 | F-8 | Props Agent | 2026-04-17 | propsTools.js (7 tools), PropsAgentChat.jsx, PROPS.md + manifest, Props tab — stubbed data sources flagged |
+| DS-2 | Build 2026 season schedule spine (`games`) | 2026-05-17 | `agents/schedule-ingest.js` + migration 007 applied; 272 games (weeks 1–18) in Supabase + `public/schedule.json`; deterministic `game_id`; `toolAnalyzeMatchup` now uses `normalizeTeam` for exact abbreviation lookup; receipt writing added. |
 
 ---
 

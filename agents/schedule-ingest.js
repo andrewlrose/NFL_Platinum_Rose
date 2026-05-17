@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mkdir, writeFile } from 'node:fs/promises';
 
 import { createClient } from '@supabase/supabase-js';
 import 'dotenv/config';
@@ -13,6 +14,7 @@ import { getTeamAbbreviation, normalizeTeam } from '../src/lib/teams.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.join(__dirname, '..');
+const RECEIPTS_DIR = path.join(ROOT, '.nfl', 'receipts');
 const CACHE_PATH = path.join(ROOT, 'public', 'schedule.json');
 
 const ESPN_SCOREBOARD =
@@ -231,6 +233,14 @@ function buildSupabaseClient() {
   });
 }
 
+async function writeReceipt(receipt) {
+  await mkdir(RECEIPTS_DIR, { recursive: true });
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const filePath = path.join(RECEIPTS_DIR, `schedule-ingest-${ts}.json`);
+  await writeFile(filePath, `${JSON.stringify(receipt, null, 2)}\n`);
+  return filePath;
+}
+
 function validateRows(rows) {
   const dupes = new Set();
   const seen = new Set();
@@ -348,6 +358,7 @@ async function run() {
     console.log(`  Playoff projected placeholders added: ${projected.length}`);
   }
 
+  const startedAt = new Date().toISOString();
   const validation = validateRows(allRows);
   console.log(`  Total rows: ${validation.total}`);
   console.log(`  Weeks covered: ${validation.weeks.join(', ') || '(none)'}`);
@@ -361,12 +372,45 @@ async function run() {
 
   if (cfg.dryRun) {
     console.log('  Dry run enabled: skipping Supabase upsert.');
+    const receiptPath = await writeReceipt({
+      agent: 'schedule-ingest',
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      dry_run: true,
+      year: cfg.year,
+      season_type: cfg.seasonType,
+      weeks_fetched: `${cfg.startWeek}-${cfg.endWeek}`,
+      include_playoffs: cfg.includePlayoffs,
+      rows_fetched: validation.total,
+      weeks_covered: validation.weeks,
+      duplicate_count: validation.duplicateCount,
+      supabase_upsert: false,
+      cache_written: CACHE_PATH,
+    });
+    console.log(`🧾 Run receipt: ${receiptPath}`);
     return;
   }
 
   const supabase = buildSupabaseClient();
   if (!supabase) {
     console.log('  Missing SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY: skipping DB upsert.');
+    const receiptPath = await writeReceipt({
+      agent: 'schedule-ingest',
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      dry_run: false,
+      year: cfg.year,
+      season_type: cfg.seasonType,
+      weeks_fetched: `${cfg.startWeek}-${cfg.endWeek}`,
+      include_playoffs: cfg.includePlayoffs,
+      rows_fetched: validation.total,
+      weeks_covered: validation.weeks,
+      duplicate_count: validation.duplicateCount,
+      supabase_upsert: false,
+      supabase_skip_reason: 'missing credentials',
+      cache_written: CACHE_PATH,
+    });
+    console.log(`🧾 Run receipt: ${receiptPath}`);
     return;
   }
 
@@ -376,6 +420,23 @@ async function run() {
 
   await upsertGames(supabase, allRows);
   console.log('  Supabase upsert complete: games table updated.');
+
+  const receiptPath = await writeReceipt({
+    agent: 'schedule-ingest',
+    started_at: startedAt,
+    completed_at: new Date().toISOString(),
+    dry_run: false,
+    year: cfg.year,
+    season_type: cfg.seasonType,
+    weeks_fetched: `${cfg.startWeek}-${cfg.endWeek}`,
+    include_playoffs: cfg.includePlayoffs,
+    rows_fetched: validation.total,
+    weeks_covered: validation.weeks,
+    duplicate_count: validation.duplicateCount,
+    supabase_upsert: true,
+    cache_written: CACHE_PATH,
+  });
+  console.log(`🧾 Run receipt: ${receiptPath}`);
 }
 
 run().catch((err) => {
