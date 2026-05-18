@@ -25,9 +25,10 @@ const FEEDS = [
     confidence: 0.74,
   },
   {
-    source: 'BettingPros',
-    url: 'https://www.bettingpros.com/nfl/news/feed/',
-    confidence: 0.69,
+    // BettingPros: /nfl/news/feed/ returns HTML; /feed/ exceeds 2MB — using ESPN NFL RSS instead
+    source: 'ESPN NFL',
+    url: 'https://www.espn.com/espn/rss/nfl/news',
+    confidence: 0.67,
   },
   {
     source: 'VSiN',
@@ -37,6 +38,7 @@ const FEEDS = [
 ];
 
 const NFL_KEYWORDS = [
+  // In-season betting terms
   ' nfl ',
   ' national football league ',
   ' super bowl ',
@@ -53,12 +55,30 @@ const NFL_KEYWORDS = [
   ' prop ',
   ' betting ',
   ' odds ',
-  ' draft ',
-  ' preseason ',
   ' playoffs ',
   ' wild card ',
   ' divisional round ',
   ' conference championship ',
+  // Offseason terms (draft, FA, training camp)
+  ' nfl draft ',
+  ' draft pick ',
+  ' draft class ',
+  ' nfl combine ',
+  ' free agent ',
+  ' free agency ',
+  ' training camp ',
+  ' ota ',
+  ' minicamp ',
+  ' depth chart ',
+  ' nfl roster ',
+  ' waiver ',
+  ' nfl trade ',
+  ' preseason ',
+  ' nfl 2026 ',
+  ' nfl season ',
+  ' head coach ',
+  ' offensive coordinator ',
+  ' defensive coordinator ',
 ];
 
 const NON_NFL_HINTS = [
@@ -169,20 +189,21 @@ function normalizeForMatch(value = '') {
 }
 
 function looksNflRelevant(item, source = '') {
-  const haystack = normalizeForMatch([
+  const titleHaystack = normalizeForMatch([source, item.title].join(' '));
+  const fullHaystack = normalizeForMatch([
     source,
     item.title,
     item.description,
     item.link,
   ].join(' '));
 
-  const hasNfl = NFL_KEYWORDS.some(k => haystack.includes(k));
-  if (!hasNfl) {
-    return false;
-  }
+  const hasNfl = NFL_KEYWORDS.some(k => fullHaystack.includes(k));
+  if (!hasNfl) return false;
 
-  const hasNonNfl = NON_NFL_HINTS.some(k => haystack.includes(k));
-  return !hasNonNfl;
+  // Only apply non-NFL block to the title — descriptions can have cross-sport
+  // sidebar links that would otherwise kill valid NFL articles.
+  const titleHasNonNfl = NON_NFL_HINTS.some(k => titleHaystack.includes(k));
+  return !titleHasNonNfl;
 }
 
 function extractSignals(item, source, baseConfidence) {

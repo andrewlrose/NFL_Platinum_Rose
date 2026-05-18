@@ -1,0 +1,49 @@
+name: Research Intel Ingest Agent
+
+on:
+  schedule:
+    - cron: '0 9 * * *'    # Daily at 09:00 UTC (increase to twice-daily during season)
+    - cron: '0 21 * * *'   # Daily at 21:00 UTC (evening sweep)
+  workflow_dispatch:        # Manual trigger from GitHub Actions tab
+    inputs:
+      dry_run:
+        description: 'Dry run (fetch + filter only, no Supabase writes)'
+        required: false
+        default: false
+        type: boolean
+      lookback_hours:
+        description: 'Hours to look back for new articles'
+        required: false
+        default: '72'
+        type: string
+      limit_per_feed:
+        description: 'Max articles to process per feed'
+        required: false
+        default: '20'
+        type: string
+
+jobs:
+  research-intel-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run ResearchIntelIngestAgent
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
+          INTEL_LOOKBACK_HOURS:      ${{ inputs.lookback_hours || '72' }}
+          INTEL_LIMIT_PER_FEED:      ${{ inputs.limit_per_feed || '20' }}
+        run: node agents/research-intel-ingest.js

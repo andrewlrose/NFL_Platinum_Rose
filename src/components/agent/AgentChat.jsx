@@ -27,6 +27,10 @@ import {
 } from '../../lib/picksDatabase.js';
 import { getNFLWeekInfo } from '../../lib/constants.js';
 import { ANTHROPIC_API_KEY, ANTHROPIC_API, OPENAI_API_KEY } from '../../lib/apiConfig.js';
+import {
+  getRecentResearchIntelNotes,
+  getRecentResearchPickSignals,
+} from '../../lib/supabase.js';
 
 // ─── localStorage keys (from betting.manifest.json persistenceKeys) ──────────
 const CHAT_HISTORY_KEY = 'nfl_betting_agent_chat_v1';
@@ -116,7 +120,40 @@ function buildCalibrationSummary(picks) {
   return lines.join('\n');
 }
 
-function buildSystemPrompt(picks, bankrollData, futuresData, schedule) {
+/**
+ * Build a concise research intel summary block for the system prompt.
+ * Shows note counts by source and the top recent pick signals.
+ */
+function buildIntelSummary(intelData) {
+  if (!intelData || (!intelData.notes?.length && !intelData.signals?.length)) {
+    return '  No recent intel captured (agent may not have run yet).';
+  }
+
+  const { notes = [], signals = [] } = intelData;
+
+  // Source breakdown
+  const bySource = {};
+  notes.forEach(n => {
+    bySource[n.source] = (bySource[n.source] || 0) + 1;
+  });
+  const sourceLine = Object.entries(bySource)
+    .map(([src, count]) => `${src}: ${count}`)
+    .join(' | ') || 'No sources';
+
+  const lines = [`  Sources: ${sourceLine} (${notes.length} articles)`];
+
+  if (signals.length > 0) {
+    lines.push('  Pick signals:');
+    signals.slice(0, 8).forEach(s => {
+      const conf = s.confidence ? ` (conf: ${(+s.confidence).toFixed(2)})` : '';
+      lines.push(`    - [${s.source}] ${s.lean}${conf}`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+function buildSystemPrompt(picks, bankrollData, futuresData, schedule, intelData = null) {
   const openPicks = (picks || []).filter(p => p.result === 'PENDING');
   const { label: weekLabel, phase } = getNFLWeekInfo();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -177,6 +214,9 @@ ${futures.length > 0
 
 ### Performance (calibration signal):
 ${buildCalibrationSummary(picks)}
+
+### Research Intel (72h capture):
+${buildIntelSummary(intelData)}
 
 ### Upcoming Schedule:
 ${upcomingGames || '  No schedule data loaded'}
@@ -450,7 +490,13 @@ export default function AgentChat() {
         if (resp.ok) schedule = await resp.json();
       } catch { /* non-fatal */ }
 
-      systemPromptRef.current = buildSystemPrompt(picks, bankroll, futures, schedule);
+      const [intelNotes, intelSignals] = await Promise.all([
+        getRecentResearchIntelNotes(72, 200),
+        getRecentResearchPickSignals(72, 50),
+      ]);
+      const intelData = { notes: intelNotes, signals: intelSignals };
+
+      systemPromptRef.current = buildSystemPrompt(picks, bankroll, futures, schedule, intelData);
       setContextLoaded(true);
     }
     loadContext();

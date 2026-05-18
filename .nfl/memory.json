@@ -2,27 +2,34 @@
   "project_name": "NFL_Dashboard",
   "schema_version": "1.0",
   "created": "2026-04-18",
-  "last_updated": "2026-04-22",
-  "last_session_date": "2026-04-22",
-  "session_count": 1,
+  "last_updated": "2026-05-08",
+  "last_session_date": "2026-05-08",
+  "session_count": 3,
   "health": {
     "status": "offseason",
-    "last_activity": "2026-04-22"
+    "last_activity": "2026-05-08"
   },
-  "status_summary": "NFL betting dashboard -- React + Vite + Supabase. Off-season mode. Supabase RLS gap fixed (podcast_feeds). Dispatch tables live in Rosie's Supabase.",
+  "status_summary": "NFL betting dashboard -- React + Vite + Supabase. Off-season mode. Futures ingest live: 96 Super Bowl rows written 2026-05-08 (conference/division 404 = offseason, expected). ODDS_API_KEY rotated (old key deactivated). F-9 Weekly Betting Analyst agent is next feature.",
   "open_tasks": [
-    "Apply 006_rls_podcast_feeds.sql to live Supabase project aambmuzfcojxqvbzhngp",
-    "Port 8 skills from NCAA Dashboard",
     "Add build-handoff.js Stop hook",
     "Add lessons-learned.md pattern accumulator"
   ],
   "blocked_tasks": [],
   "completed_tasks": [
+    "Live futures ingest confirmed: 96 Super Bowl rows written to futures_odds_snapshots; ODDS_API_KEY rotated 2026-05-08",
+    "Ported 2 missing skills from NCAA Dashboard: deployment-flow/SKILL.md (NFL-adapted) + team-normalization.md (NFL-adapted) — 2026-05-08",
+    "006_rls_podcast_feeds.sql confirmed applied to live Supabase aambmuzfcojxqvbzhngp — 2026-05-08 (42710 on re-run confirms policy already live)",
+    "dotenv added to futures-odds-ingest.js; ODDS_API_KEY + SUPABASE keys added to .env — 2026-04-29",
+    "Futures ingest dry-run verified: 96 Super Bowl rows, TheOddsAPI responding — 2026-04-29",
     "Supabase RLS gap fix: podcast_feeds ENABLE ROW LEVEL SECURITY (006_rls_podcast_feeds.sql + 003_podcast.sql patched) — 2026-04-22",
     "vitest + 65 unit tests (hedgeCalculator, agentTools, bankroll, futures, propsTools) — 2026-04-21",
     "props-auto-grade.js: real Supabase player_stats query with graceful 42P01 degradation — 2026-04-21"
   ],
   "recent_decisions": [
+    {
+      "date": "2026-04-29",
+      "decision": "Added dotenv/config import to futures-odds-ingest.js so server-side agents read non-VITE_ keys from .env automatically. Same pattern should be applied to odds-ingest.js and nfl-auto-grade.js when those are next touched."
+    },
     {
       "date": "2026-04-22",
       "decision": "podcast_feeds RLS policy set to public_read (anon SELECT, service_role writes) — matches pattern of podcast_episodes and podcast_transcripts"
