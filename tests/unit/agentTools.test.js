@@ -14,6 +14,15 @@ vi.mock('../../src/lib/supabase.js', () => ({
   supabase: null,
 }));
 
+vi.mock('../../src/lib/vaultClient.js', () => ({
+  readVaultNote: vi.fn(async () => null),
+  writeVaultNote: vi.fn(async () => true),
+  todaySessionPath: vi.fn(() => 'NFL/Sessions/2026-01-01.md'),
+  loadReferenceNotes: vi.fn(async () => ''),
+  listVaultNotes: vi.fn(async () => []),
+  searchVaultNotes: vi.fn(async () => []),
+}));
+
 vi.mock('../../src/lib/picksDatabase.js', () => ({
   addPick: vi.fn(() => ({ success: true, pick: { id: 'test-pick-1' } })),
   calculateStandings: vi.fn(() => ({
@@ -55,8 +64,8 @@ import {
 
 describe('agentTools', () => {
   describe('BETTING_TOOLS', () => {
-    it('exports exactly 9 tools', () => {
-      expect(BETTING_TOOLS).toHaveLength(9);
+    it('exports exactly 11 tools', () => {
+      expect(BETTING_TOOLS).toHaveLength(11);
     });
 
     it('each tool has name, description, and input_schema', () => {
@@ -79,7 +88,9 @@ describe('agentTools', () => {
         'get_odds',
         'get_performance_stats',
         'log_pick',
+        'read_vault_note',
         'search_intel',
+        'write_vault_note',
       ]);
     });
 
@@ -234,6 +245,71 @@ describe('agentTools', () => {
       expect(result.articles[0].source).toBe('Action Network');
       expect(result.articles[0].pick_signals).toHaveLength(1);
       expect(result.articles[0].pick_signals[0].lean).toBe('KC -3.5');
+    });
+
+    // ── Vault tool tests ────────────────────────────────────────────────────
+
+    it('read_vault_note returns not_found when mock returns null', async () => {
+      const result = await executeTool('read_vault_note', { path: 'NFL/Reference/DVOA.md' });
+      expect(result).toHaveProperty('status', 'not_found');
+      expect(result.path).toBe('NFL/Reference/DVOA.md');
+      expect(result).toHaveProperty('message');
+    });
+
+    it('read_vault_note returns error when path is missing', async () => {
+      const result = await executeTool('read_vault_note', {});
+      expect(result).toHaveProperty('error');
+    });
+
+    it('read_vault_note returns content when mock returns a string', async () => {
+      const { readVaultNote } = await import('../../src/lib/vaultClient.js');
+      readVaultNote.mockResolvedValueOnce('# DVOA Reference\n\nSome content here.');
+      const result = await executeTool('read_vault_note', { path: 'NFL/Reference/DVOA.md' });
+      expect(result.status).toBe('ok');
+      expect(result.content).toContain('DVOA Reference');
+      expect(result.char_count).toBeGreaterThan(0);
+    });
+
+    it('write_vault_note returns error when path is missing', async () => {
+      const result = await executeTool('write_vault_note', { content: 'Hello' });
+      expect(result).toHaveProperty('error');
+    });
+
+    it('write_vault_note returns error when content is missing', async () => {
+      const result = await executeTool('write_vault_note', { path: 'NFL/Sessions/2026-01-01.md' });
+      expect(result).toHaveProperty('error');
+    });
+
+    it('write_vault_note rejects paths outside NFL/ prefix', async () => {
+      const result = await executeTool('write_vault_note', {
+        path: 'Personal/secrets.md',
+        content: 'should not write',
+      });
+      expect(result).toHaveProperty('error');
+      expect(result.error).toContain('NFL/');
+    });
+
+    it('write_vault_note returns written on success', async () => {
+      const { writeVaultNote } = await import('../../src/lib/vaultClient.js');
+      writeVaultNote.mockResolvedValueOnce(true);
+      const result = await executeTool('write_vault_note', {
+        path: 'NFL/Sessions/2026-09-07.md',
+        content: '# Session 2026-09-07\n\n## Picks\n- KC -3.5',
+        tags: ['session', 'week-1'],
+      });
+      expect(result.status).toBe('written');
+      expect(result.path).toBe('NFL/Sessions/2026-09-07.md');
+      expect(result.tags).toEqual(['session', 'week-1']);
+    });
+
+    it('write_vault_note returns error status when backend fails', async () => {
+      const { writeVaultNote } = await import('../../src/lib/vaultClient.js');
+      writeVaultNote.mockResolvedValueOnce(false);
+      const result = await executeTool('write_vault_note', {
+        path: 'NFL/Sessions/2026-09-07.md',
+        content: '# Session',
+      });
+      expect(result.status).toBe('error');
     });
 
   });

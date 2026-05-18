@@ -5,10 +5,12 @@
 //
 // Tools: log_pick · get_odds · get_line_movement · analyze_matchup ·
 //        get_injury_report · calculate_hedge · calculate_teaser ·
-//        get_performance_stats · search_intel
+//        get_performance_stats · search_intel ·
+//        read_vault_note · write_vault_note
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { getLatestOddsSnapshot, getLineMovementsDB, searchResearchIntel } from './supabase.js';
+import { readVaultNote, writeVaultNote, todaySessionPath } from './vaultClient.js';
 import {
   addPick,
   calculateStandings,
@@ -240,6 +242,43 @@ export const BETTING_TOOLS = [
       required: ['query'],
     },
   },
+  {
+    name: 'read_vault_note',
+    description: 'Read a note from the NFL betting vault. Use at session start to load reference data: coach tendencies (NFL/Reference/CoachTendencies.md), DVOA analytics (NFL/Reference/DVOA.md), ATS trends (NFL/Reference/ATS_Trends.md), key numbers (NFL/Reference/KeyNumbers.md), or team-specific notes (NFL/Teams/<ABBR>.md). Also use when the Creator asks about notes or angles from a previous session (NFL/Sessions/YYYY-MM-DD.md).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Vault-relative path to the note (e.g. "NFL/Reference/CoachTendencies.md", "NFL/Sessions/2026-09-07.md", "NFL/Teams/KC.md")',
+        },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'write_vault_note',
+    description: 'Write or update a note in the NFL betting vault. Use post-session to save angles, picks, and rationale to NFL/Sessions/YYYY-MM-DD.md. Also use to update team notes (NFL/Teams/<ABBR>.md) or add a new trend to NFL/Reference/ATS_Trends.md. Always confirm with the Creator before writing.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Vault-relative path for the note (e.g. "NFL/Sessions/2026-09-07.md")',
+        },
+        content: {
+          type: 'string',
+          description: 'Full markdown content to write. For session notes, use the standard format: # Session YYYY-MM-DD\n\n## Angles\n...\n\n## Picks\n...\n\n## Outcome Notes\n...',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional tags for this note (e.g. ["session", "week-1", "KC"])',
+        },
+      },
+      required: ['path', 'content'],
+    },
+  },
 ];
 
 // ─── Tool Executor ───────────────────────────────────────────────────────────
@@ -263,6 +302,8 @@ export async function executeTool(name, input) {
     case 'log_pick':        return toolLogPick(input);
     case 'get_performance_stats': return toolGetPerformanceStats(input);
     case 'search_intel':        return toolSearchIntel(input);
+    case 'read_vault_note':     return toolReadVaultNote(input);
+    case 'write_vault_note':    return toolWriteVaultNote(input);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -718,5 +759,57 @@ async function toolSearchIntel({ query, source, hours = 168, limit = 5 } = {}) {
         confidence: s.confidence,
       })),
     })),
+  };
+}
+
+async function toolReadVaultNote({ path } = {}) {
+  if (!path?.trim()) {
+    return { error: 'path is required.' };
+  }
+
+  const content = await readVaultNote(path.trim());
+  if (content === null) {
+    return {
+      status: 'not_found',
+      path,
+      message: `Note not found at "${path}". Common reference paths: NFL/Reference/CoachTendencies.md, NFL/Reference/DVOA.md, NFL/Reference/ATS_Trends.md, NFL/Reference/KeyNumbers.md. Session paths: NFL/Sessions/YYYY-MM-DD.md.`,
+    };
+  }
+
+  return {
+    status: 'ok',
+    path,
+    char_count: content.length,
+    content,
+  };
+}
+
+async function toolWriteVaultNote({ path, content, tags = [] } = {}) {
+  if (!path?.trim()) return { error: 'path is required.' };
+  if (!content?.trim()) return { error: 'content is required.' };
+
+  // Safety: scope writes to NFL/ prefix only
+  const safePath = path.trim();
+  if (!safePath.startsWith('NFL/')) {
+    return {
+      error: 'Vault writes are scoped to the NFL/ prefix. Use paths like "NFL/Sessions/YYYY-MM-DD.md" or "NFL/Teams/KC.md".',
+    };
+  }
+
+  const ok = await writeVaultNote(safePath, content.trim(), tags || []);
+  if (!ok) {
+    return {
+      status: 'error',
+      path: safePath,
+      message: 'Write failed. Check that VITE_OBSIDIAN_API_KEY is set and Obsidian is running (local dev), or that vault_notes table is accessible (production).',
+    };
+  }
+
+  return {
+    status: 'written',
+    path: safePath,
+    char_count: content.trim().length,
+    tags: tags || [],
+    message: `✅ Note saved to ${safePath}`,
   };
 }

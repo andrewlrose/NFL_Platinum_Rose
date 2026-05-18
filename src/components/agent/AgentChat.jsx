@@ -31,6 +31,7 @@ import {
   getRecentResearchIntelNotes,
   getRecentResearchPickSignals,
 } from '../../lib/supabase.js';
+import { loadReferenceNotes } from '../../lib/vaultClient.js';
 
 // ─── localStorage keys (from betting.manifest.json persistenceKeys) ──────────
 const CHAT_HISTORY_KEY = 'nfl_betting_agent_chat_v1';
@@ -153,7 +154,7 @@ function buildIntelSummary(intelData) {
   return lines.join('\n');
 }
 
-function buildSystemPrompt(picks, bankrollData, futuresData, schedule, intelData = null) {
+function buildSystemPrompt(picks, bankrollData, futuresData, schedule, intelData = null, vaultNotes = null) {
   const openPicks = (picks || []).filter(p => p.result === 'PENDING');
   const { label: weekLabel, phase } = getNFLWeekInfo();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -192,7 +193,8 @@ Your job is not to push picks. Your job is to surface information that lets the 
 - log_pick → write to Picks Tracker (CONFIRM FIRST, always)
 - get_performance_stats → historical ROI by confidence tier, edge size, and team
 - search_intel → keyword search across recent research articles + pick signals by source/team
-- search_intel → keyword search across recent research articles + pick signals by source/team
+- read_vault_note → load a note from the NFL betting vault (reference data, past session angles, team notes)
+- write_vault_note → save post-session notes or update reference data in the vault (confirm first)
 ${phaseNote}
 
 ## Context (loaded at session start)
@@ -219,6 +221,7 @@ ${buildCalibrationSummary(picks)}
 
 ### Research Intel (72h capture):
 ${buildIntelSummary(intelData)}
+${vaultNotes ? `\n### Vault Reference Notes (pre-loaded):\n${vaultNotes.slice(0, 3000)}` : ''}
 
 ### Upcoming Schedule:
 ${upcomingGames || '  No schedule data loaded'}
@@ -240,6 +243,8 @@ function ToolCallCard({ name, input, result, defaultOpen = false }) {
     log_pick:            '📝 Log Pick',
     get_performance_stats: '📈 Performance Stats',
     search_intel:          '🔍 Search Intel',
+    read_vault_note:       '📖 Read Vault Note',
+    write_vault_note:      '📝 Write Vault Note',
   };
   const label = toolLabels[name] || `🔧 ${name}`;
 
@@ -494,13 +499,14 @@ export default function AgentChat() {
         if (resp.ok) schedule = await resp.json();
       } catch { /* non-fatal */ }
 
-      const [intelNotes, intelSignals] = await Promise.all([
+      const [intelNotes, intelSignals, vaultNotes] = await Promise.all([
         getRecentResearchIntelNotes(72, 200),
         getRecentResearchPickSignals(72, 50),
+        loadReferenceNotes(),
       ]);
       const intelData = { notes: intelNotes, signals: intelSignals };
 
-      systemPromptRef.current = buildSystemPrompt(picks, bankroll, futures, schedule, intelData);
+      systemPromptRef.current = buildSystemPrompt(picks, bankroll, futures, schedule, intelData, vaultNotes || null);
       setContextLoaded(true);
     }
     loadContext();
