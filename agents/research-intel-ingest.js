@@ -25,7 +25,15 @@ const FEEDS = [
     confidence: 0.74,
   },
   {
-    // BettingPros: /nfl/news/feed/ returns HTML; /feed/ exceeds 2MB — using ESPN NFL RSS instead
+    // BettingPros: /nfl/news/feed/ returns HTML; /feed/ is valid RSS but 2.27MB
+    // — allow a higher per-feed limit so we can read the top 20 items.
+    source: 'BettingPros',
+    url: 'https://www.bettingpros.com/feed/',
+    confidence: 0.72,
+    maxBytes: 3_000_000,
+  },
+  {
+    // BettingPros /nfl/news/feed/ returns HTML — using ESPN NFL RSS instead
     source: 'ESPN NFL',
     url: 'https://www.espn.com/espn/rss/nfl/news',
     confidence: 0.67,
@@ -286,12 +294,12 @@ async function fetchFeed(feed) {
       const { value, done } = await reader.read();
       if (done) break;
       totalBytes += value.byteLength;
-      if (totalBytes > MAX_FEED_BYTES) {
+      if (totalBytes > (feed.maxBytes ?? MAX_FEED_BYTES)) {
         await reader.cancel('Feed exceeds configured size limit');
         return {
           source: feed.source,
           status: 'error',
-          reason: `Feed payload too large (> ${MAX_FEED_BYTES} bytes)`,
+          reason: `Feed payload too large (> ${feed.maxBytes ?? MAX_FEED_BYTES} bytes)`,
           items: [],
         };
       }
