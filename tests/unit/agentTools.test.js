@@ -11,6 +11,7 @@ vi.mock('../../src/lib/supabase.js', () => ({
   getLatestOddsSnapshot: vi.fn(async () => null),
   getLineMovementsDB: vi.fn(async () => []),
   searchResearchIntel: vi.fn(async () => ({ notes: [], signals: [] })),
+  searchSharpTweets: vi.fn(async () => []),
   supabase: null,
 }));
 
@@ -64,8 +65,8 @@ import {
 
 describe('agentTools', () => {
   describe('BETTING_TOOLS', () => {
-    it('exports exactly 11 tools', () => {
-      expect(BETTING_TOOLS).toHaveLength(11);
+    it('exports exactly 12 tools', () => {
+      expect(BETTING_TOOLS).toHaveLength(12);
     });
 
     it('each tool has name, description, and input_schema', () => {
@@ -90,6 +91,7 @@ describe('agentTools', () => {
         'log_pick',
         'read_vault_note',
         'search_intel',
+        'search_sharp_tweets',
         'write_vault_note',
       ]);
     });
@@ -245,6 +247,49 @@ describe('agentTools', () => {
       expect(result.articles[0].source).toBe('Action Network');
       expect(result.articles[0].pick_signals).toHaveLength(1);
       expect(result.articles[0].pick_signals[0].lean).toBe('KC -3.5');
+    });
+
+    // ── Sharp tweets tool tests ─────────────────────────────────────────────
+
+    it('search_sharp_tweets returns no_results when mock returns empty', async () => {
+      const result = await executeTool('search_sharp_tweets', { query: 'Chiefs' });
+      expect(result).toHaveProperty('status', 'no_results');
+      expect(result.query).toBe('Chiefs');
+      expect(result).toHaveProperty('message');
+    });
+
+    it('search_sharp_tweets returns error when query is missing', async () => {
+      const result = await executeTool('search_sharp_tweets', {});
+      expect(result).toHaveProperty('error');
+    });
+
+    it('search_sharp_tweets with results returns tweets array', async () => {
+      const { searchSharpTweets } = await import('../../src/lib/supabase.js');
+      searchSharpTweets.mockResolvedValueOnce([{
+        author_handle: 'SharpFootball',
+        author_tier: 'sharp',
+        text: 'Chiefs offense is elite this week',
+        tweet_url: 'https://x.com/SharpFootball/status/123456789',
+        published_at: '2026-09-07T10:00:00Z',
+      }]);
+      const result = await executeTool('search_sharp_tweets', { query: 'Chiefs' });
+      expect(result.result_count).toBe(1);
+      expect(result.tweets[0].account).toBe('@SharpFootball');
+      expect(result.tweets[0].tier).toBe('sharp');
+      expect(result.tweets[0].text).toBe('Chiefs offense is elite this week');
+    });
+
+    it('search_sharp_tweets passes handle and hours filters through', async () => {
+      const { searchSharpTweets } = await import('../../src/lib/supabase.js');
+      await executeTool('search_sharp_tweets', {
+        query: 'Bills',
+        handle: 'VSiN',
+        hours: 24,
+      });
+      expect(searchSharpTweets).toHaveBeenCalledWith(
+        'Bills',
+        expect.objectContaining({ handle: 'VSiN', hours: 24 }),
+      );
     });
 
     // ── Vault tool tests ────────────────────────────────────────────────────

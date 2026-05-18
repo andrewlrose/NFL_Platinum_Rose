@@ -30,6 +30,7 @@ import { ANTHROPIC_API_KEY, ANTHROPIC_API, OPENAI_API_KEY } from '../../lib/apiC
 import {
   getRecentResearchIntelNotes,
   getRecentResearchPickSignals,
+  getRecentSharpTweets,
 } from '../../lib/supabase.js';
 import { loadReferenceNotes } from '../../lib/vaultClient.js';
 
@@ -154,7 +155,7 @@ function buildIntelSummary(intelData) {
   return lines.join('\n');
 }
 
-function buildSystemPrompt(picks, bankrollData, futuresData, schedule, intelData = null, vaultNotes = null) {
+function buildSystemPrompt(picks, bankrollData, futuresData, schedule, intelData = null, vaultNotes = null, sharpTweets = null) {
   const openPicks = (picks || []).filter(p => p.result === 'PENDING');
   const { label: weekLabel, phase } = getNFLWeekInfo();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -193,6 +194,7 @@ Your job is not to push picks. Your job is to surface information that lets the 
 - log_pick → write to Picks Tracker (CONFIRM FIRST, always)
 - get_performance_stats → historical ROI by confidence tier, edge size, and team
 - search_intel → keyword search across recent research articles + pick signals by source/team
+- search_sharp_tweets → search recent tweets from sharp NFL accounts (VSiN, Warren Sharp, Action Network, PFF, etc.)
 - read_vault_note → load a note from the NFL betting vault (reference data, past session angles, team notes)
 - write_vault_note → save post-session notes or update reference data in the vault (confirm first)
 ${phaseNote}
@@ -221,6 +223,9 @@ ${buildCalibrationSummary(picks)}
 
 ### Research Intel (72h capture):
 ${buildIntelSummary(intelData)}
+${sharpTweets && sharpTweets.length > 0 ? `
+### Sharp Account Tweets (48h):
+${sharpTweets.slice(0, 8).map(t => `  @${t.author_handle}: ${t.text.slice(0, 200)}${t.text.length > 200 ? '…' : ''}`).join('\n').slice(0, 2000)}` : ''}
 ${vaultNotes ? `\n### Vault Reference Notes (pre-loaded):\n${vaultNotes.slice(0, 3000)}` : ''}
 
 ### Upcoming Schedule:
@@ -243,6 +248,7 @@ function ToolCallCard({ name, input, result, defaultOpen = false }) {
     log_pick:            '📝 Log Pick',
     get_performance_stats: '📈 Performance Stats',
     search_intel:          '🔍 Search Intel',
+    search_sharp_tweets:   '🐦 Sharp Tweets',
     read_vault_note:       '📖 Read Vault Note',
     write_vault_note:      '📝 Write Vault Note',
   };
@@ -499,14 +505,15 @@ export default function AgentChat() {
         if (resp.ok) schedule = await resp.json();
       } catch { /* non-fatal */ }
 
-      const [intelNotes, intelSignals, vaultNotes] = await Promise.all([
+      const [intelNotes, intelSignals, vaultNotes, sharpTweets] = await Promise.all([
         getRecentResearchIntelNotes(72, 200),
         getRecentResearchPickSignals(72, 50),
         loadReferenceNotes(),
+        getRecentSharpTweets(48, 30),
       ]);
       const intelData = { notes: intelNotes, signals: intelSignals };
 
-      systemPromptRef.current = buildSystemPrompt(picks, bankroll, futures, schedule, intelData, vaultNotes || null);
+      systemPromptRef.current = buildSystemPrompt(picks, bankroll, futures, schedule, intelData, vaultNotes || null, sharpTweets || null);
       setContextLoaded(true);
     }
     loadContext();

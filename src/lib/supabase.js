@@ -629,3 +629,94 @@ export async function loadUserBets() {
     return [];
   }
 }
+
+// ─── F-13: X/Twitter Sharp-Account Tweets ────────────────────────────────────
+
+/**
+ * Fetch the most recent sharp tweets across all tracked accounts.
+ * Used for system-prompt pre-load context.
+ * @param {number} hours  Look-back window (default 48h)
+ * @param {number} limit  Max rows returned (default 30)
+ * @returns {Promise<Array>}
+ */
+export async function getRecentSharpTweets(hours = 48, limit = 30) {
+  if (!isAvailable()) return [];
+  try {
+    const cutoff = new Date(
+      Date.now() - hours * 60 * 60 * 1000,
+    ).toISOString();
+
+    const { data, error } = await supabase
+      .from('x_sharp_tweets')
+      .select(
+        'id, author_handle, author_tier, author_tags, text, tweet_url, published_at, captured_at',
+      )
+      .gte('captured_at', cutoff)
+      .order('published_at', { ascending: false })
+      .limit(Math.min(limit, 50));
+
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getRecentSharpTweets failed (non-fatal):', e.message);
+    return [];
+  }
+}
+
+/**
+ * Full-text search over x_sharp_tweets.
+ * Falls back to ilike if the FTS index is not yet available.
+ * @param {string} query
+ * @param {{ handle?: string, tier?: string, hours?: number, limit?: number }} opts
+ * @returns {Promise<Array>}
+ */
+export async function searchSharpTweets(query, { handle, tier, hours = 168, limit = 10 } = {}) {
+  if (!isAvailable()) return [];
+  try {
+    const cutoff   = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+    const ftsQuery = query.trim().split(/\s+/).join(' & ');
+
+    let q = supabase
+      .from('x_sharp_tweets')
+      .select(
+        'id, author_handle, author_tier, author_tags, text, tweet_url, published_at, captured_at',
+      )
+      .gte('captured_at', cutoff)
+      .textSearch('tsv', ftsQuery, { type: 'plain', config: 'english' })
+      .order('published_at', { ascending: false })
+      .limit(Math.min(limit, 20));
+
+    if (handle) q = q.eq('author_handle', handle);
+    if (tier)   q = q.eq('author_tier', tier);
+
+    let { data, error } = await q;
+
+    // Fallback: ilike on text if FTS column absent (pre-migration 013)
+    if (error?.message?.includes('column') || error?.code === '42703') {
+      const term = `%${query}%`;
+      let fb = supabase
+        .from('x_sharp_tweets')
+        .select(
+          'id, author_handle, author_tier, author_tags, text, tweet_url, published_at, captured_at',
+        )
+        .gte('captured_at', cutoff)
+        .ilike('text', term)
+        .order('published_at', { ascending: false })
+        .limit(Math.min(limit, 20));
+
+      if (handle) fb = fb.eq('author_handle', handle);
+      if (tier)   fb = fb.eq('author_tier', tier);
+
+      const { data: fbData, error: fbErr } = await fb;
+      if (fbErr || !fbData) return [];
+      data  = fbData;
+      error = null;
+    }
+
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] searchSharpTweets failed:', e.message);
+    return [];
+  }
+}

@@ -1,0 +1,52 @@
+name: X Sharp-Account Ingest Agent
+
+on:
+  schedule:
+    - cron: '30 */4 * * *'        # Every 4h offseason (30-min offset from other agents)
+    - cron: '30 * * * 0,1,4'      # Hourly on Sun/Mon/Thu (game days)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (fetch + parse only, no Supabase writes)'
+        required: false
+        default: false
+        type: boolean
+      lookback_hours:
+        description: 'Hours to look back for new tweets'
+        required: false
+        default: '48'
+        type: string
+      limit_per_account:
+        description: 'Max tweets to process per account'
+        required: false
+        default: '20'
+        type: string
+
+jobs:
+  x-sharp-ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run XSharpIngestAgent
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional: override with your self-hosted RSSHub instance for
+          # higher reliability. The public rsshub.app is the default.
+          RSSHUB_BASE_URL:           ${{ secrets.RSSHUB_BASE_URL || 'https://rsshub.app' }}
+          DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
+          X_LOOKBACK_HOURS:          ${{ inputs.lookback_hours || '48' }}
+          X_LIMIT_PER_ACCOUNT:       ${{ inputs.limit_per_account || '20' }}
+        run: node agents/x-sharp-ingest.js

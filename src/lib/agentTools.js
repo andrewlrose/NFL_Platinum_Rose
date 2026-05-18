@@ -5,11 +5,11 @@
 //
 // Tools: log_pick · get_odds · get_line_movement · analyze_matchup ·
 //        get_injury_report · calculate_hedge · calculate_teaser ·
-//        get_performance_stats · search_intel ·
+//        get_performance_stats · search_intel · search_sharp_tweets ·
 //        read_vault_note · write_vault_note
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { getLatestOddsSnapshot, getLineMovementsDB, searchResearchIntel } from './supabase.js';
+import { getLatestOddsSnapshot, getLineMovementsDB, searchResearchIntel, searchSharpTweets } from './supabase.js';
 import { readVaultNote, writeVaultNote, todaySessionPath } from './vaultClient.js';
 import {
   addPick,
@@ -279,6 +279,32 @@ export const BETTING_TOOLS = [
       required: ['path', 'content'],
     },
   },
+  {
+    name: 'search_sharp_tweets',
+    description: 'Search recent tweets from tracked sharp NFL accounts (Warren Sharp, VSiN, Action Network, PFF, BettingPros, and others). Use when looking for sharp-money signals, line-move intel, injury reactions, or quick angles that may not yet appear in full articles.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Search terms (team names, player names, bet type, concept). E.g. "Chiefs spread", "Mahomes injury", "steam move".',
+        },
+        handle: {
+          type: 'string',
+          description: 'Optional: filter to a specific account handle (e.g. "SharpFootball", "VSiN"). Omit for all accounts.',
+        },
+        hours: {
+          type: 'number',
+          description: 'Look-back window in hours. Default: 168 (7 days).',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max tweets to return. Default: 8.',
+        },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 // ─── Tool Executor ───────────────────────────────────────────────────────────
@@ -302,6 +328,7 @@ export async function executeTool(name, input) {
     case 'log_pick':        return toolLogPick(input);
     case 'get_performance_stats': return toolGetPerformanceStats(input);
     case 'search_intel':        return toolSearchIntel(input);
+    case 'search_sharp_tweets': return toolSearchSharpTweets(input);
     case 'read_vault_note':     return toolReadVaultNote(input);
     case 'write_vault_note':    return toolWriteVaultNote(input);
     default:
@@ -758,6 +785,42 @@ async function toolSearchIntel({ query, source, hours = 168, limit = 5 } = {}) {
         bet_type: s.bet_type,
         confidence: s.confidence,
       })),
+    })),
+  };
+}
+
+async function toolSearchSharpTweets({ query, handle, hours = 168, limit = 8 } = {}) {
+  if (!query?.trim()) {
+    return { error: 'query is required.' };
+  }
+
+  const tweets = await searchSharpTweets(query.trim(), {
+    handle,
+    hours,
+    limit,
+  });
+
+  if (tweets.length === 0) {
+    return {
+      status: 'no_results',
+      query,
+      handle: handle || 'all accounts',
+      window_hours: hours,
+      message: `No sharp tweets found matching "${query}" in the last ${hours}h. The ingest agent may not have captured recent content, or try a broader query.`,
+    };
+  }
+
+  return {
+    query,
+    handle: handle || 'all accounts',
+    window_hours: hours,
+    result_count: tweets.length,
+    tweets: tweets.map(t => ({
+      account:      `@${t.author_handle}`,
+      tier:         t.author_tier,
+      text:         t.text,
+      url:          t.tweet_url,
+      published_at: t.published_at,
     })),
   };
 }

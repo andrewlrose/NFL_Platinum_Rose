@@ -2,9 +2,9 @@
 > Fresh-session resume notes. Read this first, then TASK_BOARD.md.
 
 **Date:** 2026-05-17
-**Branch:** main  
-**HEAD:** `24cacb7`  
-**Tests:** 80/80 passing  
+**Branch:** main
+**HEAD:** `24cacb7`
+**Tests:** 80/80 passing
 **Status:** F-12 complete and committed. Migration 012 applied.
 
 ---

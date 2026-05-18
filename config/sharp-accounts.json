@@ -1,0 +1,62 @@
+{
+  "_comment": "Sharp X/Twitter accounts monitored by x-sharp-ingest.js. Add handles here — the agent polls each via RSSHub. Set RSSHUB_BASE_URL env var to override the public instance (recommended: self-host rsshub for reliability).",
+  "rsshub_base_url_default": "https://rsshub.app",
+  "accounts": [
+    {
+      "handle": "SharpFootball",
+      "display_name": "Warren Sharp",
+      "tier": "analyst",
+      "tags": ["analytics", "trends", "ATS", "situational"],
+      "active": true
+    },
+    {
+      "handle": "ActionNetworkHQ",
+      "display_name": "Action Network",
+      "tier": "media",
+      "tags": ["picks", "betting", "public-money", "steam"],
+      "active": true
+    },
+    {
+      "handle": "VSiN",
+      "display_name": "VSiN (Vegas Stats & Info Network)",
+      "tier": "sharp",
+      "tags": ["sharp-money", "line-movement", "bookmaker-intel"],
+      "active": true
+    },
+    {
+      "handle": "PFF",
+      "display_name": "Pro Football Focus",
+      "tier": "analyst",
+      "tags": ["grades", "advanced-stats", "matchup", "snap-counts"],
+      "active": true
+    },
+    {
+      "handle": "bettingpros",
+      "display_name": "BettingPros",
+      "tier": "media",
+      "tags": ["consensus", "best-bets", "injury-news"],
+      "active": true
+    },
+    {
+      "handle": "FantasyDouche",
+      "display_name": "Adam Levitan",
+      "tier": "analyst",
+      "tags": ["DFS", "props", "targets", "air-yards"],
+      "active": true
+    },
+    {
+      "handle": "MattEchols",
+      "display_name": "Matt Echols (SIS)",
+      "tier": "analyst",
+      "tags": ["analytics", "EPA", "situational", "run-pass"],
+      "active": true
+    },
+    {
+      "handle": "PlatinumRoseNFL",
+      "display_name": "Platinum Rose (Creator Account)",
+      "tier": "creator",
+      "tags": ["picks", "session-notes", "own-account"],
+      "active": true
+    }
+  ]
+}
