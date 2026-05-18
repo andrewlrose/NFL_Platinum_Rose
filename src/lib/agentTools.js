@@ -1,14 +1,21 @@
 // src/lib/agentTools.js
 // ═══════════════════════════════════════════════════════════════════════════════
 // BETTING Agent — Tool Definitions + Executor
-// Implements the 7 tools defined in agents/manifests/betting.manifest.json.
+// Implements the 8 tools defined in agents/manifests/betting.manifest.json.
 //
 // Tools: log_pick · get_odds · get_line_movement · analyze_matchup ·
-//        get_injury_report · calculate_hedge · calculate_teaser
+//        get_injury_report · calculate_hedge · calculate_teaser ·
+//        get_performance_stats
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { getLatestOddsSnapshot, getLineMovementsDB } from './supabase.js';
-import { addPick } from './picksDatabase.js';
+import {
+  addPick,
+  calculateStandings,
+  statsByConfidence,
+  statsByEdge,
+  loadPicks,
+} from './picksDatabase.js';
 import { PR_STORAGE_KEYS } from './storage.js';
 import { LOCAL_DATA, ESPN_API } from './apiConfig.js';
 import { normalizeTeam, getTeamAbbreviation } from './teams.js';
@@ -191,6 +198,21 @@ export const BETTING_TOOLS = [
       required: ['team', 'pick_type', 'line', 'odds', 'amount_units'],
     },
   },
+  {
+    name: 'get_performance_stats',
+    description: 'Returns the Creator\'s historical pick performance — overall record, units, ROI, breakdown by confidence tier, edge size, and team. Use this to calibrate bet sizing recommendations and to answer questions about past performance (e.g. "how have I done on totals?", "what\'s my record on high-confidence plays?"). No inputs required.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'string',
+          enum: ['AI_LAB', 'EXPERT'],
+          description: 'Filter to a specific pick source (optional). Omit for all picks.',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 // ─── Tool Executor ───────────────────────────────────────────────────────────
@@ -212,6 +234,7 @@ export async function executeTool(name, input) {
     case 'calculate_hedge': return toolCalculateHedge(input);
     case 'calculate_teaser': return toolCalculateTeaser(input);
     case 'log_pick':        return toolLogPick(input);
+    case 'get_performance_stats': return toolGetPerformanceStats(input);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -559,5 +582,64 @@ async function toolLogPick({ team, pick_type, line, odds, amount_units, game_con
     status: 'logged',
     pick_id: result.pick?.id,
     summary: `✅ Logged: ${team} ${pick_type} ${line} (${odds > 0 ? '+' : ''}${odds}) · ${amount_units}u · ${game_context || ''}`,
+  };
+}
+
+function toolGetPerformanceStats({ source } = {}) {
+  const filterSource = source || null;
+  const standings = calculateStandings(filterSource);
+  const confBreakdown = statsByConfidence();
+  const edgeBreakdown = statsByEdge(filterSource);
+
+  const allPicks = loadPicks(filterSource ? { source: filterSource } : {});
+  const graded = allPicks.filter(p => p.result !== 'PENDING');
+  const pending = allPicks.filter(p => p.result === 'PENDING').length;
+
+  // Team breakdown — group by selection
+  const byTeamMap = {};
+  graded.forEach(p => {
+    const team = p.selection || 'unknown';
+    if (!byTeamMap[team]) {
+      byTeamMap[team] = { wins: 0, losses: 0, pushes: 0 };
+    }
+    if (p.result === 'WIN') byTeamMap[team].wins++;
+    else if (p.result === 'LOSS') byTeamMap[team].losses++;
+    else if (p.result === 'PUSH') byTeamMap[team].pushes++;
+  });
+  const byTeam = Object.entries(byTeamMap)
+    .map(([team, s]) => {
+      const total = s.wins + s.losses;
+      return {
+        team,
+        wins: s.wins,
+        losses: s.losses,
+        pushes: s.pushes,
+        winRate: total > 0 ? +(s.wins / total * 100).toFixed(1) : 0,
+      };
+    })
+    .sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses))
+    .slice(0, 15);
+
+  // Rolling last-10 graded
+  const last10 = graded.slice(-10);
+  const JUICE = 1.1;
+  const last10Units = last10.reduce((acc, p) => {
+    if (p.result === 'WIN') return acc + 1;
+    if (p.result === 'LOSS') return acc - JUICE;
+    return acc;
+  }, 0);
+
+  return {
+    total_graded: graded.length,
+    total_pending: pending,
+    standings,
+    last_10: {
+      wins: last10.filter(p => p.result === 'WIN').length,
+      losses: last10.filter(p => p.result === 'LOSS').length,
+      units: +last10Units.toFixed(2),
+    },
+    by_confidence: confBreakdown,
+    by_edge: edgeBreakdown,
+    by_team: byTeam,
   };
 }

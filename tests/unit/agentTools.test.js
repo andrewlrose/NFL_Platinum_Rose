@@ -15,6 +15,24 @@ vi.mock('../../src/lib/supabase.js', () => ({
 
 vi.mock('../../src/lib/picksDatabase.js', () => ({
   addPick: vi.fn(() => ({ success: true, pick: { id: 'test-pick-1' } })),
+  calculateStandings: vi.fn(() => ({
+    AI_LAB: { wins: 10, losses: 6, pushes: 1, pending: 2, units: 3.4, winRate: 62.5, roi: 21.3, record: '10-6-1' },
+  })),
+  statsByConfidence: vi.fn(() => ({
+    low:    { label: '50–55%', total: 5, wins: 2, losses: 3, winRate: 40.0 },
+    medium: { label: '55–60%', total: 8, wins: 5, losses: 3, winRate: 62.5 },
+    high:   { label: '60%+',  total: 4, wins: 3, losses: 1, winRate: 75.0 },
+  })),
+  statsByEdge: vi.fn(() => ({
+    small:  { label: '<1.5pt',  total: 6, wins: 3, losses: 3, winRate: 50.0 },
+    medium: { label: '1.5–3pt', total: 9, wins: 6, losses: 3, winRate: 66.7 },
+    large:  { label: '3pt+',   total: 2, wins: 2, losses: 0, winRate: 100.0 },
+  })),
+  loadPicks: vi.fn(() => [
+    { source: 'AI_LAB', result: 'WIN',     selection: 'KC',  pickType: 'spread', confidence: 62, edge: 2.5 },
+    { source: 'AI_LAB', result: 'LOSS',    selection: 'BUF', pickType: 'total',  confidence: 55, edge: 1.0 },
+    { source: 'AI_LAB', result: 'PENDING', selection: 'SF',  pickType: 'spread', confidence: 58, edge: 2.0 },
+  ]),
 }));
 
 vi.mock('../../src/lib/storage.js', () => ({
@@ -36,8 +54,8 @@ import {
 
 describe('agentTools', () => {
   describe('BETTING_TOOLS', () => {
-    it('exports exactly 7 tools', () => {
-      expect(BETTING_TOOLS).toHaveLength(7);
+    it('exports exactly 8 tools', () => {
+      expect(BETTING_TOOLS).toHaveLength(8);
     });
 
     it('each tool has name, description, and input_schema', () => {
@@ -58,6 +76,7 @@ describe('agentTools', () => {
         'get_injury_report',
         'get_line_movement',
         'get_odds',
+        'get_performance_stats',
         'log_pick',
       ]);
     });
@@ -138,6 +157,34 @@ describe('agentTools', () => {
     it('calculate_teaser requires at least 2 legs', async () => {
       const result = await executeTool('calculate_teaser', { legs: [] });
       expect(result).toHaveProperty('error');
+    });
+
+    it('get_performance_stats returns standings, confidence, edge, and team breakdowns', async () => {
+      const result = await executeTool('get_performance_stats', {});
+      expect(result).toHaveProperty('standings');
+      expect(result).toHaveProperty('by_confidence');
+      expect(result).toHaveProperty('by_edge');
+      expect(result).toHaveProperty('by_team');
+      expect(result).toHaveProperty('total_graded');
+      expect(result).toHaveProperty('last_10');
+    });
+
+    it('get_performance_stats total_graded excludes PENDING picks', async () => {
+      const result = await executeTool('get_performance_stats', {});
+      // Mock returns 3 picks: WIN, LOSS, PENDING → 2 graded
+      expect(result.total_graded).toBe(2);
+      expect(result.total_pending).toBe(1);
+    });
+
+    it('get_performance_stats by_team includes top teams sorted by pick count', async () => {
+      const result = await executeTool('get_performance_stats', {});
+      expect(Array.isArray(result.by_team)).toBe(true);
+      if (result.by_team.length > 0) {
+        expect(result.by_team[0]).toHaveProperty('team');
+        expect(result.by_team[0]).toHaveProperty('wins');
+        expect(result.by_team[0]).toHaveProperty('losses');
+        expect(result.by_team[0]).toHaveProperty('winRate');
+      }
     });
   });
 });

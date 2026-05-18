@@ -19,7 +19,12 @@ import { runAgentTurn, runOpenAIAgentTurn } from '../../lib/anthropicClient.js';
 import { BETTING_TOOLS, executeTool } from '../../lib/agentTools.js';
 import { loadFromStorage, saveToStorage } from '../../lib/storage.js';
 import { getBankrollData } from '../../lib/bankroll.js';
-import { loadPicks } from '../../lib/picksDatabase.js';
+import {
+  loadPicks,
+  calculateStandings,
+  statsByConfidence,
+  statsByEdge,
+} from '../../lib/picksDatabase.js';
 import { getNFLWeekInfo } from '../../lib/constants.js';
 import { ANTHROPIC_API_KEY, ANTHROPIC_API, OPENAI_API_KEY } from '../../lib/apiConfig.js';
 
@@ -67,6 +72,50 @@ function isBestPlaysCommand(text = '') {
 
 // ─── System Prompt Builder ───────────────────────────────────────────────────
 
+// ─── Calibration Summary ─────────────────────────────────────────────────────
+
+/**
+ * Build a concise performance calibration block for the system prompt.
+ * Returns a multi-line string (2–4 lines) summarising all-time record,
+ * units, ROI, last-10 form, and high-confidence win rate (if ≥3 samples).
+ */
+function buildCalibrationSummary(picks) {
+  const JUICE = 1.1;
+  const graded = (picks || []).filter(p => p.result !== 'PENDING');
+  if (graded.length === 0) return '  No graded picks yet.';
+
+  const wins = graded.filter(p => p.result === 'WIN').length;
+  const losses = graded.filter(p => p.result === 'LOSS').length;
+  const pushes = graded.filter(p => p.result === 'PUSH').length;
+  const units = graded.reduce((acc, p) => {
+    if (p.result === 'WIN') return acc + 1;
+    if (p.result === 'LOSS') return acc - JUICE;
+    return acc;
+  }, 0);
+  const decided = wins + losses;
+  const winRate = decided > 0 ? (wins / decided * 100).toFixed(1) : '0.0';
+  const roi = decided > 0 ? (units / decided * 100).toFixed(1) : '0.0';
+
+  const last10 = graded.slice(-10);
+  const l10W = last10.filter(p => p.result === 'WIN').length;
+  const l10L = last10.filter(p => p.result === 'LOSS').length;
+
+  const aiPicks = graded.filter(p => p.source === 'AI_LAB' && p.confidence >= 60);
+  const aiW = aiPicks.filter(p => p.result === 'WIN').length;
+  const aiConfLine = aiPicks.length >= 3
+    ? `  60%+ confidence AI picks: ${aiW}-${aiPicks.length - aiW} (${(aiW / aiPicks.length * 100).toFixed(0)}% win rate)`
+    : null;
+
+  const pushNote = pushes > 0 ? `-${pushes}` : '';
+  const lines = [
+    `  All-time: ${wins}-${losses}${pushNote} | Win%: ${winRate} | Units: ${units >= 0 ? '+' : ''}${units.toFixed(2)} | ROI: ${roi}%`,
+    `  Last 10: ${l10W}-${l10L}`,
+  ];
+  if (aiConfLine) lines.push(aiConfLine);
+
+  return lines.join('\n');
+}
+
 function buildSystemPrompt(picks, bankrollData, futuresData, schedule) {
   const openPicks = (picks || []).filter(p => p.result === 'PENDING');
   const { label: weekLabel, phase } = getNFLWeekInfo();
@@ -104,6 +153,7 @@ Your job is not to push picks. Your job is to surface information that lets the 
 - calculate_hedge → hedge math for active positions
 - calculate_teaser → key number analysis + Wong teaser check
 - log_pick → write to Picks Tracker (CONFIRM FIRST, always)
+- get_performance_stats → historical ROI by confidence tier, edge size, and team
 ${phaseNote}
 
 ## Context (loaded at session start)
@@ -125,10 +175,13 @@ ${futures.length > 0
   ? futures.map(f => `  - ${f.team || '?'} ${f.market || 'futures'} @ ${f.oddsAtEntry || f.odds || '?'} (${f.stake || f.amount || '?'} units)`).join('\n')
   : '  None'}
 
+### Performance (calibration signal):
+${buildCalibrationSummary(picks)}
+
 ### Upcoming Schedule:
 ${upcomingGames || '  No schedule data loaded'}
 
-Acknowledge that you have this context loaded and briefly state open picks count, bankroll balance, and current NFL phase at conversation start.`;
+Acknowledge that you have this context loaded and briefly state open picks count, bankroll balance, current NFL phase, and all-time record at conversation start.\`;
 }
 
 // ─── Message Rendering Helpers ───────────────────────────────────────────────
