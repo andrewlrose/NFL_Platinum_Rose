@@ -1,0 +1,74 @@
+# PropsAutoGradeAgent — grades player prop bets after game results are final
+#
+# Required repo secrets (Settings > Secrets > Actions):
+#   SUPABASE_URL              — https://aambmuzfcojxqvbzhngp.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY — service_role JWT
+#
+# Depends on `player_stats` table being populated (future DS task).
+# Until that table exists, the agent degrades gracefully and skips all grading.
+#
+# Schedule mirrors nfl-auto-grade.yml — runs after game results are final.
+# Manual trigger supports optional --week override for retroactive grading.
+
+name: Props Auto Grade
+
+on:
+  schedule:
+    # Hourly on Sunday (same window as nfl-auto-grade — grades after final whistle)
+    - cron: '45 17-23 * * 0'
+    - cron: '45 0-6  * * 1'
+    # Hourly on Thursday night ET
+    - cron: '45 1-6 * * 5'
+    # Hourly on Monday night ET
+    - cron: '45 1-6 * * 2'
+    # Every 4 hours on other days
+    - cron: '45 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (grade only, no Supabase writes)'
+        required: false
+        default: false
+        type: boolean
+      week:
+        description: 'NFL week number to grade (default: all ungraded)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  props-auto-grade:
+    name: Grade ungraded player prop bets
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --omit=dev
+
+      - name: Run PropsAutoGradeAgent
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ -n "${{ inputs.week }}" ]; then ARGS="$ARGS --week ${{ inputs.week }}"; fi
+          node agents/props-auto-grade.js $ARGS
+
+      - name: Log completion
+        if: success()
+        run: echo "✅ Props auto-grade complete at $(date -u)"

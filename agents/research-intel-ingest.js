@@ -17,6 +17,9 @@ const DRY_RUN = process.argv.includes('--dry-run') || process.env.DRY_RUN === 't
 const HOURS = Number(process.env.INTEL_LOOKBACK_HOURS || 72);
 const LIMIT_PER_FEED = Number(process.env.INTEL_LIMIT_PER_FEED || 20);
 const MAX_FEED_BYTES = Number(process.env.INTEL_MAX_FEED_BYTES || 2_000_000);
+// F-11 Ph.2: fetch full article body after insert (disabled by default offseason)
+const FETCH_BODY = process.env.INTEL_FETCH_BODY === 'true';
+const BODY_MAX_CHARS = 4_000;
 
 const FEEDS = [
   {
@@ -124,7 +127,28 @@ function cleanHtml(input = '') {
     .replace(/\s+/g, ' ')
     .trim();
 }
-
+// F-11 Ph.2: Fetch + strip article body (text only, capped at BODY_MAX_CHARS)
+async function fetchArticleBody(url) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PlatinumRoseBot/1.0)' },
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    // Strip scripts, styles, nav, header, footer to reduce noise
+    const stripped = html
+      .replace(/<(script|style|nav|header|footer|aside)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&[a-z]+;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return stripped.slice(0, BODY_MAX_CHARS) || null;
+  } catch {
+    return null;
+  }
+}
 function firstTag(xml, tagName) {
   const open = new RegExp(`<${tagName}(?:\\s[^>]*)?>`, 'i');
   const close = new RegExp(`</${tagName}>`, 'i');
@@ -484,10 +508,33 @@ async function main() {
     const { data, error } = await supabase
       .from('research_intel_notes')
       .insert(newNotes)
-      .select('id,url_hash');
+      .select('id,url_hash,url');
 
     if (error) throw new Error(`Insert notes failed: ${error.message}`);
     insertedNotes = data || [];
+  }
+
+  // F-11 Ph.2: Back-fill article bodies for newly inserted notes
+  if (FETCH_BODY && insertedNotes.length > 0) {
+    console.log(`  Fetching article bodies for ${insertedNotes.length} new notes…`);
+    let bodiesFetched = 0;
+    for (const note of insertedNotes) {
+      const body = await fetchArticleBody(note.url);
+      if (!body) continue;
+      // Update body — the tsvector trigger handles tsv column automatically
+      const { error: bodyErr } = await supabase
+        .from('research_intel_notes')
+        .update({ body })
+        .eq('id', note.id);
+      if (bodyErr) {
+        console.warn(`  [warn] Body update failed for note ${note.id}: ${bodyErr.message}`);
+      } else {
+        bodiesFetched++;
+      }
+      // Polite delay between article fetches
+      await new Promise(r => setTimeout(r, 300));
+    }
+    console.log(`  Bodies fetched: ${bodiesFetched}/${insertedNotes.length}`);
   }
 
   const noteIdByHash = new Map(insertedNotes.map(n => [n.url_hash, n.id]));

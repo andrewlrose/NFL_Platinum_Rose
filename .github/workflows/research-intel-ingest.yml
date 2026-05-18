@@ -46,4 +46,5 @@ jobs:
           DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
           INTEL_LOOKBACK_HOURS:      ${{ inputs.lookback_hours || '72' }}
           INTEL_LIMIT_PER_FEED:      ${{ inputs.limit_per_feed || '20' }}
+          INTEL_FETCH_BODY:          'true'
         run: node agents/research-intel-ingest.js

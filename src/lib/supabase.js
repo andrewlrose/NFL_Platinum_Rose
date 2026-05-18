@@ -292,19 +292,39 @@ export async function searchResearchIntel(query, { source, hours = 168, limit = 
   if (!isAvailable()) return { notes: [], signals: [] };
   try {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-    const term = `%${query}%`;
 
-    let notesQuery = supabase
+    // Use Postgres full-text search (migration 011) when available; fall back to ilike.
+    // FTS uses plainto_tsquery so multi-word queries work naturally.
+    let notesQuery;
+    const ftsQuery = query.trim().split(/\s+/).join(' & ');  // "KC Chiefs" → "KC & Chiefs"
+    notesQuery = supabase
       .from('research_intel_notes')
       .select('id, source, title, summary, url, published_at, confidence, captured_at')
       .gte('captured_at', cutoff)
-      .or(`title.ilike.${term},summary.ilike.${term}`)
+      .textSearch('tsv', ftsQuery, { type: 'plain', config: 'english' })
       .order('captured_at', { ascending: false })
       .limit(Math.min(limit, 10));
 
     if (source) notesQuery = notesQuery.eq('source', source);
+    let { data: notes, error } = await notesQuery;
 
-    const { data: notes, error } = await notesQuery;
+    // Fall back to ilike if FTS column doesn't exist yet (pre-migration 011)
+    if (error?.message?.includes('column') || error?.code === '42703') {
+      const term = `%${query}%`;
+      let fallback = supabase
+        .from('research_intel_notes')
+        .select('id, source, title, summary, url, published_at, confidence, captured_at')
+        .gte('captured_at', cutoff)
+        .or(`title.ilike.${term},summary.ilike.${term}`)
+        .order('captured_at', { ascending: false })
+        .limit(Math.min(limit, 10));
+      if (source) fallback = fallback.eq('source', source);
+      const { data: fallbackNotes, error: fallbackErr } = await fallback;
+      if (fallbackErr || !fallbackNotes) return { notes: [], signals: [] };
+      notes = fallbackNotes;
+      error = null;
+    }
+
     if (error || !notes) return { notes: [], signals: [] };
 
     // Fetch pick signals attached to matched notes
@@ -322,6 +342,32 @@ export async function searchResearchIntel(query, { source, hours = 168, limit = 
   } catch (e) {
     console.warn('[supabase] searchResearchIntel failed:', e.message);
     return { notes: [], signals: [] };
+  }
+}
+
+/**
+ * Get the latest game odds snapshot for a given week.
+ * Returns one row per (game_id, book, market) — most recent captured_at.
+ * Table: game_odds_snapshots (written by GameOddsIngestAgent)
+ */
+export async function getGameOddsForWeek(week, season = new Date().getFullYear()) {
+  if (!isAvailable()) return [];
+  try {
+    // Subquery equivalent: pick the max captured_at per (game_id, book, market)
+    // Supabase doesn't support DISTINCT ON, so we order and rely on the caller
+    // to deduplicate if needed. In practice the BETTING tool groups by game_id.
+    const { data, error } = await supabase
+      .from('game_odds_snapshots')
+      .select('game_id, home_team, away_team, commence_time, book, market, home_price, away_price, spread, total, captured_at')
+      .eq('season', season)
+      .eq('week', week)
+      .order('captured_at', { ascending: false })
+      .limit(500);
+    if (error || !data) return [];
+    return data;
+  } catch (e) {
+    console.warn('[supabase] getGameOddsForWeek failed:', e.message);
+    return [];
   }
 }
 

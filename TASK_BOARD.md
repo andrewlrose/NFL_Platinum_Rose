@@ -28,7 +28,7 @@
 | Table | Purpose | Status |
 |------|---------|--------|
 | `games` | Canonical 2026 season schedule spine (game_id, week, kickoff, home/away, status) | **live — 272 games (weeks 1–18), migration 007 applied, ingest agent active** |
-| `game_odds_snapshots` | Time-series ML/spread/total by book and market | planned |
+| `game_odds_snapshots` | Time-series ML/spread/total by book and market | **Done — migration 010 applied, ingest agent + GHA live** |
 | `futures_odds_snapshots` | Super Bowl/conference/division/awards futures snapshots | partial (SB live) |
 | `research_intel_notes` | Parsed article/podcast research with source attribution and confidence | live validated (NFL-only ingest filter active) |
 | `research_pick_signals` | Structured picks/leans extracted from intel sources | live validated (NFL-only ingest filter active) |
@@ -46,11 +46,11 @@
 | DS-4 | Research intel ingest v1 (`research_intel_notes`, `research_pick_signals`) | P1 | ~~Add article + podcast normalization pipeline with source metadata, publish timestamps, and extracted picks/angles for BETTING context preload.~~ → **Done — see DONE section.** |
 | F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | P1 | ~~In progress — proactive Sunday opening + `Best Plays` command implemented in AgentChat; pending prompt tuning and game-day output validation.~~ → **Done — see DONE section.** |
 | F-10 | Performance feedback loop | P1 | ~~ROI aggregation by bet type/team/situation; calibration signals injected into BETTING agent context at session start~~ → **Done — see DONE section.** |
-| F-11 | Intel search tool (`search_intel`) | P1 | ~~Phase 1 — `search_intel` tool in `agentTools.js` + `searchResearchIntel(query, opts)` in `supabase.js`~~ → **Done — see DONE section.** Phase 2 (FTS + body scraping) remains future work. |
+| F-11 | Intel search tool (`search_intel`) | P1 | ~~Phase 1 — `search_intel` tool in `agentTools.js` + `searchResearchIntel(query, opts)` in `supabase.js`~~ → **Done — see DONE section.** ~~Phase 2 (FTS + body scraping)~~ → **Done — see DONE section.** |
 | F-12 | Hermes/Obsidian NFL betting vault integration | P1 | Read + write path; BETTING agent writes session notes/angles/outcomes to vault post-session; reads coach tendencies/stats/DVOA/EPA at session start; blocked on Hermes MCP architecture |
 | F-13 | Twitter/X sharp-account ingestion | P2 | Creator has dedicated X account for Platinum Rose; follow list of sharp accounts; blocked on X API access decision |
 | F-14 | Vault pre-load (reference data) | P2 | Historical stats, team rosters, coaching data, game strategy books into NFL vault; offseason work; blocked on vault path |
-| F-15 | Props auto-grade GHA agent | P3 | Grades nfl_props_picks_v1; parallel to nfl-auto-grade.js |
+| F-15 | Props auto-grade GHA agent | P3 | ~~Grades nfl_props_picks_v1; parallel to nfl-auto-grade.js~~ → **Done — see DONE section.** |
 
 ### Bugs
 
@@ -79,6 +79,9 @@
 | F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | 2026-05-18 | Season-aware `PROACTIVE_BRIEF_PROMPT` (offseason/regular/playoffs branches); `buildSystemPrompt` now passes `phase` + tool-use guidance block; `react-markdown` + `remark-gfm` render markdown in `AssistantMessage`; `AgentStatusBar` phase color (green in-season, grey offseason); offseason empty-state suggestions (futures/open-picks). |
 | F-10 | Performance feedback loop | 2026-05-18 | `get_performance_stats` tool added to `agentTools.js` (8th tool); `buildCalibrationSummary()` helper computes all-time record, units, ROI, last-10, high-conf win rate from local picks; injected as `### Performance` block in `buildSystemPrompt`; ack instruction updated; 3 new tests (68 total). |
 | F-11 | Intel search tool (`search_intel`) Phase 1 | 2026-05-18 | `searchResearchIntel(query, opts)` added to `supabase.js`; `search_intel` (9th BETTING tool) in `agentTools.js` with full `toolSearchIntel()` impl; `ilike` on title+summary, optional source/hours/limit params, returns notes + attached pick_signals; system prompt tool list + `ToolCallCard` label updated; 4 new tests (72 total). |
+| F-11 | Intel search tool Phase 2 (FTS + body scraping) | 2026-05-18 | Migration 011 adds `body text` + `tsv tsvector` + GIN index + auto-trigger to `research_intel_notes`; `searchResearchIntel` upgraded to Postgres FTS (`textSearch` via tsvector) with ilike fallback pre-migration; ingest agent adds `fetchArticleBody()` (8s timeout, HTML strip, 4000-char cap) + `INTEL_FETCH_BODY=true` in GHA env; back-fill trigger covers existing rows. |
+| DS-5 | `game_odds_snapshots` — game-level odds time series | 2026-05-18 | Migration 010: append-only table with (game_id, season, week, home/away team, book, market, spread, total, home/away price, captured_at); GIN indexes on game_id+market and week; RLS public read. `agents/game-odds-ingest.js`: TheOddsAPI spreads+h2h+totals, team normalization map, week derivation from commence_time, chunked Supabase insert, TTL prune, receipt. GHA `.github/workflows/game-odds-ingest.yml` runs 4×/day offseason, hourly on game days (Thu/Sun/Mon). `getGameOddsForWeek(week, season)` added to `supabase.js`. |
+| F-15 | Props auto-grade GHA agent | 2026-05-18 | `.github/workflows/props-auto-grade.yml` mirrors nfl-auto-grade.yml schedule (hourly Sun/Thu/Mon, 4h other days); manual --week override; `props-auto-grade.js` updated to use `SUPABASE_SERVICE_ROLE_KEY` + `dotenv/config` (was incorrectly using ANON_KEY). Degrades gracefully when `player_stats` table absent. |
 
 ---
 
