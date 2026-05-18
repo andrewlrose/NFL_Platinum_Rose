@@ -1,4 +1,8 @@
 # NFL_Dashboard — Session Handoff
+
+> 🏠 **Delegating work while at office?**
+> See [.DELEGATION_BOARD.md](../../ATLAS/.DELEGATION_BOARD.md) in ATLAS to track delegations and [.project-delegation.md](.project-delegation.md) for what can be delegated.
+
 > Fresh-session resume notes. Read this first, then TASK_BOARD.md.
 
 **Date:** 2026-05-18
