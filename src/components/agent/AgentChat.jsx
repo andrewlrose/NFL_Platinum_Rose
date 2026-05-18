@@ -13,6 +13,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Bot, User, Wrench, ChevronDown, ChevronRight, Trash2, AlertCircle, Key, CheckCircle2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { runAgentTurn, runOpenAIAgentTurn } from '../../lib/anthropicClient.js';
 import { BETTING_TOOLS, executeTool } from '../../lib/agentTools.js';
 import { loadFromStorage, saveToStorage } from '../../lib/storage.js';
@@ -28,8 +30,29 @@ const USER_API_KEY_KEY = 'nfl_betting_agent_apikey_v1';
 const SUNDAY_BRIEF_MODE_KEY = 'nfl_betting_agent_sunday_brief_mode_v1';
 const LAST_AUTO_BRIEF_DATE_KEY = 'nfl_betting_agent_last_auto_brief_date_v1';
 
-const PROACTIVE_BRIEF_PROMPT =
-  'Run Sunday Slate Briefing mode now. Open with your best available NFL plays for this slate (or explicitly state no qualified edge). Use tools as needed. Response format: (1) Top 3 plays with line/book/unit and tier, (2) one teaser check, (3) one hedge/watchout, (4) confidence + pass note where edge is insufficient. Keep it concise and actionable.';
+const PROACTIVE_BRIEF_PROMPT = `Run Sunday Slate Briefing mode now.
+
+Before calling any tools, read the "NFL Phase" from your context (PRESEASON = before Sep 8 2026; WEEK N = regular season; OFFSEASON = after playoffs).
+
+**If it is PRESEASON or OFFSEASON (no live game slate):**
+Skip game-spread and line-movement tools — live lines do not exist yet. Instead:
+1. Call get_odds once (any game) to confirm no lines are available
+2. State clearly: "No active game slate — [phase]. Offseason mode."
+3. Surface the top 2–3 futures value plays from the Super Bowl odds market if any team shows meaningful edge vs implied probability
+4. List any open picks that need monitoring or hedging
+5. End with: confidence=N/A · pass note: return at Week 1
+
+**If it is regular season or playoffs (live slate available):**
+1. Call get_odds to scan available lines
+2. Call get_line_movement for any game with movement > 1.5 pts
+3. Call analyze_matchup for the top 2–3 games showing edge
+Then output:
+1. **Top 3 Plays** — line/book/unit/tier or "none qualified"
+2. **Teaser Check** — one 6pt teaser evaluation across key numbers
+3. **Hedge/Watchout** — one open position worth monitoring
+4. **Confidence + Pass Note** — where edge is insufficient, say pass
+
+Keep it concise and actionable. No preamble.`;
 
 function isBestPlaysCommand(text = '') {
   const t = String(text).trim().toLowerCase();
@@ -46,13 +69,19 @@ function isBestPlaysCommand(text = '') {
 
 function buildSystemPrompt(picks, bankrollData, futuresData, schedule) {
   const openPicks = (picks || []).filter(p => p.result === 'PENDING');
-  const { label: weekLabel } = getNFLWeekInfo();
+  const { label: weekLabel, phase } = getNFLWeekInfo();
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const upcomingGames = (schedule || []).slice(0, 20)
     .map(g => `  ${g.visitor || g.away_team || '?'} @ ${g.home || g.home_team || '?'}${g.date ? ` (${g.date})` : ''}`)
     .join('\n');
 
   const futures = (futuresData?.positions || []).slice(0, 10);
+
+  const isInSeason = phase === 'regular' || phase === 'playoffs';
+  const phaseNote = isInSeason
+    ? ''
+    : `
+⚠️ TOOL GUIDANCE — ${weekLabel}: Live game lines and line movement data are NOT available in the offseason/preseason. get_odds and get_line_movement will return empty or placeholder results for game spreads/totals. Do NOT make multiple game-specific tool calls that will all fail. For proactive briefings in this phase, confirm line unavailability with ONE get_odds call, then pivot to futures market analysis or open-picks monitoring.`;
 
   return `You are the BETTING agent for Platinum Rose — the Creator's sharp NFL betting analyst.
 
@@ -75,10 +104,11 @@ Your job is not to push picks. Your job is to surface information that lets the 
 - calculate_hedge → hedge math for active positions
 - calculate_teaser → key number analysis + Wong teaser check
 - log_pick → write to Picks Tracker (CONFIRM FIRST, always)
+${phaseNote}
 
 ## Context (loaded at session start)
 Today: ${today}
-NFL Week: ${weekLabel}
+NFL Phase: ${weekLabel} (${phase})
 
 ### Open Picks (${openPicks.length} pending):
 ${openPicks.length > 0
@@ -98,7 +128,7 @@ ${futures.length > 0
 ### Upcoming Schedule:
 ${upcomingGames || '  No schedule data loaded'}
 
-Acknowledge that you have this context loaded and briefly state open picks count + bankroll balance at conversation start.`;
+Acknowledge that you have this context loaded and briefly state open picks count, bankroll balance, and current NFL phase at conversation start.`;
 }
 
 // ─── Message Rendering Helpers ───────────────────────────────────────────────
@@ -147,6 +177,28 @@ function ToolCallCard({ name, input, result, defaultOpen = false }) {
   );
 }
 
+// Styled component overrides for ReactMarkdown
+const mdComponents = {
+  h1: ({ children }) => <h1 className="font-bold text-white text-sm mt-3 mb-1">{children}</h1>,
+  h2: ({ children }) => <h2 className="font-bold text-slate-100 text-sm mt-3 mb-1">{children}</h2>,
+  h3: ({ children }) => <h3 className="font-semibold text-slate-100 text-sm mt-2 mb-0.5">{children}</h3>,
+  strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+  em: ({ children }) => <em className="italic text-slate-300">{children}</em>,
+  code: ({ inline, children }) => inline
+    ? <code className="text-amber-300 font-mono text-[11px] bg-slate-800/80 px-1 py-0.5 rounded">{children}</code>
+    : <pre className="bg-slate-800/60 rounded p-2 my-1 overflow-x-auto"><code className="text-amber-200 font-mono text-[11px]">{children}</code></pre>,
+  ul: ({ children }) => <ul className="list-disc list-inside space-y-0.5 my-1">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal list-inside space-y-0.5 my-1">{children}</ol>,
+  li: ({ children }) => <li className="text-slate-200 leading-relaxed">{children}</li>,
+  p: ({ children }) => <p className="text-slate-200 leading-relaxed mb-1 last:mb-0">{children}</p>,
+  blockquote: ({ children }) => <blockquote className="border-l-2 border-slate-600 pl-3 text-slate-400 italic my-1">{children}</blockquote>,
+  hr: () => <hr className="border-slate-700 my-2" />,
+  a: ({ href, children }) => <a href={href} className="text-emerald-400 underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+  table: ({ children }) => <table className="text-xs border-collapse my-2 w-full">{children}</table>,
+  th: ({ children }) => <th className="border border-slate-700 px-2 py-1 text-slate-300 font-semibold bg-slate-800/60 text-left">{children}</th>,
+  td: ({ children }) => <td className="border border-slate-700 px-2 py-1 text-slate-300">{children}</td>,
+};
+
 // Render a single assistant message block (may include text + tool calls)
 function AssistantMessage({ message, toolResultsMap }) {
   if (!message || message.role !== 'assistant') return null;
@@ -161,8 +213,10 @@ function AssistantMessage({ message, toolResultsMap }) {
         {blocks.map((block, i) => {
           if (block.type === 'text') {
             return (
-              <div key={i} className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap mb-1">
-                {block.text}
+              <div key={i} className="text-sm leading-relaxed mb-1">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+                  {block.text}
+                </ReactMarkdown>
               </div>
             );
           }
@@ -241,10 +295,12 @@ function ApiKeySetup({ onKeySet }) {
 
 // ─── Status Bar ───────────────────────────────────────────────────────────────
 
-function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, isLoading, briefingRunning, provider }) {
+function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, phase, isLoading, briefingRunning, provider }) {
   const modelLabel = provider === 'anthropic'
     ? (ANTHROPIC_API.MODEL_DEFAULT || 'claude-sonnet-4-5')
     : 'gpt-4o-mini';
+  const isOffseason = phase === 'preseason' || phase === 'offseason';
+  const phaseColor = isOffseason ? 'text-slate-500' : 'text-emerald-400';
   return (
     <div className="flex items-center gap-4 px-4 py-2 bg-slate-900/80 border-b border-slate-800 text-xs text-slate-500">
       <div className="flex items-center gap-1.5">
@@ -254,7 +310,7 @@ function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, isLoading,
       <div className="h-3 w-px bg-slate-700" />
       <span className="text-slate-500 font-mono">{modelLabel}</span>
       <div className="h-3 w-px bg-slate-700" />
-      <span>{weekLabel}</span>
+      <span className={phaseColor}>{weekLabel}</span>
       <div className="h-3 w-px bg-slate-700" />
       <span>Open picks: <span className="text-slate-300">{openPicksCount}</span></span>
       {bankrollBalance && (
@@ -614,6 +670,7 @@ export default function AgentChat() {
         openPicksCount={openPicksCount}
         bankrollBalance={bankrollBalance}
         weekLabel={weekLabel}
+        phase={getNFLWeekInfo().phase}
         isLoading={isLoading}
         briefingRunning={isProactiveBriefRunning}
         provider={provider}
@@ -635,10 +692,13 @@ export default function AgentChat() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-center mt-2">
-              {['What should I bet this week?', 'Show me line movements today', 'Analyze Chiefs vs Eagles', 'Calculate a 6pt teaser'].map(s => (
+              {(getNFLWeekInfo().phase === 'regular' || getNFLWeekInfo().phase === 'playoffs'
+                ? ['Best plays this week', 'Show me line movements today', 'Calculate a 6pt teaser', 'Analyze Chiefs vs Eagles']
+                : ['Check Super Bowl futures', 'Any futures value right now?', 'Review my open picks', 'When does the season start?']
+              ).map(s => (
                 <button
                   key={s}
-                  onClick={() => setInput(s)}
+                  onClick={() => s === 'Best plays this week' ? sendBestPlaysCommand() : setInput(s)}
                   className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-emerald-500/40 transition-colors"
                 >
                   {s}

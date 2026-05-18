@@ -1,5 +1,5 @@
 # Platinum Rose — Task Board (NFL)
-> **Last updated:** 2026-05-17
+> **Last updated:** 2026-05-18
 > **Owner:** PM agent is the sole writer of this file.
 
 ---
@@ -9,7 +9,6 @@
 | ID | Task | Assignee | Notes |
 |----|------|----------|-------|
 | DS-1 | 2026 Data Sprint Kickoff (scope + sequencing) | PM Agent | Concrete implementation sequence locked: DS-2 (schedule spine) → DS-3 (futures breadth) → DS-4 (research intel ingest). |
-| F-9 | Sunday Slate Briefing mode (BETTING proactive entry) | feature-dev | Proactive mode scaffolded in AgentChat: Sunday auto-open briefing + manual `Best Plays` trigger. Pending: prompt calibration + game-day UX pass. |
 
 ### Data Sprint — Source Priority (Locked 2026-05-17)
 
@@ -45,7 +44,7 @@
 | DS-2 | Build 2026 season schedule spine (`games`) | P0 | ~~Ingest ESPN schedule into new canonical `games` table and local cache (`public/schedule.json`) with deterministic `game_id`; enforce team normalization (`skills/team-normalization.md`) on all joins.~~ → **Done — see DONE section.** |
 | DS-3 | Expand futures ingest breadth (`futures_odds_snapshots`) | P0 | ~~Extend `agents/futures-odds-ingest.js`…~~ → **Done — see DONE section.** |
 | DS-4 | Research intel ingest v1 (`research_intel_notes`, `research_pick_signals`) | P1 | Add article + podcast normalization pipeline with source metadata, publish timestamps, and extracted picks/angles for BETTING context preload. |
-| F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | P1 | In progress — proactive Sunday opening + `Best Plays` command implemented in AgentChat; pending prompt tuning and game-day output validation. |
+| F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | P1 | ~~In progress — proactive Sunday opening + `Best Plays` command implemented in AgentChat; pending prompt tuning and game-day output validation.~~ → **Done — see DONE section.** |
 | F-10 | Performance feedback loop | P1 | ROI aggregation by bet type/team/situation; calibration signals injected into BETTING agent context at session start |
 | F-11 | Article ingestion pipeline | P2 | Action Network, BettingPros, VSiN written content; same pattern as podcast pipeline → extract picks/angles → user_picks; blocked on RSS/scrape decision |
 | F-12 | Hermes/Obsidian NFL betting vault integration | P1 | Read + write path; BETTING agent writes session notes/angles/outcomes to vault post-session; reads coach tendencies/stats/DVOA/EPA at session start; blocked on Hermes MCP architecture |
@@ -76,6 +75,7 @@
 | F-8 | Props Agent | 2026-04-17 | propsTools.js (7 tools), PropsAgentChat.jsx, PROPS.md + manifest, Props tab — stubbed data sources flagged |
 | DS-2 | Build 2026 season schedule spine (`games`) | 2026-05-17 | `agents/schedule-ingest.js` + migration 007 applied; 272 games (weeks 1–18) in Supabase + `public/schedule.json`; deterministic `game_id`; `toolAnalyzeMatchup` now uses `normalizeTeam` for exact abbreviation lookup; receipt writing added. |
 | DS-3 | Expand futures ingest breadth (`futures_odds_snapshots`) | 2026-05-17 | `agents/futures-odds-ingest.js` covers 10 markets (SB + conf + division + 6 awards); migration 008 applied (selection/price/captured_at/season columns); conf/division/awards return 404 from TheOddsAPI offseason — handled gracefully; Bookmaker manual snapshot imported 96 rows; live SB snapshot 96 rows written today. |
+| F-9 | Sunday Slate Briefing mode (BETTING agent proactive entry) | 2026-05-18 | Season-aware `PROACTIVE_BRIEF_PROMPT` (offseason/regular/playoffs branches); `buildSystemPrompt` now passes `phase` + tool-use guidance block; `react-markdown` + `remark-gfm` render markdown in `AssistantMessage`; `AgentStatusBar` phase color (green in-season, grey offseason); offseason empty-state suggestions (futures/open-picks). |
 
 ---
 
