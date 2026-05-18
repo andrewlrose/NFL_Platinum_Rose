@@ -1,51 +1,51 @@
 # NFL_Dashboard — Session Handoff
-> Fresh-session resume notes. Read this first, then WORKING-CONTEXT.md.
+> Fresh-session resume notes. Read this first, then TASK_BOARD.md.
 
 **Date:** 2026-05-17
-**Branch:** main
-**Status:** Data Sprint in progress (DS-2 and DS-3 complete, DS-4 ready to run)
+**Branch:** main  
+**HEAD:** `24cacb7`  
+**Tests:** 80/80 passing  
+**Status:** F-12 complete and committed. Migration 012 applied.
 
-## What Shipped This Sprint
+---
 
-### DS-2 — Schedule Spine
+## Pick Up Here
 
-- `supabase/migrations/007_games_schedule.sql` applied.
-- `agents/schedule-ingest.js` supports regular season + playoff representation (`--include-playoffs`).
-- Duplicate `game_id` for TBD playoff matchups resolved.
-- `public/schedule.json` regenerated from ingest.
+### What Shipped This Session
 
-### DS-3 — Futures Breadth
+**F-12 — NFL Betting Vault (Obsidian + Supabase dual backend)** — commit `24cacb7`
+- `supabase/migrations/012_vault_notes.sql` — applied ✅
+- `src/lib/vaultClient.js` — dual-backend VaultClient; switch via `VITE_VAULT_BACKEND`
+- `src/lib/agentTools.js` — `read_vault_note` + `write_vault_note` tools (11 tools total)
+- `src/components/agent/AgentChat.jsx` — vault reference notes pre-loaded into system prompt
+- `agents/obsidian-vault-sync.js` — one-shot Obsidian → Supabase sync script
+- 80/80 tests passing
 
-- `agents/futures-odds-ingest.js` expanded to conference/division/awards market keys.
-- Explicit unavailable-market reporting added to run receipts.
-- Crash-safe and schema-compatible writes added.
-- `supabase/migrations/008_futures_breadth_dimensions.sql` applied and verified.
+**DS-5, F-11 Ph.2, F-15** — committed `fc706f4` (prior session), migrations 010+011 applied
 
-### DS-4 — Research Intel Ingest
+---
 
-- `supabase/migrations/009_research_intel.sql` created and now confirmed applied.
-- `agents/research-intel-ingest.js` implemented for Action Network, BettingPros, VSiN.
-- Feed guardrails added to prevent OOM/non-feed payload crashes.
-- `src/lib/supabase.js` includes `getRecentResearchIntelNotes()` and `getRecentResearchPickSignals()`.
-- `package.json` scripts include `ingest-research-intel` and `ingest-research-intel:dry`.
+## Immediate Next Actions
 
-## Current Blockers
+1. **Set env vars for local Obsidian backend** (if testing locally):
+   ```
+   VITE_VAULT_BACKEND=obsidian
+   VITE_OBSIDIAN_API_KEY=<from Obsidian Local REST API plugin>
+   VITE_OBSIDIAN_API_URL=https://localhost:27123
+   ```
+   Install plugin: Community Plugins → Local REST API → Enable → copy API key.
 
-None. Migration 009 is now reported as successful.
+2. **Backlog review** — F-13 (Twitter/X sharp accounts) and F-14 (vault pre-load) are the next P2 items.
 
-## Immediate Next Actions (Fresh Session)
+3. **Push to remote** when ready — `24cacb7` is committed but not pushed.
 
-1. Run live DS-4 ingest using `npm run ingest-research-intel`.
-1. Validate inserts in Supabase by checking row counts in `research_intel_notes` and `research_pick_signals`.
-1. Spot-check latest inserted rows for `source`, `title`, `summary`, `bet_type`, and `confidence`.
-1. Review the latest DS-4 receipt under `.nfl/receipts/`.
-1. If validation is clean, commit remaining DS-4 verification updates and push.
+---
 
 ## Known Local-Only Noise (Do Not Commit)
 
 - `.nfl/receipts/` (run artifacts)
 - `supabase/.temp/` (local tooling cache)
-- `skills/deployment-flow/` (out-of-scope local doc)
 
 ---
-Resume order: CLAUDE.md → HANDOFF.md → WORKING-CONTEXT.md → TASK_BOARD.md
+
+Resume order: HANDOFF.md → TASK_BOARD.md
