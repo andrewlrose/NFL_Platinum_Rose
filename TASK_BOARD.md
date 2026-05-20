@@ -1,5 +1,5 @@
 # Platinum Rose — Task Board (NFL)
-> **Last updated:** 2026-05-18
+> **Last updated:** 2026-05-20
 > **Owner:** PM agent is the sole writer of this file.
 
 ---
@@ -8,30 +8,7 @@
 
 | ID | Task | Assignee | Notes |
 |----|------|----------|-------|
-| DS-1 | 2026 Data Sprint Kickoff (scope + sequencing) | PM Agent | Concrete implementation sequence locked: DS-2 (schedule spine) → DS-3 (futures breadth) → DS-4 (research intel ingest). |
-
-### Data Sprint — Source Priority (Locked 2026-05-17)
-
-1. TheOddsAPI (futures + market snapshots)
-2. ESPN (season schedule + game metadata)
-3. Action Network / BettingPros / VSiN (written research)
-4. Podcast feeds (existing extraction path)
-
-### Data Sprint — In-Flight Work Incorporated
-
-1. `agents/futures-odds-ingest.js` already includes `dotenv/config`; DS-3 adopts this as the required server-agent env pattern.
-2. `skills/team-normalization.md` is now the DS-2 canonical guardrail for cross-source team joins.
-3. Existing bridge task `c65590da-1b4e-4401-8198-2d8cc661e2e2` (futures refresh) is treated as DS-3 seed work.
-
-### Data Sprint — Core Tables (target state)
-
-| Table | Purpose | Status |
-|------|---------|--------|
-| `games` | Canonical 2026 season schedule spine (game_id, week, kickoff, home/away, status) | **live — 272 games (weeks 1–18), migration 007 applied, ingest agent active** |
-| `game_odds_snapshots` | Time-series ML/spread/total by book and market | **Done — migration 010 applied, ingest agent + GHA live** |
-| `futures_odds_snapshots` | Super Bowl/conference/division/awards futures snapshots | partial (SB live) |
-| `research_intel_notes` | Parsed article/podcast research with source attribution and confidence | live validated (NFL-only ingest filter active) |
-| `research_pick_signals` | Structured picks/leans extracted from intel sources | live validated (NFL-only ingest filter active) |
+| — | (none) | — | — |
 
 ---
 
@@ -82,6 +59,7 @@
 | F-11 | Intel search tool Phase 2 (FTS + body scraping) | 2026-05-18 | Migration 011 adds `body text` + `tsv tsvector` + GIN index + auto-trigger to `research_intel_notes`; `searchResearchIntel` upgraded to Postgres FTS (`textSearch` via tsvector) with ilike fallback pre-migration; ingest agent adds `fetchArticleBody()` (8s timeout, HTML strip, 4000-char cap) + `INTEL_FETCH_BODY=true` in GHA env; back-fill trigger covers existing rows. |
 | DS-5 | `game_odds_snapshots` — game-level odds time series | 2026-05-18 | Migration 010: append-only table with (game_id, season, week, home/away team, book, market, spread, total, home/away price, captured_at); GIN indexes on game_id+market and week; RLS public read. `agents/game-odds-ingest.js`: TheOddsAPI spreads+h2h+totals, team normalization map, week derivation from commence_time, chunked Supabase insert, TTL prune, receipt. GHA `.github/workflows/game-odds-ingest.yml` runs 4×/day offseason, hourly on game days (Thu/Sun/Mon). `getGameOddsForWeek(week, season)` added to `supabase.js`. |
 | F-15 | Props auto-grade GHA agent | 2026-05-18 | `.github/workflows/props-auto-grade.yml` mirrors nfl-auto-grade.yml schedule (hourly Sun/Thu/Mon, 4h other days); manual --week override; `props-auto-grade.js` updated to use `SUPABASE_SERVICE_ROLE_KEY` + `dotenv/config` (was incorrectly using ANON_KEY). Degrades gracefully when `player_stats` table absent. |
+| DS-1 | 2026 Data Sprint Kickoff (scope + sequencing) | 2026-05-20 | All sub-tasks complete: DS-2 (schedule spine), DS-3 (futures breadth), DS-4 (research intel), DS-5 (game odds snapshots). All 5 tables live in Supabase. GHA ingest agents active. |
 | F-13 | X/Twitter sharp-account ingestion via RSSHub | 2026-05-18 | `config/sharp-accounts.json` (8 accounts: Warren Sharp, Action Network, VSiN, PFF, etc.); migration 013 (`x_sharp_tweets` table — FTS + RLS; applied ✅); `agents/x-sharp-ingest.js` (GHA agent; RSSHub RSS; dedup via url_hash); GHA workflow every 4h + hourly game days; `searchSharpTweets` + `getRecentSharpTweets` in supabase.js; `search_sharp_tweets` tool (12 tools total); sharp tweets injected as `### Sharp Account Tweets` block in system prompt. 84/84 tests passing. Commit `4d1125b`. |
 | F-12 | NFL Betting Vault (Obsidian + Supabase dual backend) | 2026-05-18 | Migration 012 applied (`vault_notes` table: FTS/tsvector, GIN indexes, auto-updated_at trigger, RLS, 4 seeded reference stubs). `src/lib/vaultClient.js`: dual-backend VaultClient (ObsidianRESTBackend + SupabaseVaultBackend), switch via `VITE_VAULT_BACKEND` env. `agentTools.js`: `read_vault_note` + `write_vault_note` tools (11 tools total; path-scoped to `NFL/` for safety). `AgentChat.jsx`: vault reference notes pre-loaded at session start, injected as `### Vault Reference Notes` system-prompt block (3000-char cap). `agents/obsidian-vault-sync.js`: one-shot Obsidian → Supabase sync for production sharing. Flip `VITE_VAULT_BACKEND=supabase` when sharing with betting partners. 80/80 tests passing. |
 
