@@ -19,7 +19,7 @@ metadata:
 
 ### DVOA — Defense-adjusted Value Over Average
 
-**Source:** Football Outsiders  
+**Source:** Football Outsiders
 **What it measures:** Efficiency vs. the average NFL team, adjusted for opponent strength.
 Positive % = above average offense (or below average defense). Negative = opposite.
 
@@ -37,7 +37,7 @@ Positive % = above average offense (or below average defense). Negative = opposi
 
 ### EPA — Expected Points Added
 
-**Source:** ESPN Stats & Info, PFF, nflfastR  
+**Source:** ESPN Stats & Info, PFF, nflfastR
 **What it measures:** Points added above expectation per play, adjusting for down, distance, and
 field position.
 
@@ -54,7 +54,7 @@ field position.
 
 ### CPOE — Completion Percentage Over Expected
 
-**Source:** Next Gen Stats, PFF  
+**Source:** Next Gen Stats, PFF
 **What it measures:** QB actual completion % minus expected completion %, given air yard depth,
 receiver separation, and pressure.
 
@@ -78,7 +78,7 @@ receiver separation, and pressure.
 
 ### PFF Grade
 
-**Source:** Pro Football Focus  
+**Source:** Pro Football Focus
 **What it measures:** Contextual 0-100 grade per player per play.
 
 **Benchmarks:**
