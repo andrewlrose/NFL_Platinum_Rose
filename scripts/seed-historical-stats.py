@@ -203,9 +203,12 @@ def build_team_stats(seasons: list[int]) -> list[dict]:
     epa_map: dict[tuple[int, str], dict] = {}
     try:
         log.info("Fetching play-by-play for EPA (this may take a while)…")
-        df_pbp = nfl.import_pbp_data(seasons, columns=[
-            'season', 'posteam', 'defteam', 'epa', 'play_type',
-        ])
+        # Do NOT pass columns= — nfl-data-py 0.3.3 requires game_id
+        # internally and silently returns empty data when it's excluded.
+        df_pbp = nfl.import_pbp_data(seasons)
+        # Keep only the columns we need after download
+        pbp_cols = ['season', 'posteam', 'defteam', 'epa', 'play_type']
+        df_pbp = df_pbp[[c for c in pbp_cols if c in df_pbp.columns]]
         # Offensive EPA per play
         off_epa = (
             df_pbp
@@ -450,7 +453,7 @@ def main() -> None:
     global nfl, pd, supabase_create
 
     parser = argparse.ArgumentParser(description='Seed historical NFL stats into Supabase')
-    parser.add_argument('--seasons', default='2020-2024', help='Season range, e.g. 2020-2024 or 2024')
+    parser.add_argument('--seasons', default='2020-2025', help='Season range, e.g. 2020-2025 or 2024')
     parser.add_argument('--positions', default=None, help='Comma-sep positions, e.g. QB,WR')
     parser.add_argument('--skip-team',   action='store_true', help='Skip team stats seeding')
     parser.add_argument('--skip-player', action='store_true', help='Skip player stats seeding')
