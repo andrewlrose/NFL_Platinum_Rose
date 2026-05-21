@@ -342,7 +342,10 @@ async function main() {
     if (noteRow) existing = noteRow.content || '';
 
     const intelSection = buildIntelSection(abbr, teamArticles, teamTweets, weekLabel);
-    const newContent   = spliceIntelSection(existing, intelSection);
+    const rawContent   = spliceIntelSection(existing, intelSection);
+    // Strip null bytes and other control chars (< 0x20 except \n \r \t) that
+    // PostgreSQL rejects inside text sent via JSON-over-PostgREST.
+    const newContent   = rawContent.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
     if (DRY_RUN) {
       console.log(`  [DRY RUN] ${vaultPath} — ${teamArticles.length} articles, ${teamTweets.length} tweets`);
@@ -358,7 +361,7 @@ async function main() {
       );
 
     if (upsertErr) {
-      console.error(`  [FAIL] ${vaultPath}: ${upsertErr.message}`);
+      console.error(`  [FAIL] ${vaultPath}: ${upsertErr.message} | code: ${upsertErr.code} | details: ${upsertErr.details}`);
       failed++;
     } else {
       console.log(`  [OK] ${vaultPath} (+${teamArticles.length}a +${teamTweets.length}t)`);
