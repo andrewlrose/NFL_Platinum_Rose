@@ -5,45 +5,69 @@
 
 > Fresh-session resume notes. Read this first, then TASK_BOARD.md.
 
-**Date:** 2026-05-18
+**Date:** 2026-05-20
 **Branch:** main
-**HEAD:** `4d1125b`
+**HEAD:** `b1182f1` (last commit) — **UNCOMMITTED CHANGES present (see below)**
 **Tests:** 84/84 passing
-**Status:** F-13 complete and committed. Migration 013 created (NOT YET applied to Supabase).
+**Status:** F-15/F-16 work in progress — all changes unstaged.
 
 ---
 
 ## Pick Up Here
 
-### What Shipped This Session
+### What Shipped This Session (UNCOMMITTED)
 
-**F-13 — X/Twitter sharp-account ingestion via RSSHub** — commit `4d1125b`
-- `config/sharp-accounts.json` — 8 sharp NFL accounts configured
-- `supabase/migrations/013_x_sharp_tweets.sql` — applied ✅
-- `agents/x-sharp-ingest.js` — GHA Node.js agent (RSSHub RSS parsing, dedup via `url_hash`)
-- `.github/workflows/x-sharp-ingest.yml` — schedule: every 4h + hourly on game days
-- `src/lib/supabase.js` — `getRecentSharpTweets` + `searchSharpTweets`
-- `src/lib/agentTools.js` — `search_sharp_tweets` tool (12 tools total)
-- `src/components/agent/AgentChat.jsx` — sharp tweets injected into system prompt
-- 84/84 tests passing
+**F-15 — Historical team stats seed (EPA + formation tendencies)**
+- `scripts/seed-historical-stats.py` — replaced broken `nfl.import_pbp_data()` with
+  direct nflverse Parquet CDN download via `httpx`; added `shotgun_rate`,
+  `no_huddle_rate`, `pass_rate` columns; new CLI flags `--no-pbp`, `--cache-dir`,
+  `--dry-run`; fixed `datetime.utcnow()` deprecation
+- `supabase/migrations/015_pbp_tendencies.sql` — adds 3 formation cols to
+  `nfl_team_season_stats` — **APPLIED to Supabase production via Dashboard ✅**
+- **Live seed run completed**: 192 rows (32 teams × 6 seasons 2020–2025) upserted,
+  0 failures. PBP play counts: 2020=47705, 2021=49922, 2022=49434, 2023=49665,
+  2024=49492 (cached), 2025=48771. Parquet cached at `data/cache/pbp/`.
 
+**F-16 — Stats-to-vault bridge (new agent)**
+- `agents/stats-to-vault-sync.js` — reads `nfl_team_season_stats`, writes:
+  - `NFL/Teams/<ABBR>.md` — per-team `## Season Stats` section (3 rolling seasons)
+  - `NFL/Reference/TeamStats-<SEASON>.md` — league-wide EPA + ATS + formation tables
+- Dry-run validated: 35 vault notes (32 teams + 3 seasons), 0 failures
+- **NOT YET RUN live** — run once to seed vault_notes before 2026 season
+
+> **F-13 (DONE)** — commit `b1182f1` — X/Twitter sharp ingestion via RSSHub
 > **F-12 (DONE)** — commit `24cacb7` — vault dual-backend + read/write tools
 
 ---
 
 ## Immediate Next Actions
 
-1. **Add `RSSHUB_BASE_URL` secret** to GitHub repo settings (optional — falls back to public `https://rsshub.app`):
-   - Settings → Secrets → New repository secret → `RSSHUB_BASE_URL`
-   - Self-hosted Docker instance recommended for production (avoids rate limits)
+1. **Commit F-15 + F-16 changes** (all unstaged):
+   ```
+   git add scripts/seed-historical-stats.py agents/stats-to-vault-sync.js supabase/migrations/015_pbp_tendencies.sql
+   git commit -m "feat(F-15/F-16): nflverse PBP seed + formation cols + stats-to-vault bridge"
+   ```
 
-2. **F-14** is the only remaining P2 backlog item.
+2. **Run stats-to-vault-sync live** (after commit):
+   ```
+   node agents/stats-to-vault-sync.js --seasons 2023,2024,2025
+   ```
+   This writes EPA/ATS/formation data to vault_notes for BETTING agent access.
+
+3. **F-17 — RSS ingestion pipeline for analytical articles** — not started.
+   Goal: ingest articles from Football Outsiders, The Ringer, etc. into
+   `research_intel_notes` so `intel-to-vault-sync.js` picks them up.
+
+4. **Known quirk**: nflverse uses `LA` (not `LAR`) for the Rams. Stats will
+   appear at `NFL/Teams/LA.md`, not `NFL/Teams/LAR.md`. Intel sync uses `LAR`.
+   These are separate notes — not a breaking issue, but worth aligning eventually.
 
 ---
 
 ## Known Local-Only Noise (Do Not Commit)
 
 - `.nfl/receipts/` (run artifacts)
+- `data/cache/pbp/*.parquet` (large Parquet cache — gitignored)
 - `supabase/.temp/` (local tooling cache)
 
 ---

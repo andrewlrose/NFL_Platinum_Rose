@@ -21,10 +21,11 @@ Env vars (from .env):
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Environment setup ─────────────────────────────────────────────────────────
@@ -148,12 +149,121 @@ def compute_ats_from_schedules(df_sched) -> dict[tuple[int, str], dict]:
     return out
 
 
+# ─── nflverse PBP helpers ────────────────────────────────────────────────────
+
+NFLVERSE_PBP_URL = (
+    "https://github.com/nflverse/nflverse-data/releases/download/"
+    "pbp/play_by_play_{season}.parquet"
+)
+
+_PBP_PLAY_TYPES = ('pass', 'run', 'qb_scramble')
+
+
+def _fetch_pbp_parquet(season: int, cache_dir: Path):
+    """Download (or load from cache) one season of nflverse PBP.
+
+    Returns an empty DataFrame on any network or parse failure.
+    """
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = cache_dir / f"pbp_{season}.parquet"
+
+    if cache_path.exists():
+        log.info("PBP %s: loading from cache", season)
+        try:
+            return pd.read_parquet(cache_path)
+        except Exception as exc:
+            log.warning(
+                "PBP %s: cache read failed (%s) — re-downloading",
+                season, exc,
+            )
+
+    url = NFLVERSE_PBP_URL.format(season=season)
+    log.info("PBP %s: downloading from nflverse CDN\u2026", season)
+    try:
+        import httpx as _httpx
+        r = _httpx.get(url, follow_redirects=True, timeout=120)
+        if r.status_code != 200:
+            log.warning(
+                "PBP %s: CDN returned %s", season, r.status_code
+            )
+            return pd.DataFrame()
+        df = pd.read_parquet(io.BytesIO(r.content))
+        df.to_parquet(cache_path, index=False)
+        log.info("PBP %s: %d plays cached", season, len(df))
+        return df
+    except Exception as exc:
+        log.warning("PBP %s: download failed: %s", season, exc)
+        return pd.DataFrame()
+
+
+def _build_pbp_stats(
+    seasons: list[int],
+    cache_dir: Path,
+) -> dict[tuple[int, str], dict]:
+    """Compute per-team EPA + formation tendencies from nflverse Parquet.
+
+    Returns dict keyed (season, team) with fields:
+      off_epa_per_play, def_epa_per_play,
+      shotgun_rate, no_huddle_rate, pass_rate.
+    """
+    out: dict[tuple[int, str], dict] = {}
+
+    for season in seasons:
+        df = _fetch_pbp_parquet(season, cache_dir)
+        if df.empty or 'play_type' not in df.columns:
+            log.warning(
+                "PBP %s: empty or missing play_type — skipping", season
+            )
+            continue
+
+        scrimmage = df[df['play_type'].isin(_PBP_PLAY_TYPES)].copy()
+
+        # Offensive EPA + formation tendencies
+        if 'posteam' in scrimmage.columns and 'epa' in scrimmage.columns:
+            off = scrimmage.dropna(subset=['posteam'])
+            for team, grp in off.groupby('posteam'):
+                k = (season, normalise_abbr(str(team)))
+                entry = out.setdefault(k, {})
+                epa_vals = grp['epa'].dropna()
+                if not epa_vals.empty:
+                    entry['off_epa_per_play'] = round(
+                        float(epa_vals.mean()), 4
+                    )
+                if 'shotgun' in grp.columns:
+                    entry['shotgun_rate'] = round(
+                        float(grp['shotgun'].mean()), 4
+                    )
+                if 'no_huddle' in grp.columns:
+                    entry['no_huddle_rate'] = round(
+                        float(grp['no_huddle'].mean()), 4
+                    )
+                entry['pass_rate'] = round(
+                    float((grp['play_type'] == 'pass').mean()), 4
+                )
+
+        # Defensive EPA
+        if 'defteam' in scrimmage.columns and 'epa' in scrimmage.columns:
+            def_plays = scrimmage.dropna(subset=['defteam', 'epa'])
+            for team, grp in def_plays.groupby('defteam'):
+                k = (season, normalise_abbr(str(team)))
+                entry = out.setdefault(k, {})
+                entry['def_epa_per_play'] = round(
+                    float(grp['epa'].mean()), 4
+                )
+
+    return out
+
+
 # ─── Team season stats aggregation ────────────────────────────────────────────
 
-def build_team_stats(seasons: list[int]) -> list[dict]:
+def build_team_stats(
+    seasons: list[int],
+    cache_dir: Path | None = None,
+    skip_pbp: bool = False,
+) -> list[dict]:
     """
-    Pull schedule results + EPA from nfl-data-py and return a list of row dicts
-    ready to upsert into nfl_team_season_stats.
+    Pull schedule results + EPA from nflverse Parquet and return a list of
+    row dicts ready to upsert into nfl_team_season_stats.
     """
     log.info("Fetching schedules for seasons: %s", seasons)
     df_sched = nfl.import_schedules(seasons)
@@ -199,55 +309,30 @@ def build_team_stats(seasons: list[int]) -> list[dict]:
             hr['ties'] += 1
             ar['ties'] += 1
 
-    # EPA from pbp (optional — skip if pbp download fails/is disabled)
-    epa_map: dict[tuple[int, str], dict] = {}
-    try:
-        log.info("Fetching play-by-play for EPA (this may take a while)…")
-        # Do NOT pass columns= — nfl-data-py 0.3.3 requires game_id
-        # internally and silently returns empty data when it's excluded.
-        df_pbp = nfl.import_pbp_data(seasons)
-        # Keep only the columns we need after download
-        pbp_cols = ['season', 'posteam', 'defteam', 'epa', 'play_type']
-        df_pbp = df_pbp[[c for c in pbp_cols if c in df_pbp.columns]]
-        # Offensive EPA per play
-        off_epa = (
-            df_pbp
-            .dropna(subset=['posteam', 'epa'])
-            .query("play_type in ['pass', 'run', 'qb_scramble']")
-            .groupby(['season', 'posteam'])['epa']
-            .mean()
-            .reset_index()
-            .rename(columns={'posteam': 'team', 'epa': 'off_epa_per_play'})
+    # PBP stats: EPA + formation tendencies via nflverse Parquet CDN
+    if skip_pbp:
+        pbp_map: dict[tuple[int, str], dict] = {}
+    else:
+        _cache = (
+            cache_dir
+            or Path(__file__).parent.parent / 'data' / 'cache' / 'pbp'
         )
-        # Defensive EPA per play (lower = better)
-        def_epa = (
-            df_pbp
-            .dropna(subset=['defteam', 'epa'])
-            .query("play_type in ['pass', 'run', 'qb_scramble']")
-            .groupby(['season', 'defteam'])['epa']
-            .mean()
-            .reset_index()
-            .rename(columns={'defteam': 'team', 'epa': 'def_epa_per_play'})
-        )
-        for _, r in off_epa.iterrows():
-            k = (int(r['season']), normalise_abbr(str(r['team'])))
-            epa_map.setdefault(k, {})['off_epa_per_play'] = round(float(r['off_epa_per_play']), 4)
-        for _, r in def_epa.iterrows():
-            k = (int(r['season']), normalise_abbr(str(r['team'])))
-            epa_map.setdefault(k, {})['def_epa_per_play'] = round(float(r['def_epa_per_play']), 4)
-    except Exception as exc:
-        log.warning("PBP EPA skipped: %s", exc)
+        pbp_map = _build_pbp_stats(seasons, _cache)
 
     # Compute league rankings for EPA within each season
     # off_epa_rank: rank by off_epa descending; def_epa_rank: rank by def_epa ascending
     # Build a flat list first, rank after
     rows = []
-    all_keys = set(records.keys()) | set(epa_map.keys()) | set(ats_map.keys())
-    now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+    all_keys = (
+        set(records.keys()) | set(pbp_map.keys()) | set(ats_map.keys())
+    )
+    now_iso = (
+        datetime.now(timezone.utc).isoformat(timespec='seconds')
+    )
 
     for (season, team) in sorted(all_keys):
         rec  = records.get((season, team), {})
-        epa  = epa_map.get((season, team), {})
+        pbp  = pbp_map.get((season, team), {})
         ats  = ats_map.get((season, team), {})
         row  = {
             'season':           season,
@@ -256,14 +341,17 @@ def build_team_stats(seasons: list[int]) -> list[dict]:
             'wins':             rec.get('wins'),
             'losses':           rec.get('losses'),
             'ties':             rec.get('ties', 0),
-            'off_epa_per_play': epa.get('off_epa_per_play'),
-            'def_epa_per_play': epa.get('def_epa_per_play'),
+            'off_epa_per_play': pbp.get('off_epa_per_play'),
+            'def_epa_per_play': pbp.get('def_epa_per_play'),
+            'shotgun_rate':     pbp.get('shotgun_rate'),
+            'no_huddle_rate':   pbp.get('no_huddle_rate'),
+            'pass_rate':        pbp.get('pass_rate'),
             'ats_wins':         ats.get('ats_wins'),
             'ats_losses':       ats.get('ats_losses'),
             'ats_pushes':       ats.get('ats_pushes'),
             'home_ats_record':  ats.get('home_ats_record'),
             'away_ats_record':  ats.get('away_ats_record'),
-            'source':           'nfl-data-py',
+            'source':           'nflverse',
             'updated_at':       now_iso,
         }
         rows.append(row)
@@ -380,7 +468,7 @@ def build_player_stats(seasons: list[int], positions: list[str] | None = None) -
             .round(2)
         )
 
-    now_iso = datetime.utcnow().isoformat(timespec='seconds') + 'Z'
+    now_iso = datetime.now(timezone.utc).isoformat(timespec='seconds')
     season_df['source']     = 'nfl-data-py'
     season_df['updated_at'] = now_iso
 
@@ -467,11 +555,34 @@ def main() -> None:
     global nfl, pd, supabase_create
 
     parser = argparse.ArgumentParser(description='Seed historical NFL stats into Supabase')
-    parser.add_argument('--seasons', default='2020-2025', help='Season range, e.g. 2020-2025 or 2024')
-    parser.add_argument('--positions', default=None, help='Comma-sep positions, e.g. QB,WR')
-    parser.add_argument('--skip-team',   action='store_true', help='Skip team stats seeding')
-    parser.add_argument('--skip-player', action='store_true', help='Skip player stats seeding')
-    parser.add_argument('--dry-run',     action='store_true', help='Print counts without writing')
+    parser.add_argument(
+        '--seasons', default='2020-2025',
+        help='Season range, e.g. 2020-2025 or 2024',
+    )
+    parser.add_argument(
+        '--positions', default=None,
+        help='Comma-sep positions, e.g. QB,WR',
+    )
+    parser.add_argument(
+        '--skip-team', action='store_true',
+        help='Skip team stats seeding',
+    )
+    parser.add_argument(
+        '--skip-player', action='store_true',
+        help='Skip player stats seeding',
+    )
+    parser.add_argument(
+        '--no-pbp', action='store_true',
+        help='Skip PBP download (EPA/tendency cols will be null)',
+    )
+    parser.add_argument(
+        '--cache-dir', default=None,
+        help='Cache dir for PBP Parquet files (default: data/cache/pbp/)',
+    )
+    parser.add_argument(
+        '--dry-run', action='store_true',
+        help='Print counts without writing',
+    )
     args = parser.parse_args()
 
     seasons   = parse_seasons(args.seasons)
@@ -495,7 +606,12 @@ def main() -> None:
     # ── Team stats ─────────────────────────────────────────────────────────────
     if not args.skip_team:
         log.info("Building team season stats…")
-        team_rows = build_team_stats(seasons)
+        _cache = Path(args.cache_dir) if args.cache_dir else None
+        team_rows = build_team_stats(
+            seasons,
+            cache_dir=_cache,
+            skip_pbp=args.no_pbp,
+        )
         log.info("  %d team-season rows computed", len(team_rows))
         ok, fail = upsert_batch(client, 'nfl_team_season_stats', team_rows,
                                 'season,team', dry_run)
