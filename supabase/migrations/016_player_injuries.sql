@@ -46,3 +46,7 @@ comment on column public.player_injuries.espn_injury_id is
 comment on column public.player_injuries.injury_type is
   'Body part extracted from shortComment parenthetical, e.g. "knee", "ankle". '
   'Null for Active news items with no body-part mention.';
+
+-- RLS: service role (used by all ingest agents) bypasses RLS automatically.
+-- No policies needed — anon and authenticated roles cannot access this table.
+alter table public.player_injuries enable row level security;
