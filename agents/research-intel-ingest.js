@@ -22,29 +22,57 @@ const FETCH_BODY = process.env.INTEL_FETCH_BODY === 'true';
 const BODY_MAX_CHARS = 4_000;
 
 const FEEDS = [
+  // ── Betting / sharp-money sources ─────────────────────────────────────────
   {
     source: 'Action Network',
     url: 'https://www.actionnetwork.com/feed',
     confidence: 0.74,
+    source_type: 'betting',
   },
   {
-    // BettingPros: /nfl/news/feed/ returns HTML; /feed/ is valid RSS but 2.27MB
-    // — allow a higher per-feed limit so we can read the top 20 items.
+    // BettingPros: /nfl/news/feed/ returns HTML; /feed/ is valid RSS but
+    // 2.27MB — allow a higher per-feed limit so we can read the top 20 items.
     source: 'BettingPros',
     url: 'https://www.bettingpros.com/feed/',
     confidence: 0.72,
     maxBytes: 3_000_000,
+    source_type: 'betting',
   },
   {
     // BettingPros /nfl/news/feed/ returns HTML — using ESPN NFL RSS instead
     source: 'ESPN NFL',
     url: 'https://www.espn.com/espn/rss/nfl/news',
     confidence: 0.67,
+    source_type: 'news',
   },
   {
     source: 'VSiN',
     url: 'https://vsin.com/feed/',
     confidence: 0.71,
+    source_type: 'betting',
+  },
+
+  // ── Analytical / editorial sources (F-17) ─────────────────────────────────
+  {
+    // Sharp Football Analysis: situational analytics, trends, team tendencies
+    source: 'Sharp Football',
+    url: 'https://www.sharpfootballanalysis.com/feed/',
+    confidence: 0.69,
+    source_type: 'analytical',
+  },
+  {
+    // Pro Football Talk (NBC Sports): breaking news + coaching/roster analysis
+    source: 'Pro Football Talk',
+    url: 'https://profootballtalk.nbcsports.com/feed/',
+    confidence: 0.66,
+    source_type: 'analytical',
+  },
+  {
+    // Pro Football Focus: grades, snap counts, advanced metrics
+    source: 'PFF',
+    url: 'https://www.pff.com/feed',
+    confidence: 0.67,
+    source_type: 'analytical',
   },
 ];
 
@@ -178,6 +206,40 @@ function parseRssItems(xml) {
         title: title || '(untitled)',
         link: link || guid,
         description: description || '',
+        published_at: publishedAt,
+      };
+    })
+    .filter(item => !!item.link);
+}
+
+// F-17: Atom feed parser (e.g. The Ringer, Bleacher Report).
+// Atom uses <entry> elements and self-closing <link rel="alternate" href="…"/>.
+function parseAtomItems(xml) {
+  return xml
+    .split(/<entry[\s>]/i)
+    .slice(1)
+    .map(chunk => {
+      const title = firstTag(chunk, 'title');
+
+      // Atom <link> is self-closing: <link rel="alternate" href="…" />
+      const linkMatch = chunk.match(
+        /<link[^>]+rel=["']alternate["'][^>]+href=["']([^"']+)["']/i
+      ) || chunk.match(
+        /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']alternate["']/i
+      ) || chunk.match(
+        // Fallback: any <link href="…"> when rel is absent
+        /<link[^>]+href=["']([^"']+)["']/i
+      );
+      const link = linkMatch ? linkMatch[1] : firstTag(chunk, 'id');
+
+      const summary = firstTag(chunk, 'summary') || firstTag(chunk, 'content') || '';
+      const dateRaw = firstTag(chunk, 'published') || firstTag(chunk, 'updated');
+      const publishedAt = dateRaw ? new Date(dateRaw).toISOString() : null;
+
+      return {
+        title: title || '(untitled)',
+        link,
+        description: cleanHtml(summary),
         published_at: publishedAt,
       };
     })
@@ -350,7 +412,10 @@ async function fetchFeed(feed) {
         items: [],
       };
     }
-    const parsed = parseRssItems(xml);
+    // F-17: use Atom parser when feed declares format:'atom' or when the
+    // XML root element is <feed> (Atom) rather than <rss> or <rdf:RDF>.
+    const isAtom = feed.format === 'atom' || /^\s*<feed[\s>]/i.test(xml);
+    const parsed = isAtom ? parseAtomItems(xml) : parseRssItems(xml);
 
     return {
       source: feed.source,
@@ -432,7 +497,7 @@ async function main() {
       const summary = item.description.slice(0, 800);
       return {
         source: feed.source,
-        source_type: 'article',
+        source_type: feed.source_type ?? 'article',
         url: item.link,
         canonical_url: canonical,
         url_hash: sha256(canonical),
@@ -444,9 +509,13 @@ async function main() {
       };
     });
 
-    const signals = feedItems.flatMap(item =>
-      extractSignals(item, feed.source, feed.confidence)
-    );
+    // Analytical sources produce contextual articles, not explicit pick
+    // signals — skip signal extraction to avoid low-quality noise.
+    const signals = feed.source_type === 'analytical'
+      ? []
+      : feedItems.flatMap(item =>
+          extractSignals(item, feed.source, feed.confidence)
+        );
 
     feedResults.push({
       source: feed.source,

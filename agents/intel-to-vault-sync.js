@@ -172,9 +172,26 @@ function spliceIntelSection(existingContent, newSection) {
 function buildIntelSection(abbr, articles, tweets, weekLabel) {
   const lines = [`${INTEL_SECTION_HEADER}`, ``, `_Auto-updated: ${nowIso()}${weekLabel ? ` (${weekLabel})` : ''}_`, ``];
 
-  if (articles.length > 0) {
-    lines.push('### Articles & Analysis');
-    for (const a of articles) {
+  // F-17: separate analytical long-reads from betting/news articles
+  const analyticalArticles = articles.filter(a => a.source_type === 'analytical');
+  const bettingArticles    = articles.filter(a => a.source_type !== 'analytical');
+
+  if (analyticalArticles.length > 0) {
+    lines.push('### Analytical Deep-Reads');
+    for (const a of analyticalArticles) {
+      const date = a.published_at ? a.published_at.slice(0, 10) : nowIso();
+      const src  = a.source || 'Unknown';
+      const title = a.title ? trunc(a.title, 120) : '(no title)';
+      const summary = a.summary ? trunc(a.summary, 200) : '';
+      lines.push(`- **[${title}](${a.url})** — ${src} (${date})`);
+      if (summary) lines.push(`  - ${summary}`);
+    }
+    lines.push('');
+  }
+
+  if (bettingArticles.length > 0) {
+    lines.push('### Betting & News');
+    for (const a of bettingArticles) {
       const date = a.published_at ? a.published_at.slice(0, 10) : nowIso();
       const src  = a.source || 'Unknown';
       const title = a.title ? trunc(a.title, 120) : '(no title)';
@@ -226,10 +243,22 @@ function buildWeeklySignals(teamMap, weekLabel) {
     `_Auto-generated: ${nowIso()}${weekLabel ? ` — ${weekLabel}` : ''}_`,
     `_Source window: last ${DAYS} days_`,
     '',
-    '## Top Articles & Analysis',
+    '## Analytical Deep-Reads',
     '',
   ];
-  for (const a of topArticles) {
+  const analyticalTop = topArticles.filter(a => a.source_type === 'analytical');
+  const bettingTop    = topArticles.filter(a => a.source_type !== 'analytical');
+  for (const a of analyticalTop) {
+    const date  = a.published_at ? a.published_at.slice(0, 10) : '';
+    const teams = a._abbr ? `[${a._abbr}] ` : '';
+    lines.push(`- ${teams}**[${trunc(a.title || '(no title)', 100)}](${a.url})** — ${a.source || ''} (${date})`);
+    if (a.summary) lines.push(`  - ${trunc(a.summary, 180)}`);
+  }
+  if (analyticalTop.length === 0) lines.push('_None._');
+  lines.push('');
+  lines.push('## Betting & News');
+  lines.push('');
+  for (const a of bettingTop) {
     const date  = a.published_at ? a.published_at.slice(0, 10) : '';
     const teams = a._abbr ? `[${a._abbr}] ` : '';
     lines.push(`- ${teams}**[${trunc(a.title || '(no title)', 100)}](${a.url})** — ${a.source || ''} (${date})`);
@@ -264,7 +293,7 @@ async function main() {
   const [articlesRes, tweetsRes] = await Promise.all([
     supabase
       .from('research_intel_notes')
-      .select('id, source, url, title, summary, published_at')
+      .select('id, source, source_type, url, title, summary, published_at')
       .gte('captured_at', cutoff)
       .order('published_at', { ascending: false })
       .limit(500),
