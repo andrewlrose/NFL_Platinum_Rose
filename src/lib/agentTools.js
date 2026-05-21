@@ -897,7 +897,7 @@ async function toolWriteVaultNote({ path, content, tags = [] } = {}) {
 }
 
 async function toolGetBettingSplits({ team, week } = {}) {
-  const { getNFLWeekInfo } = await import('./nflWeek.js');
+  const { getNFLWeekInfo } = await import('./constants.js');
   const currentWeek = week || getNFLWeekInfo().week;
 
   if (!currentWeek) {

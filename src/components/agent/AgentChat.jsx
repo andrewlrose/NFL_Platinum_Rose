@@ -331,7 +331,7 @@ ${buildSplitsSummary(splitsData)}
 ### Upcoming Schedule:
 ${upcomingGames || '  No schedule data loaded'}
 
-Acknowledge that you have this context loaded and briefly state open picks count, bankroll balance, current NFL phase, and all-time record at conversation start.\`;
+Acknowledge that you have this context loaded and briefly state open picks count, bankroll balance, current NFL phase, and all-time record at conversation start.`;
 }
 
 // ─── Message Rendering Helpers ───────────────────────────────────────────────
@@ -339,21 +339,21 @@ Acknowledge that you have this context loaded and briefly state open picks count
 function ToolCallCard({ name, input, result, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const toolLabels = {
-    get_odds:            '📊 Get Odds',
-    get_line_movement:   '📈 Line Movement',
-    analyze_matchup:     '🔍 Analyze Matchup',
-    get_injury_report:   '🏥 Injury Report',
-    calculate_hedge:     '🛡️ Hedge Calc',
-    calculate_teaser:    '🎯 Teaser Eval',
-    log_pick:            '📝 Log Pick',
-    get_performance_stats: '📈 Performance Stats',
-    search_intel:          '🔍 Search Intel',
-    search_sharp_tweets:   '🐦 Sharp Tweets',
-    read_vault_note:       '📖 Read Vault Note',
-    write_vault_note:      '📝 Write Vault Note',
-    get_betting_splits:    '📊 Betting Splits',
+    get_odds:            '\u{1F4CA} Get Odds',
+    get_line_movement:   '\u{1F4C8} Line Movement',
+    analyze_matchup:     '\u{1F50D} Analyze Matchup',
+    get_injury_report:   '\u{1F3E5} Injury Report',
+    calculate_hedge:     '\u{1F6E1} Hedge Calc',
+    calculate_teaser:    '\u{1F3AF} Teaser Eval',
+    log_pick:            '\u{1F4DD} Log Pick',
+    get_performance_stats: '\u{1F4C8} Performance Stats',
+    search_intel:          '\u{1F50D} Search Intel',
+    search_sharp_tweets:   '\u{1F426} Sharp Tweets',
+    read_vault_note:       '\u{1F4D6} Read Vault Note',
+    write_vault_note:      '\u{1F4DD} Write Vault Note',
+    get_betting_splits:    '\u{1F4CA} Betting Splits',
   };
-  const label = toolLabels[name] || `🔧 ${name}`;
+  const label = toolLabels[name] || '[tool] ' + name;
 
   return (
     <div className="my-1.5 rounded-lg border border-slate-700/60 bg-slate-800/40 overflow-hidden text-xs">

@@ -15,7 +15,7 @@ export const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
-const isAvailable = () => !!supabase;
+export const isAvailable = () => !!supabase;
 
 // Wrap any Supabase query promise with an 8-second hard timeout.
 // Prevents agent tool calls from hanging indefinitely during offseason
