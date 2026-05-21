@@ -10,7 +10,8 @@
 //   ODDS_API_KEY              — TheOddsAPI key
 //
 // ⚠️  RATE NOTE: TheOddsAPI futures/outrights cost 2× requests each.
-//    3 markets × 2 = 6 requests per run. At 1×/day = ~186 req/month (offseason).
+//    10 confirmed markets × 2 = 20 requests per run (off-season).
+//    3 additional seasonal markets add up to 6 more when active (preseason+).
 //    Adjust or disable cron during regular season when weekly lines take priority.
 //
 // Design principles (same as odds-ingest.js):
@@ -101,6 +102,25 @@ const FUTURES_MARKETS = [
     sportKey: 'americanfootball_nfl_coach_of_the_year',
     marketType: 'award_coach_of_year',
     label: 'Coach of the Year',
+  },
+  // ── Seasonal markets (pre-season / early off-season) ──────────────────────
+  // These sport keys may return HTTP 404/422 (handled gracefully) until
+  // TheOddsAPI opens the market, typically July–August each year.
+  // Verify available keys via: GET /v4/sports?all=true&apiKey=<key>
+  {
+    sportKey: 'americanfootball_nfl_season_wins',
+    marketType: 'wins',
+    label: 'Regular Season Win Total',
+  },
+  {
+    sportKey: 'americanfootball_nfl_make_playoffs',
+    marketType: 'playoffs',
+    label: 'Make the Playoffs (Yes/No)',
+  },
+  {
+    sportKey: 'americanfootball_nfl_super_bowl_matchup',
+    marketType: 'superbowl_matchup',
+    label: 'Exact Super Bowl Matchup',
   },
 ];
 

@@ -1,0 +1,53 @@
+name: Futures Intel Report
+
+on:
+  schedule:
+    # Mon 14:00 UTC (7am PST) — start-of-week futures review
+    - cron: '0 14 * * 1'
+    # Wed 14:00 UTC (7am PST) — mid-week update
+    - cron: '0 14 * * 3'
+    # Fri 14:00 UTC (7am PST) — pre-weekend futures positioning
+    - cron: '0 14 * * 5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (build report, skip vault write)'
+        type: boolean
+        default: true
+      intel_days:
+        description: 'Research articles lookback window (days)'
+        type: string
+        required: false
+        default: '30'
+      signal_days:
+        description: 'Tweets + movement window (days)'
+        type: string
+        required: false
+        default: '7'
+
+jobs:
+  futures-intel-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Futures Intel Report
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN:                   ${{ inputs.dry_run || 'false' }}
+          INTEL_LOOKBACK_DAYS:       ${{ inputs.intel_days || '30' }}
+          REPORT_LOOKBACK_DAYS:      ${{ inputs.signal_days || '7' }}
+        run: node agents/futures-intel-report.js
