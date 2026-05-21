@@ -310,7 +310,21 @@ def build_player_stats(seasons: list[int], positions: list[str] | None = None) -
     target_pos = set(positions) if positions else _SKILL_POSITIONS
 
     log.info("Fetching weekly player data for seasons: %s", seasons)
-    df = nfl.import_weekly_data(seasons)
+    frames = []
+    for s in seasons:
+        try:
+            frames.append(nfl.import_weekly_data([s]))
+        except Exception as exc:  # noqa: BLE001
+            # nfl-data-py raises urllib HTTPError (404) for seasons whose
+            # weekly parquet isn't published yet (e.g. current/future year)
+            log.warning(
+                "Weekly data not available for season %s (%s) — skipping",
+                s, exc,
+            )
+    if not frames:
+        log.warning("No weekly player data available for any season — skipping")
+        return []
+    df = pd.concat(frames, ignore_index=True)
 
     # Filter to skill positions
     if 'position' in df.columns:
