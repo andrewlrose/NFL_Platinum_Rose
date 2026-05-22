@@ -1,6 +1,8 @@
 // src/lib/enhancedOddsApi.js
 // Enhanced odds API for multiple sportsbooks and line shopping
 
+import { ODDS_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
+
 const SPORTSBOOKS = {
   draftkings: { name: 'DraftKings', color: 'text-orange-400' },
   fanduel: { name: 'FanDuel', color: 'text-blue-400' },
@@ -17,32 +19,43 @@ let lineHistory = new Map();
 let lastFetch = null;
 
 export const fetchMultiBookOdds = async () => {
-  const API_KEY = import.meta.env.VITE_ODDS_API_KEY;
-  
-  if (!API_KEY) {
-    console.warn("⚠️ No API Key found. Using mock data for demonstration.");
+  if (!ODDS_PROXY_URL) {
+    console.warn('⚠️ ODDS_PROXY_URL not configured. Using mock data.');
     return generateMockMultiBookData();
   }
 
   try {
-    console.log("🔄 Fetching multi-sportsbook odds...");
-    
+    console.log('🔄 Fetching multi-sportsbook odds via proxy...');
+
     const bookmakers = Object.keys(SPORTSBOOKS).join(',');
-    const url = `https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds?regions=us&markets=h2h,spreads,totals&bookmakers=${bookmakers}&apiKey=${API_KEY}&oddsFormat=american`;
-    
-    const response = await fetch(url);
-    
+    const response = await fetch(ODDS_PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        queryParams: {
+          regions: 'us',
+          markets: 'h2h,spreads,totals',
+          bookmakers,
+          oddsFormat: 'american',
+        },
+      }),
+    });
+
     if (!response.ok) {
       throw new Error(`API Error: ${response.status}`);
     }
-    
+
     const data = await response.json();
     console.log(`✅ Success! Fetched odds for ${data.length} games from multiple books.`);
-    
+
     // Process and track line movements
     const processedData = processMultiBookData(data);
     trackLineMovements(processedData);
-    
+
     return processedData;
 
   } catch (error) {
@@ -104,11 +117,11 @@ const processMultiBookData = (rawData) => {
 
 const trackLineMovements = (currentData) => {
   const now = new Date().toISOString();
-  
+
   currentData.forEach(game => {
     const gameKey = `${game.away_team}_${game.home_team}`;
     const previousData = lineHistory.get(gameKey);
-    
+
     if (previousData) {
       // Compare with previous odds to detect movements
       Object.entries(game.bookmakers).forEach(([bookKey, bookData]) => {
@@ -118,25 +131,25 @@ const trackLineMovements = (currentData) => {
         }
       });
     }
-    
+
     // Store current data for future comparison
     lineHistory.set(gameKey, {
       ...game,
       timestamp: now
     });
   });
-  
+
   lastFetch = now;
 };
 
 const detectLineMovement = (gameKey, bookKey, prevData, currentData, timestamp) => {
   const movements = [];
-  
+
   // Check spread movement
   if (prevData.markets.spread && currentData.markets.spread) {
     const prevLine = prevData.markets.spread.home_line;
     const currentLine = currentData.markets.spread.home_line;
-    
+
     if (prevLine !== currentLine && prevLine !== null && currentLine !== null) {
       movements.push({
         game: gameKey,
@@ -149,12 +162,12 @@ const detectLineMovement = (gameKey, bookKey, prevData, currentData, timestamp) 
       });
     }
   }
-  
+
   // Check total movement
   if (prevData.markets.total && currentData.markets.total) {
     const prevLine = prevData.markets.total.line;
     const currentLine = currentData.markets.total.line;
-    
+
     if (prevLine !== currentLine && prevLine !== null && currentLine !== null) {
       movements.push({
         game: gameKey,
@@ -167,7 +180,7 @@ const detectLineMovement = (gameKey, bookKey, prevData, currentData, timestamp) 
       });
     }
   }
-  
+
   // Store movements for alert system
   if (movements.length > 0) {
     const existingMovements = JSON.parse(localStorage.getItem('lineMovements') || '[]');
@@ -187,7 +200,7 @@ export const getBestOdds = (gameData) => {
     if (bookData.markets.spread) {
       const homePrice = bookData.markets.spread.home_price;
       const awayPrice = bookData.markets.spread.away_price;
-      
+
       if (!bestOdds.spread.home || homePrice > bestOdds.spread.home.price) {
         bestOdds.spread.home = {
           price: homePrice,
@@ -196,7 +209,7 @@ export const getBestOdds = (gameData) => {
           bookKey
         };
       }
-      
+
       if (!bestOdds.spread.away || awayPrice > bestOdds.spread.away.price) {
         bestOdds.spread.away = {
           price: awayPrice,
@@ -211,7 +224,7 @@ export const getBestOdds = (gameData) => {
     if (bookData.markets.total) {
       const overPrice = bookData.markets.total.over_price;
       const underPrice = bookData.markets.total.under_price;
-      
+
       if (!bestOdds.total.over || overPrice > bestOdds.total.over.price) {
         bestOdds.total.over = {
           price: overPrice,
@@ -220,7 +233,7 @@ export const getBestOdds = (gameData) => {
           bookKey
         };
       }
-      
+
       if (!bestOdds.total.under || underPrice > bestOdds.total.under.price) {
         bestOdds.total.under = {
           price: underPrice,
@@ -235,7 +248,7 @@ export const getBestOdds = (gameData) => {
     if (bookData.markets.moneyline) {
       const homePrice = bookData.markets.moneyline.home;
       const awayPrice = bookData.markets.moneyline.away;
-      
+
       if (!bestOdds.moneyline.home || homePrice > bestOdds.moneyline.home.price) {
         bestOdds.moneyline.home = {
           price: homePrice,
@@ -243,7 +256,7 @@ export const getBestOdds = (gameData) => {
           bookKey
         };
       }
-      
+
       if (!bestOdds.moneyline.away || awayPrice > bestOdds.moneyline.away.price) {
         bestOdds.moneyline.away = {
           price: awayPrice,
@@ -260,7 +273,7 @@ export const getBestOdds = (gameData) => {
 export const getLineMovements = (hours = 24) => {
   const movements = JSON.parse(localStorage.getItem('lineMovements') || '[]');
   const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
-  
+
   return movements
     .filter(movement => new Date(movement.timestamp) > cutoffTime)
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -268,15 +281,15 @@ export const getLineMovements = (hours = 24) => {
 
 export const findArbitrageOpportunities = (gamesData) => {
   const opportunities = [];
-  
+
   gamesData.forEach(game => {
     const bestOdds = getBestOdds(game);
-    
+
     // Check moneyline arbitrage
     if (bestOdds.moneyline.home && bestOdds.moneyline.away) {
       const homeImplied = oddsToImpliedProbability(bestOdds.moneyline.home.price);
       const awayImplied = oddsToImpliedProbability(bestOdds.moneyline.away.price);
-      
+
       if (homeImplied + awayImplied < 1) {
         opportunities.push({
           game: `${game.away_team} @ ${game.home_team}`,
@@ -290,7 +303,7 @@ export const findArbitrageOpportunities = (gamesData) => {
       }
     }
   });
-  
+
   return opportunities;
 };
 
@@ -305,7 +318,7 @@ const oddsToImpliedProbability = (americanOdds) => {
 // Mock data generator for demonstration
 const generateMockMultiBookData = () => {
   console.log("📊 Generating mock multi-sportsbook data...");
-  
+
   const mockGames = [
     {
       id: 'mock_1',
@@ -314,14 +327,14 @@ const generateMockMultiBookData = () => {
       commence_time: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
-      id: 'mock_2', 
+      id: 'mock_2',
       home_team: 'San Francisco 49ers',
       away_team: 'Dallas Cowboys',
       commence_time: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
     },
     {
       id: 'mock_3',
-      home_team: 'Baltimore Ravens', 
+      home_team: 'Baltimore Ravens',
       away_team: 'Cincinnati Bengals',
       commence_time: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString()
     }
@@ -340,7 +353,7 @@ const generateMockMultiBookData = () => {
         }
       },
       fanduel: {
-        name: 'FanDuel', 
+        name: 'FanDuel',
         color: 'text-blue-400',
         markets: {
           spread: { home_line: -2.5, home_price: -108, away_line: 2.5, away_price: -112 },
@@ -350,7 +363,7 @@ const generateMockMultiBookData = () => {
       },
       betmgm: {
         name: 'BetMGM',
-        color: 'text-yellow-400', 
+        color: 'text-yellow-400',
         markets: {
           spread: { home_line: -3, home_price: -105, away_line: 3, away_price: -115 },
           total: { line: 48, over_price: -110, under_price: -110 },

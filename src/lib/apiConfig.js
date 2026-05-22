@@ -3,12 +3,28 @@
 // CENTRALIZED API CONFIGURATION — Single source of truth for all endpoints/keys
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// --- API Keys (from .env via Vite) ---
-export const ODDS_API_KEY      = import.meta.env.VITE_ODDS_API_KEY      || '';
-export const OPENAI_API_KEY    = import.meta.env.VITE_OPENAI_API_KEY    || '';
+// --- Supabase (safe to bundle — public anon key) ---
 export const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL      || '';
 export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-export const ANTHROPIC_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
+
+// --- Server-side proxy endpoints (paid keys stored as Supabase secrets) ---
+// VITE_OPENAI_API_KEY, VITE_ANTHROPIC_API_KEY, VITE_ODDS_API_KEY are
+// intentionally NOT read here — they must never appear in the browser bundle.
+export const AI_PROXY_URL   = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1/ai-proxy`
+  : '';
+export const ODDS_PROXY_URL = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1/odds-proxy`
+  : '';
+
+// Kept for backwards-compat imports in AgentChat / PropsAgentChat.
+// Both components now use the proxy so these are always empty at runtime.
+/** @deprecated Use AI_PROXY_URL — keys are server-side only. */
+export const OPENAI_API_KEY    = '';
+/** @deprecated Use AI_PROXY_URL — keys are server-side only. */
+export const ANTHROPIC_API_KEY = '';
+/** @deprecated Use ODDS_PROXY_URL — key is server-side only. */
+export const ODDS_API_KEY      = '';
 
 // --- TheOddsAPI ---
 export const ODDS_API = {

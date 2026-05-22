@@ -17,7 +17,7 @@ import { runAgentTurn, runOpenAIAgentTurn } from '../../lib/anthropicClient.js';
 import { PROPS_TOOLS, executePropTool } from '../../lib/propsTools.js';
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from '../../lib/storage.js';
 import { getNFLWeekInfo } from '../../lib/constants.js';
-import { ANTHROPIC_API_KEY, ANTHROPIC_API, OPENAI_API_KEY } from '../../lib/apiConfig.js';
+import { ANTHROPIC_API, AI_PROXY_URL } from '../../lib/apiConfig.js';
 
 // ─── localStorage keys ───────────────────────────────────────────────────────
 const CHAT_HISTORY_KEY  = 'nfl_props_agent_chat_v1';
@@ -262,10 +262,8 @@ function PropsStatusBar({ openPropsCount, weekLabel, isLoading, provider }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function PropsAgentChat() {
-  // Provider + API key detection (priority: env → stored → manual)
-  const envKey      = ANTHROPIC_API_KEY || OPENAI_API_KEY || '';
-  const envProvider = ANTHROPIC_API_KEY ? 'anthropic' : (OPENAI_API_KEY ? 'openai' : null);
-
+  // API calls route through the Supabase Edge Function proxy.
+  // A stored personal key is still honoured as an optional override.
   const storedRaw  = loadFromStorage(USER_API_KEY_KEY, '');
   let storedKey = '', storedProvider = null;
   if (storedRaw) {
@@ -279,8 +277,8 @@ export default function PropsAgentChat() {
     }
   }
 
-  const [apiKey, setApiKey]     = useState(envKey || storedKey || '');
-  const [provider, setProvider] = useState(envProvider || storedProvider || 'anthropic');
+  const [apiKey, setApiKey]     = useState(storedKey || '');
+  const [provider, setProvider] = useState(storedProvider || 'anthropic');
 
   const [messages, setMessages] = useState(() => loadFromStorage(CHAT_HISTORY_KEY, []));
   const [input, setInput] = useState('');
@@ -380,7 +378,7 @@ export default function PropsAgentChat() {
     }
   }, []);
 
-  if (!apiKey) {
+  if (!apiKey && !AI_PROXY_URL) {
     return (
       <div className="h-[calc(100vh-120px)] bg-slate-950 rounded-xl border border-slate-800">
         <ApiKeySetup onKeySet={(k, p) => { setApiKey(k); setProvider(p); }} />
@@ -410,7 +408,7 @@ export default function PropsAgentChat() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {!envKey && (
+          {!AI_PROXY_URL && apiKey && (
             <button
               onClick={() => { saveToStorage(USER_API_KEY_KEY, ''); setApiKey(''); setProvider(null); }}
               className="text-[10px] text-slate-600 hover:text-slate-400 px-2 py-1 rounded border border-slate-800 hover:border-slate-600 transition-colors"

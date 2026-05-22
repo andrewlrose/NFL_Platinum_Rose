@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mic, Users, Key, Zap, RefreshCw, CheckCircle, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
-import { INITIAL_EXPERTS } from '../../lib/constants'; 
+import { INITIAL_EXPERTS } from '../../lib/constants';
 
 export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts = [] }) {
   const [text, setText] = useState('');
-  
-  // Check for Global Key (Sponsor Mode)
-  const GLOBAL_KEY = import.meta.env.VITE_OPENAI_API_KEY || '';
-  const hasGlobalKey = GLOBAL_KEY.startsWith('sk-');
 
-  // Check for User Key (Local Storage)
+  // Transcript analysis requires the user's personal OpenAI key (no operator key
+  // is included in the bundle).  The user enters it once and it persists in
+  // localStorage under 'PR_OPENAI_KEY'.
   const [userKey, setUserKey] = useState(localStorage.getItem('PR_OPENAI_KEY') || '');
-  
-  const activeKey = hasGlobalKey ? GLOBAL_KEY : userKey;
+
+  const activeKey = userKey;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null); // 🔥 NEW: Error State
-  const [isNewSource, setIsNewSource] = useState(false); 
-  const [selectedSource, setSelectedSource] = useState(""); 
+  const [isNewSource, setIsNewSource] = useState(false);
+  const [selectedSource, setSelectedSource] = useState("");
   const [newSourceName, setNewSourceName] = useState('');
 
   const expertList = experts.length > 0 ? experts : INITIAL_EXPERTS;
@@ -53,7 +51,7 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
     if (!activeKey) { alert("No API Key found."); return; }
 
     setIsProcessing(true);
-    
+
     const sourceData = {
         name: isNewSource ? newSourceName : selectedSource,
         isNew: isNewSource,
@@ -74,7 +72,7 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
   return (
     <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-        
+
         {/* Header */}
         <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
            <div className="flex items-center gap-3">
@@ -93,7 +91,7 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
 
         {/* Body */}
         <div className="p-6 flex-1 flex flex-col gap-6 overflow-y-auto custom-scrollbar bg-slate-900">
-           
+
            {/* ERROR MESSAGE */}
            {errorMsg && (
                <div className="bg-rose-500/10 border border-rose-500/50 p-3 rounded-lg flex items-center gap-2 text-rose-400 text-sm font-bold">
@@ -112,7 +110,7 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
                    <>
                        <div className="flex justify-between items-center mb-2">
                             <label className="text-[10px] font-bold uppercase flex items-center gap-2 text-slate-400 tracking-wider">
-                                <Key size={12} className={userKey ? "text-emerald-400" : "text-slate-500"} /> 
+                                <Key size={12} className={userKey ? "text-emerald-400" : "text-slate-500"} />
                                 {userKey ? <span className="text-emerald-400">User Key Saved</span> : "OpenAI API Key Required"}
                             </label>
                             {userKey && <button onClick={handleClearUserKey} className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1"><Trash2 size={10} /> Clear</button>}
@@ -153,8 +151,8 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
         {/* Footer */}
         <div className="p-5 border-t border-slate-800 flex justify-end gap-3 bg-slate-950">
            <button onClick={onClose} className="px-4 py-2 text-slate-400 hover:text-white text-sm font-bold">Cancel</button>
-           <button 
-                onClick={handleAnalyze} 
+           <button
+                onClick={handleAnalyze}
                 disabled={!text || isProcessing || !activeKey}
                 className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg ${isProcessing ? 'bg-indigo-600 cursor-wait' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed'}`}
             >

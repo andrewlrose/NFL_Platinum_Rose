@@ -7,15 +7,14 @@
 // and out.
 //
 // Providers:
-//   'anthropic' — uses VITE_ANTHROPIC_API_KEY, model claude-sonnet-4-5
-//   'openai'    — uses VITE_OPENAI_API_KEY,    model gpt-4o-mini (default)
+//   'anthropic' — routed through /functions/v1/ai-proxy (key is server-side)
+//   'openai'    — routed through /functions/v1/ai-proxy (key is server-side)
 //
-// Security note: browser-direct API calls. Personal app only.
+// Keys are stored as Supabase secrets; the browser never sees them.
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { ANTHROPIC_API } from './apiConfig.js';
+import { ANTHROPIC_API, AI_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
 
-const OPENAI_COMPLETIONS = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
 
 // ─── Message Sanitizer ───────────────────────────────────────────────────────
@@ -63,15 +62,19 @@ async function callAnthropic(
       await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
     }
 
-    const response = await fetch(ANTHROPIC_API.BASE_URL, {
+    const proxyBody = {
+      provider: 'anthropic',
+      'anthropic-version': ANTHROPIC_API.VERSION,
+      ...body,
+    };
+    const response = await fetch(AI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': ANTHROPIC_API.VERSION,
-        'anthropic-dangerous-direct-browser-access': 'true',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(proxyBody),
       signal,
     });
 
@@ -199,14 +202,16 @@ export async function runOpenAIAgentTurn({
 
     let data;
     try {
-      const resp = await fetch(OPENAI_COMPLETIONS, {
+      const resp = await fetch(AI_PROXY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          apikey: SUPABASE_ANON_KEY,
         },
         signal,
         body: JSON.stringify({
+          provider: 'openai',
           model: model || OPENAI_DEFAULT_MODEL,
           messages: openaiMessages,
           tools: openaiTools.length > 0 ? openaiTools : undefined,

@@ -26,7 +26,7 @@ import {
   statsByEdge,
 } from '../../lib/picksDatabase.js';
 import { getNFLWeekInfo } from '../../lib/constants.js';
-import { ANTHROPIC_API_KEY, ANTHROPIC_API, OPENAI_API_KEY } from '../../lib/apiConfig.js';
+import { ANTHROPIC_API, AI_PROXY_URL } from '../../lib/apiConfig.js';
 import {
   getRecentResearchIntelNotes,
   getRecentResearchPickSignals,
@@ -540,12 +540,9 @@ function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, phase, isL
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AgentChat() {
-  // Provider + API key detection (priority: env vars → stored key → manual entry)
-  // env vars: VITE_ANTHROPIC_API_KEY takes precedence over VITE_OPENAI_API_KEY
-  const envKey      = ANTHROPIC_API_KEY || OPENAI_API_KEY || '';
-  const envProvider = ANTHROPIC_API_KEY ? 'anthropic' : (OPENAI_API_KEY ? 'openai' : null);
-
-  // Stored key is { key, provider } JSON (or legacy plain string for backwards compat)
+  // API calls are now routed through the Supabase Edge Function proxy.
+  // Keys live in Supabase secrets — the client never needs them.
+  // Stored user key is still supported as an optional personal-override path.
   const storedRaw  = loadFromStorage(USER_API_KEY_KEY, '');
   let storedKey = '', storedProvider = null;
   if (storedRaw) {
@@ -560,8 +557,9 @@ export default function AgentChat() {
     }
   }
 
-  const [apiKey, setApiKey]     = useState(envKey || storedKey || '');
-  const [provider, setProvider] = useState(envProvider || storedProvider || 'openai');
+  // Default to proxy mode (anthropic provider, empty key — key held server-side)
+  const [apiKey, setApiKey]     = useState(storedKey || '');
+  const [provider, setProvider] = useState(storedProvider || 'anthropic');
 
   // Conversation state (Anthropic messages format — includes tool_result messages)
   const [messages, setMessages] = useState(() => {
@@ -799,7 +797,7 @@ export default function AgentChat() {
     const day = new Date().getDay(); // Sunday=0
     const isSunday = day === 0;
     if (!contextLoaded || !sundayBriefMode || !isSunday) return;
-    if (!apiKey || isLoading || messages.length > 0) return;
+    if ((!apiKey && !AI_PROXY_URL) || isLoading || messages.length > 0) return;
 
     const today = new Date().toISOString().slice(0, 10);
     const lastAutoDate = loadFromStorage(LAST_AUTO_BRIEF_DATE_KEY, '');
@@ -816,8 +814,8 @@ export default function AgentChat() {
     sundayBriefMode,
   ]);
 
-  // If no API key, show setup screen
-  if (!apiKey) {
+  // If no API key and no proxy configured, show setup screen
+  if (!apiKey && !AI_PROXY_URL) {
     return (
       <div className="h-[calc(100vh-120px)] bg-slate-950 rounded-xl border border-slate-800">
         <ApiKeySetup onKeySet={(k, p) => { setApiKey(k); setProvider(p); }} />
@@ -871,7 +869,7 @@ export default function AgentChat() {
           >
             Sunday Mode: {sundayBriefMode ? 'On' : 'Off'}
           </button>
-          {!envKey && (
+          {!AI_PROXY_URL && apiKey && (
             <button
               onClick={() => { saveToStorage(USER_API_KEY_KEY, ''); setApiKey(''); setProvider(null); }}
               className="text-[10px] text-slate-600 hover:text-slate-400 px-2 py-1 rounded border border-slate-800 hover:border-slate-600 transition-colors"

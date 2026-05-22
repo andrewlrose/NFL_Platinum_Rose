@@ -33,8 +33,10 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_ODDS_API_KEY:      ${{ secrets.VITE_ODDS_API_KEY }}
-          VITE_OPENAI_API_KEY:    ${{ secrets.VITE_OPENAI_API_KEY }}
+          # Paid API keys (OpenAI, Odds API) are stored as Supabase secrets and
+          # accessed only via Edge Function proxies — never compiled into the
+          # browser bundle.  VITE_OPENAI_API_KEY and VITE_ODDS_API_KEY are
+          # intentionally absent here.
           VITE_SUPABASE_URL:      ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
