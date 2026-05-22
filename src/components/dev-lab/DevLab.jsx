@@ -89,7 +89,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
     }
   }, [stats]);
 
-  // --- MONTE CARLO ENGINE ---
+  // --- MONTE CARLO ENGINE (Web Worker — off main thread) ---
   const handleRunSims = () => {
       if (!ratings || Object.keys(ratings).length === 0) {
           alert("⚠️ No Data Loaded! Waiting for stats engine...");
@@ -97,63 +97,26 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
       }
 
       setIsRunning(true);
-      setTimeout(() => {
-          const results = {};
-          games.forEach(game => {
-              const homeKey = game.home;
-              const visKey = game.visitor;
-              const hR = ratings[homeKey];
-              const vR = ratings[visKey];
-              
-              if (hR && vR) {
-                  const multiplier = 35; 
 
-                  // apply tempo multiplier optionally
-                  const hTempo = useTempo ? (hR.tempo || 1.0) : 1.0;
-                  const vTempo = useTempo ? (vR.tempo || 1.0) : 1.0;
+      const worker = new Worker(
+          new URL('../../workers/simulationWorker.js', import.meta.url),
+          { type: 'module' }
+      );
 
-                  const baseHome = (hR.off * multiplier) + (vR.def * multiplier);
-                  const baseVis  = (vR.off * multiplier) + (hR.def * multiplier);
-
-                  const homeProj = 21.5 + (baseHome * hTempo) + 1.5; 
-                  const visProj  = 21.5 + (baseVis * vTempo);
-
-                  let homeWins = 0, homeCovers = 0, overs = 0;
-                  const iterations = 2000; 
-                  const stdDev = 13.5; 
-                  const tempoStdScale = useTempo ? Math.sqrt((hTempo + vTempo) / 2) : 1.0;
-                  const adjStdDev = stdDev * tempoStdScale;
-
-                  for(let i=0; i<iterations; i++) {
-                      const u1 = Math.random(); const u2 = Math.random();
-                      const z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-                      const z2 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
-                      const hScore = homeProj + (z1 * adjStdDev);
-                      const vScore = visProj + (z2 * adjStdDev);
-                      if (hScore > vScore) homeWins++;
-                      if ((hScore - vScore) > (game.spread * -1)) homeCovers++;
-                      if ((hScore + vScore) > game.total) overs++;
-                  }
-
-                  results[game.id] = {
-                      homeWinPct: ((homeWins/iterations)*100).toFixed(1),
-                      homeCoverPct: ((homeCovers/iterations)*100).toFixed(1),
-                      visCoverPct: (100 - (homeCovers/iterations)*100).toFixed(1),
-                      overPct: ((overs/iterations)*100).toFixed(1),
-                      underPct: (100 - (overs/iterations)*100).toFixed(1),
-                      projHome: homeProj,
-                      projVis: visProj,
-                      projTotal: (homeProj + visProj),
-                      hasData: true
-                  };
-              } else {
-                  results[game.id] = { hasData: false };
-              }
-          });
+      worker.onmessage = ({ data: { results } }) => {
+          worker.terminate();
           setSimResults(results);
-          if (onSimComplete) onSimComplete(results); 
+          if (onSimComplete) onSimComplete(results);
           setIsRunning(false);
-      }, 500);
+      };
+
+      worker.onerror = (e) => {
+          console.error('[DevLab] Simulation worker error:', e.message);
+          worker.terminate();
+          setIsRunning(false);
+      };
+
+      worker.postMessage({ games, ratings, useTempo });
   };
 
   // --- 🔥 NEW "HUMAN READABLE" CARD ---
