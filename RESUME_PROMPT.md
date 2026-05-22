@@ -31,6 +31,19 @@ You are resuming an active development session on **NFL Dashboard (Platinum Rose
 - Vault write tool enforces `NFL/` path prefix — no exceptions
 - Never commit `.nfl/receipts/`, `supabase/.temp/`, or decrypted PII
 
-## Where to start
+## Where to start (follow in order)
 
-Read `HANDOFF.md`, then `TASK_BOARD.md`. Run `npm run dev` to confirm the dev server is live before touching any component code.
+1. **Read `HANDOFF.md`** — check `## Persistent Backlogs` table first.
+   For each backlog row, read the referenced file and surface the top 2–3 open items
+   to the user **before starting any other work**.
+   - **Do NOT begin new feature work if any CRITICAL items are open in `docs/NFL_AUDIT_BACKLOG.md`**
+     — surface them and get explicit acknowledgement to defer.
+2. **Read `TASK_BOARD.md`** — confirm active feature work aligns with no open blockers.
+3. **Confirm dev server**: `npm run dev` → `http://localhost:5173/platinum-rose-app/`
+
+## Session-close checklist (run before ending)
+
+1. Mark completed backlog items `[x]` in `docs/NFL_AUDIT_BACKLOG.md`
+2. Update `HANDOFF.md` Persistent Backlogs table — new Open Items count + Last Touched date
+3. Update `HANDOFF.md ## Pick Up Here` with session summary (≤ 30 lines)
+4. Commit: `git commit -m "S<N>: <ITEM-ID> — <short description>"`
