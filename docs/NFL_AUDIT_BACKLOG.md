@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 2 / 29 complete
+**Progress:** 3 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -29,7 +29,14 @@
 
 ## 🟠 HIGH — Required before relying on the tool for real-money decisions
 
-- [ ] **RLS-WRITES** — `user_picks`, `user_bankroll_bets`, `vault_notes` are anon-writable
+- [x] **RLS-WRITES** — `user_picks`, `user_bankroll_bets`, `vault_notes` are anon-writable
+  - **Fixed (S140, `947df03`):** Migration `019_rls_user_tables.sql` drops open policies;
+    adds `anon_read` + `authed_write` policies on picks/bets; restricts vault_notes writes
+    to `service_role` only. `AuthGate` component added — gates the app behind
+    Supabase email+password auth; transparent when no Supabase config or session exists.
+  - **ACTION REQUIRED (one-time):** Create a Supabase auth user for yourself via the
+    Supabase dashboard → Authentication → Users → Invite/Add user. Then apply migration
+    `019_rls_user_tables.sql` to production via `supabase db push`.
   - **Evidence:** `supabase/migrations/004_user_data.sql:43-47,82-86` —
     `for all using(true) with check(true)` grants full anon read/write/delete.
     `012_vault_notes.sql:71-81` — policy named "service_write" but has no `to service_role`

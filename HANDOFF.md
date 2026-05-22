@@ -18,7 +18,7 @@
 
 | Backlog | File | Open Items | Last Touched |
 |---------|------|-----------|----------|
-| NFL Security & Quality Audit (tri-audit) | `docs/NFL_AUDIT_BACKLOG.md` | 27 / 29 open | S140 2026-05-22 |
+| NFL Security & Quality Audit (tri-audit) | `docs/NFL_AUDIT_BACKLOG.md` | 26 / 29 open | S140 2026-05-22 |
 
 ---
 
@@ -27,9 +27,9 @@
 > **S139 (DONE)** — commit `6dce19f` — API-KEYS CRITICAL fix (proxy Edge Functions).
 > **ACTION REQUIRED (manual):** rotate Anthropic / OpenAI / Odds API keys then re-deploy Edge Functions (see S139 block in archive).
 
-> **S140 (DONE)** — commit `ca2ba0a` — VIG-REMOVAL: `devig()` + `calcEV()` in `futures.js`,
-> wired into `enhancedOddsApi.js` arb finder, label fix in `FuturesEntryModal`. 94/94 tests pass.
-> Next backlog item: **RLS-WRITES** (HIGH) — `user_picks`, `user_bankroll_bets`, `vault_notes` are anon-writable; migration `019_rls_user_tables.sql` needed.
+> **S140 (DONE)** — commits `ca2ba0a` + `947df03` — VIG-REMOVAL (devig/calcEV) + RLS-WRITES (019 migration, AuthGate).
+> **ACTION REQUIRED (one-time):** Apply `supabase db push` to push 019 migration; create owner auth user in Supabase dashboard.
+> Next backlog item: **MONTE-CARLO** (HIGH) — DevLab simulation Box-Muller defect + UI freeze.
 
 ### What Shipped Last Session (F-15 / F-16 — UNCOMMITTED)
 
