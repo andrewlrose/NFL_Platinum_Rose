@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 5 / 29 complete
+**Progress:** 6 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -93,26 +93,13 @@
     `updatedAt` newer); `flushDirtyQueue` called after hydration on every boot.
   - **Test:** 13 tests in `tests/unit/syncQueue.test.js` — covers 503 scenario, retry-on-next-flush, dedup.
 
-- [ ] **CI-GATE** — No CI workflow runs ESLint or the 84 unit tests
-  - **Evidence:** `grep 'vitest\|npm test\|eslint' .github/workflows/*.yml` returns nothing;
-    only a Playwright smoke build runs on push. Regressions can reach production unblocked.
-  - **Fix:** Create `.github/workflows/ci.yml`:
-    ```yaml
-    on: [push, pull_request]
-    jobs:
-      quality:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - uses: actions/setup-node@v4
-            with: { node-version: '20', cache: 'npm' }
-          - run: npm ci
-          - run: npm test
-          - run: npm run lint -- --max-warnings 0   # after LINT-SCOPE is fixed
-          - run: npm run build
-          - run: npm audit --omit=dev
-    ```
-  - **Test:** Push a failing unit test; confirm CI blocks the PR.
+- [x] **CI-GATE** — No CI workflow runs ESLint or the 84 unit tests
+  - **Fixed S141:** Created `.github/workflows/ci.yml` — runs `npm run lint` + `npm test`
+    (Vitest) on every push to main and every PR. Deploy workflow gated: removed `push`
+    trigger from `deploy.yml`; deploy now fires only via `workflow_run` on CI success
+    (or `workflow_dispatch` for manual override). Build-job `if:` condition blocks deploy
+    when CI conclusion ≠ `success`.
+  - **Test:** Push a failing unit test; CI workflow blocks; deploy workflow skips.
 
 - [ ] **AUDIT-TRAIL** — Cloud writes and AI context mutations have no actor attribution
   - **Evidence:** Picks and bankroll records are anonymous browser writes; vault notes

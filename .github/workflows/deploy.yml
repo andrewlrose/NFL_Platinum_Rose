@@ -1,9 +1,11 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+  workflow_run:
+    workflows: ["CI — Lint & Unit Tests"]
+    branches: [main]
+    types: [completed]
 
 permissions:
   contents: read
@@ -17,6 +19,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # For workflow_run trigger: only deploy when CI passed.
+    # For manual workflow_dispatch: always run (no workflow_run context).
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
