@@ -11,6 +11,15 @@
 **Tests:** 84/84 passing
 **Status:** F-15/F-16 work in progress — all changes unstaged.
 
+## Persistent Backlogs
+
+> Task lists that survive context compaction. Check at every session start; update at close.
+> Add a row when a task list is created for multi-session work. Remove only when all items are `[x]`.
+
+| Backlog | File | Open Items | Last Touched |
+|---------|------|-----------|----------|
+| NFL Security & Quality Audit (tri-audit) | `docs/NFL_AUDIT_BACKLOG.md` | 29 / 29 open | S138 2026-05-22 |
+
 ---
 
 ## Pick Up Here
