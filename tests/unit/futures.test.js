@@ -18,6 +18,8 @@ import {
   calcPayout,
   calcProfit,
   computeParlayOdds,
+  devig,
+  calcEV,
   FUTURES_TYPES,
   POSITION_STATUS,
   PARLAY_STATUS,
@@ -147,6 +149,71 @@ describe('futures', () => {
       expect(PARLAY_STATUS.LOST).toBeDefined();
       expect(PARLAY_STATUS.PUSHED).toBeDefined();
       expect(PARLAY_STATUS.VOIDED).toBeDefined();
+    });
+  });
+
+  describe('devig', () => {
+    it('two-sided -110/-110 line normalises to 50/50', () => {
+      const p = impliedProbability(-110); // ≈ 0.5238
+      const [h, a] = devig(p, p);
+      expect(h).toBeCloseTo(0.5, 4);
+      expect(a).toBeCloseTo(0.5, 4);
+    });
+
+    it('fair probabilities sum to 1.0 ± 0.001 for any market', () => {
+      const h = impliedProbability(-200); // 0.6667
+      const a = impliedProbability(+170); // 0.3704
+      const [hFair, aFair] = devig(h, a);
+      expect(hFair + aFair).toBeCloseTo(1.0, 3);
+    });
+
+    it('preserves relative probability ratio', () => {
+      const h = impliedProbability(-150);
+      const a = impliedProbability(+130);
+      const [hFair, aFair] = devig(h, a);
+      expect(hFair / aFair).toBeCloseTo(h / a, 4);
+    });
+
+    it('handles n-outcome market (3 teams)', () => {
+      const probs = [0.4, 0.35, 0.35]; // overround = 1.10
+      const fair = devig(...probs);
+      const sum = fair.reduce((s, p) => s + p, 0);
+      expect(sum).toBeCloseTo(1.0, 3);
+      expect(fair.length).toBe(3);
+    });
+
+    it('returns all zeros when total is zero', () => {
+      const result = devig(0, 0);
+      expect(result).toEqual([0, 0]);
+    });
+  });
+
+  describe('calcEV', () => {
+    it('zero EV on a fair bet (50% at +100)', () => {
+      expect(calcEV(0.5, 100)).toBeCloseTo(0, 5);
+    });
+
+    it('positive EV when fair prob exceeds book implied', () => {
+      // Book: -110 implies 52.38%; fair estimate is 55%
+      const ev = calcEV(0.55, -110);
+      expect(ev).toBeGreaterThan(0);
+    });
+
+    it('negative EV when fair prob is below book implied', () => {
+      // Book: -110 implies 52.38%; fair estimate is 48%
+      const ev = calcEV(0.48, -110);
+      expect(ev).toBeLessThan(0);
+    });
+
+    it('standard -110 line is negative EV at 50% fair prob', () => {
+      // Book takes vig: a coin-flip at -110 is -EV
+      expect(calcEV(0.5, -110)).toBeLessThan(0);
+    });
+
+    it('+EV on big underdog when fair prob is higher than book', () => {
+      // +300 implies 25%; if truly 30% chance, that is +EV
+      const ev = calcEV(0.3, 300);
+      expect(ev).toBeGreaterThan(0);
     });
   });
 });

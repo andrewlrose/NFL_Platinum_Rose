@@ -79,6 +79,36 @@ export function impliedProbability(odds) {
   return 0.5;
 }
 
+/**
+ * Remove bookmaker overround (vig) by normalising raw implied
+ * probabilities across all outcomes in a market.
+ *
+ * Example — standard -110 / -110 line:
+ *   devig(0.5238, 0.5238) → [0.5, 0.5]
+ *
+ * @param  {...number} rawProbs  Raw implied probabilities (0–1 each)
+ * @returns {number[]}           Fair probabilities that sum to 1.0
+ */
+export function devig(...rawProbs) {
+  const total = rawProbs.reduce((s, p) => s + p, 0);
+  if (total <= 0) return rawProbs.map(() => 0);
+  return rawProbs.map(p => p / total);
+}
+
+/**
+ * Expected value per unit staked for a single bet.
+ * Requires a fair (devigified) probability — do NOT pass raw implied.
+ * EV > 0 means positive expected value.
+ *
+ * @param {number} pFair  Fair win probability (0–1)
+ * @param {number} odds   American odds integer
+ * @returns {number}      EV per unit wagered (0.05 = +$0.05 per $1)
+ */
+export function calcEV(pFair, odds) {
+  const decimal = americanToDecimal(odds);
+  return pFair * (decimal - 1) - (1 - pFair);
+}
+
 /** Calculate potential payout (including stake return) */
 export function calcPayout(stake, americanOdds) {
   return stake * americanToDecimal(americanOdds);

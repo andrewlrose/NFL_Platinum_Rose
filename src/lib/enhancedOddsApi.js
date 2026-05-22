@@ -2,6 +2,7 @@
 // Enhanced odds API for multiple sportsbooks and line shopping
 
 import { ODDS_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
+import { devig, calcEV } from './futures.js';
 
 const SPORTSBOOKS = {
   draftkings: { name: 'DraftKings', color: 'text-orange-400' },
@@ -290,11 +291,35 @@ export const findArbitrageOpportunities = (gamesData) => {
       const homeImplied = oddsToImpliedProbability(bestOdds.moneyline.home.price);
       const awayImplied = oddsToImpliedProbability(bestOdds.moneyline.away.price);
 
+      // Devigify: remove book margin before computing EV
+      const [homeFair, awayFair] = devig(homeImplied, awayImplied);
+      const homeEV = calcEV(homeFair, bestOdds.moneyline.home.price);
+      const awayEV = calcEV(awayFair, bestOdds.moneyline.away.price);
+
       if (homeImplied + awayImplied < 1) {
         opportunities.push({
           game: `${game.away_team} @ ${game.home_team}`,
           type: 'moneyline',
           profit: ((1 / (homeImplied + awayImplied)) - 1) * 100,
+          home_fair_prob: homeFair,
+          away_fair_prob: awayFair,
+          home_ev: homeEV,
+          away_ev: awayEV,
+          details: {
+            home: bestOdds.moneyline.home,
+            away: bestOdds.moneyline.away
+          }
+        });
+      } else if (homeEV > 0 || awayEV > 0) {
+        // No arb, but at least one side is +EV vs devigified consensus
+        opportunities.push({
+          game: `${game.away_team} @ ${game.home_team}`,
+          type: 'positive_ev',
+          profit: 0,
+          home_fair_prob: homeFair,
+          away_fair_prob: awayFair,
+          home_ev: homeEV,
+          away_ev: awayEV,
           details: {
             home: bestOdds.moneyline.home,
             away: bestOdds.moneyline.away

@@ -225,7 +225,7 @@ export default function FuturesEntryModal({ isOpen, onClose, onAdded }) {
           {stakeNum > 0 && oddsNum !== 0 && (
             <div className="grid grid-cols-3 gap-3 bg-slate-800/40 border border-slate-700/50 rounded-lg p-3">
               <div>
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Implied Prob</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Book implied</span>
                 <div className="text-purple-300 font-mono text-sm font-bold">{preview.impliedProb}%</div>
               </div>
               <div>
