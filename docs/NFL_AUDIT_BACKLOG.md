@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 1 / 29 complete
+**Progress:** 2 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -44,7 +44,10 @@
     - `vault_notes`: restrict write to `to service_role` (agents only) or `to authenticated`.
   - **Test:** Anon upsert to `user_picks` returns 403; service-role insert succeeds.
 
-- [ ] **VIG-REMOVAL** — EV/edge engine never removes bookmaker vig; all edge output is biased
+- [x] **VIG-REMOVAL** — EV/edge engine never removes bookmaker vig; all edge output is biased
+  - **Fixed (S140, `ca2ba0a`):** `devig()` + `calcEV()` added to `futures.js`, wired into
+    `enhancedOddsApi.js` arb finder; `FuturesEntryModal` label corrected to "Book implied".
+    10 new unit tests (5 devig + 5 calcEV), 94/94 suite passing.
   - **Evidence:** No de-vig / overround normalisation anywhere in `src/`. `futures.js:76`
     `impliedProbability()` returns raw implied probability including the book margin.
     Only sum check is arbitrage at `enhancedOddsApi.js:284`.

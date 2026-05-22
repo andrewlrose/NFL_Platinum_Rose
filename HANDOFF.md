@@ -18,23 +18,18 @@
 
 | Backlog | File | Open Items | Last Touched |
 |---------|------|-----------|----------|
-| NFL Security & Quality Audit (tri-audit) | `docs/NFL_AUDIT_BACKLOG.md` | 28 / 29 open | S139 2026-05-22 |
+| NFL Security & Quality Audit (tri-audit) | `docs/NFL_AUDIT_BACKLOG.md` | 27 / 29 open | S140 2026-05-22 |
 
 ---
 
 ## Pick Up Here
 
-> **S139 (DONE)** — commit `6dce19f` — API-KEYS CRITICAL fix: Supabase Edge Function
-> proxies for Anthropic + OpenAI + Odds API; removed VITE paid keys from bundle.
-> **ACTION REQUIRED (manual):** rotate both keys on provider dashboards, then:
-> ```
-> supabase secrets set ANTHROPIC_API_KEY=<rotated>
-> supabase secrets set OPENAI_API_KEY=<rotated>
-> supabase secrets set ODDS_API_KEY=<rotated>
-> supabase functions deploy ai-proxy
-> supabase functions deploy odds-proxy
-> ```
-> Next backlog item: **VIG-REMOVAL** (HIGH) — vig math fix in `src/lib/futures.js`
+> **S139 (DONE)** — commit `6dce19f` — API-KEYS CRITICAL fix (proxy Edge Functions).
+> **ACTION REQUIRED (manual):** rotate Anthropic / OpenAI / Odds API keys then re-deploy Edge Functions (see S139 block in archive).
+
+> **S140 (DONE)** — commit `ca2ba0a` — VIG-REMOVAL: `devig()` + `calcEV()` in `futures.js`,
+> wired into `enhancedOddsApi.js` arb finder, label fix in `FuturesEntryModal`. 94/94 tests pass.
+> Next backlog item: **RLS-WRITES** (HIGH) — `user_picks`, `user_bankroll_bets`, `vault_notes` are anon-writable; migration `019_rls_user_tables.sql` needed.
 
 ### What Shipped Last Session (F-15 / F-16 — UNCOMMITTED)
 
