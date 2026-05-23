@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 18 / 29 complete
+**Progress:** 19 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -221,12 +221,15 @@
     weeks 1–7 and 9–18 still succeed" — 477/477 passing.
   - **Test:** Mock week 8 fetch to throw; confirm weeks 1-7 and 9-18 still insert.
 
-- [ ] **ODDS-IDEMPOTENT** — Odds snapshot inserts append-only; re-runs double-insert rows
-  - **Evidence:** `agents/futures-odds-ingest.js` and `game-odds-ingest.js:243` use
-    `.insert()` (not upsert); a re-run on the same game inserts a second row.
-  - **Fix:** Switch to `upsert` with a natural unique key (game_id + book + timestamp bucket);
-    or add a unique constraint and handle conflict with `on_conflict=ignore`.
-  - **Test:** Run ingest twice on same game; confirm row count unchanged.
+- [x] **ODDS-IDEMPOTENT** — Odds snapshot inserts append-only; re-runs double-insert rows
+  - **Fixed S152 (`9ca2011`):** Both agents export `truncateToHour(date)` which zeroes UTC
+    minutes/seconds/ms (e.g. 14:37 → 14:00). `capturedAt` / `snapshot_time` now use this
+    bucket value so all rows in a run share the same hour-keyed timestamp.
+    `writeSnapshots` changed from `.insert()` to `.upsert({ onConflict: ... })`:
+    - `game_odds_snapshots`: `onConflict: 'game_id,book,market,captured_at'`
+    - `futures_odds_snapshots`: `onConflict: 'market_type,team,book,snapshot_time'`
+    Migration `022_odds_upsert_keys.sql` adds the matching `UNIQUE` constraints.
+    9 unit tests in `tests/unit/oddsIdempotent.test.js` — 486/486 passing.
 
 - [ ] **OPENAI-BROWSER** — Browser OpenAI calls lack `max_tokens`, timeout, and retry
   - **Evidence:** `src/lib/openai.js:60-72` — no token cap, no timeout, no retry.
