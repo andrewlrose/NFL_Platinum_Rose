@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 14 / 29 complete
+**Progress:** 15 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -185,7 +185,7 @@
     450/450 tests pass. Coverage: 40.7% stmts / 42.58% lines. `coverageThreshold`
     set in `vitest.config.js`. Commit: `a394e73`.
 
-- [ ] **STORAGE-BYPASS** — Storage abstraction bypassed with raw `localStorage` calls in ~5 files
+- [x] **STORAGE-BYPASS** — Storage abstraction bypassed with raw `localStorage` calls in ~5 files
   - **Evidence:** `AudioUploadModal.jsx:13-42`, `LiveOddsDashboard.jsx:35-79`,
     `BetValueComparison.jsx:190-197`, `enhancedOddsApi.js:173-174`,
     `outcomesMerger.js:46-53` call `localStorage` directly, bypassing `storage.js`.
