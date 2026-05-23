@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 19 / 29 complete
+**Progress:** 20 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -231,12 +231,13 @@
     Migration `022_odds_upsert_keys.sql` adds the matching `UNIQUE` constraints.
     9 unit tests in `tests/unit/oddsIdempotent.test.js` — 486/486 passing.
 
-- [ ] **OPENAI-BROWSER** — Browser OpenAI calls lack `max_tokens`, timeout, and retry
-  - **Evidence:** `src/lib/openai.js:60-72` — no token cap, no timeout, no retry.
-    Input is truncated to 15k chars but no output cap exists.
-  - **Fix:** Add `max_tokens: 1500` (or configurable), a `signal: AbortSignal.timeout(30000)`,
-    and a simple 1-retry on 5xx. (Remove once API-KEYS is resolved and calls are proxied.)
-  - **Test:** Mock OpenAI to timeout; confirm `AbortError` is caught and surfaced in UI.
+- [x] **OPENAI-BROWSER** — Browser OpenAI calls lack `max_tokens`, timeout, and retry
+  - **Fixed S152 (`595ae59`):** `max_tokens: 1500` added to request body. Each fetch
+    attempt gets a fresh `AbortSignal.timeout(30_000)`. Retry loop (`MAX_RETRIES = 1`):
+    on any 5xx the agent waits 1 s and retries once; 4xx and AbortErrors propagate
+    immediately without retry. Headers and body extracted before loop so they are not
+    re-serialised per attempt.
+    7 unit tests in `tests/unit/openaiClient.test.js` — 493/493 passing.
 
 - [ ] **DEPS** — 6 npm advisories; Python requirements unresolvable
   - **Evidence:** `npm audit --omit=dev` reports 1 Moderate (ws) in production;
