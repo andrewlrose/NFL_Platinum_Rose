@@ -24,6 +24,12 @@ import {
   BET_STATUS,
   BET_TYPES,
   calculateKellyUnit,
+  getRecommendedUnit,
+  exportBankrollData,
+  importBankrollData,
+  updateBankrollSettings,
+  getBankrollData,
+  addBet,
 } from '../../src/lib/bankroll.js';
 
 describe('bankroll', () => {
@@ -95,4 +101,56 @@ describe('bankroll', () => {
       expect(calculateKellyUnit(0, 200, 1000)).toBe(0);
     });
   });
+
+  describe('getRecommendedUnit', () => {
+    it('returns amount, percentage, and units fields', () => {
+      const result = getRecommendedUnit(75, 1000, 'moderate');
+      expect(result).toHaveProperty('amount');
+      expect(result).toHaveProperty('percentage');
+      expect(result).toHaveProperty('units');
+    });
+
+    it('higher confidence yields higher percentage', () => {
+      const low  = getRecommendedUnit(20, 1000, 'moderate');
+      const high = getRecommendedUnit(90, 1000, 'moderate');
+      expect(high.percentage).toBeGreaterThan(low.percentage);
+    });
+
+    it('aggressive profile has higher maxUnitPercentage than conservative', () => {
+      const cons = getRecommendedUnit(90, 1000, 'conservative');
+      const agg  = getRecommendedUnit(90, 1000, 'aggressive');
+      expect(agg.percentage).toBeGreaterThan(cons.percentage);
+    });
+
+    it('amount equals bankroll * percentage / 100', () => {
+      const result = getRecommendedUnit(75, 1000, 'moderate');
+      expect(result.amount).toBeCloseTo(1000 * result.percentage / 100, 2);
+    });
+
+    it('defaults to moderate when no riskProfile provided', () => {
+      const r1 = getRecommendedUnit(75, 1000);
+      const r2 = getRecommendedUnit(75, 1000, 'moderate');
+      expect(r1.percentage).toBeCloseTo(r2.percentage, 5);
+    });
+  });
+
+  describe('importBankrollData / exportBankrollData round-trip', () => {
+    it('importBankrollData returns false for invalid JSON', () => {
+      expect(importBankrollData('not-json')).toBe(false);
+    });
+
+    it('importBankrollData returns false when bets field is missing', () => {
+      expect(importBankrollData(JSON.stringify({ settings: {} }))).toBe(false);
+    });
+
+    it('importBankrollData returns false when settings field is missing', () => {
+      expect(importBankrollData(JSON.stringify({ bets: [] }))).toBe(false);
+    });
+
+    it('importBankrollData returns true for valid structure', () => {
+      const valid = JSON.stringify({ bets: [], settings: { totalBankroll: 1000 } });
+      expect(importBankrollData(valid)).toBe(true);
+    });
+  });
 });
+
