@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 11 / 29 complete
+**Progress:** 12 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -150,13 +150,12 @@
     Supabase Dashboard → SQL Editor (or `supabase db push`). Verify with a live query
     that `getRecentPlayerInjuries()` returns > 0 rows when injury data exists.
 
-- [ ] **SEASON-HARDCODE** — Week/season logic hardcoded to 2026; stales post-season
-  - **Evidence:** `src/lib/constants.js:4-33` derives phase/week from fixed 2026 start date;
-    `supabase.js:763,803` default cloud odds/splits paths to `season: 2026`.
-  - **Fix:** Make season derivation data-driven: compute from current date relative to
-    a configurable `SEASON_START_DATE`; default `season` from computed value, not constant.
-  - **Test:** Unit test asserting correct week/phase for dates in preseason, regular season,
-    playoffs, offseason, and the 2027 season.
+- [x] **SEASON-HARDCODE** — Week/season logic hardcoded to 2026; stales post-season
+  - **Fixed S149 (`cf1e415`):** `getCurrentSeasonYear(date?)` exported from `constants.js`;
+    `_normalizeDate()` normalizes ISO date strings (UTC midnight) to local-date midnight
+    for timezone-safe comparisons. `getSeasonStartDate(year?)` with env-var override
+    (`VITE_SEASON_START_DATE`) and estimation fallback for future seasons. 27 unit tests
+    cover all phases, year boundaries, and 2027 estimation; 200/200 passing.
 
 - [ ] **LINT-SCOPE** — ESLint config mixes Node/browser globals → 395 errors, signal useless
   - **Evidence:** `eslint.config.js` applies browser globals to `**/*.{js,jsx}` —
