@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 15 / 29 complete
+**Progress:** 16 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -194,11 +194,13 @@
   - **Test:** `grep -r 'localStorage\.' src/ --include="*.{js,jsx}"` returns 0 matches
     outside `src/lib/storage.js`.
 
-- [ ] **HYDRATION** — Additive-only hydration; device edits never propagate to other devices
-  - **Evidence:** `App.jsx hydrateFromSupabase` merges only missing IDs into localStorage.
-    Existing local records are never compared with cloud updates.
-  - **Fix:** On hydration, compare `updated_at` for matching IDs; apply whichever is newer.
-    Part of SYNC-DURABILITY fix — can be done together.
+- [x] **HYDRATION** — Additive-only hydration; device edits never propagate to other devices
+  - **Fixed S152 (`4a69221`):** Extracted merge logic to `src/lib/syncMerge.js`:
+    `mergeByUpdatedAt(local, cloud)` — cloud-only record added locally; cloud wins if
+    `cloud.updatedAt > local.updatedAt`; local kept if either timestamp absent. Coerces
+    ids via `String()` to avoid numeric/string mismatches. Immutable — neither input mutated.
+    `App.jsx hydrateFromSupabase` now delegates to this utility for both picks and bets.
+    18 unit tests in `tests/unit/syncMerge.test.js` covering all branches. 468/468 passing.
   - **Test:** Manually update a pick in Supabase; reload on second device; confirm update visible.
 
 - [ ] **GIT-PUSH-RACE** — Two workflows push to `main` with no rebase or concurrency guard
