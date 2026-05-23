@@ -11,6 +11,8 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
   const [userKey, setUserKey] = useState(localStorage.getItem('PR_OPENAI_KEY') || '');
 
   const activeKey = userKey;
+  // No operator key is bundled — users must supply their own OpenAI key
+  const hasGlobalKey = false;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null); // 🔥 NEW: Error State

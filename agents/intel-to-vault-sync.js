@@ -429,6 +429,7 @@ async function main() {
     // the 2-code-unit pair \uD83C\uDFC0 for 🏀 in half). Strip the entire
     // U+D800-U+DFFF range so both complete pairs and lone orphans are removed.
     const newContent   = rawContent
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')  // control chars
       .replace(/[\uD800-\uDFFF]/g, '');                     // all surrogate code units
 

@@ -37,7 +37,7 @@ const MODES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════���═══
-export default function HedgeCalculator({ onRefresh }) {
+export default function HedgeCalculator({ onRefresh, prefill = null, prefillActive = false }) {
   const [refreshKey, setRefreshKey]     = useState(0);
   const [selectedId, setSelectedId]     = useState('');
   const [hedgeOddsRaw, setHedgeOddsRaw] = useState('');
@@ -84,6 +84,10 @@ export default function HedgeCalculator({ onRefresh }) {
     if (matrixPositions.length < 2) return [];
     return portfolioMatrix(matrixPositions);
   }, [matrixPositions]);
+
+  // Source position for display — either the prefilled parlay or the selected
+  // saved futures position
+  const hedgeSource = prefillActive ? prefill : selected;
 
   // ── Save hedge ─────────────────────────────────────────────────────────────
   const handleSave = useCallback(() => {

@@ -118,7 +118,7 @@ function getWeeksToCheck() {
  * Parse ESPN scoreboard response into an array of game result objects.
  * Only returns games that are final.
  */
-function parseGames(data, week, seasonType) {
+function parseGames(data, week, _seasonType) {
   const events = data?.events || [];
   const results = [];
 

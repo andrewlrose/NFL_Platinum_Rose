@@ -578,6 +578,7 @@ async function writeToVault(supabase, content, reportDate) {
   const latestPath = 'NFL/Futures/FuturesIntel-Latest.md';
 
   const sanitized = content
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
     .replace(/[\uD800-\uDFFF]/g, '');
 

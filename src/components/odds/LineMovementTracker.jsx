@@ -2,8 +2,8 @@
 // Track and display historical line movements and alerts
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  TrendingUp, TrendingDown, Bell, Activity, Target, 
+import {
+  TrendingUp, TrendingDown, Bell, Activity, Target,
   AlertTriangle, Clock, Filter, BarChart3, RefreshCw
 } from 'lucide-react';
 import { getLineMovements } from '../../lib/enhancedOddsApi';
@@ -157,7 +157,7 @@ export default function LineMovementTracker() {
 
     // Load user bets for personalised alerts
     let userBets = [];
-    try { userBets = JSON.parse(localStorage.getItem('nfl_my_bets') || '[]'); } catch (_) {}
+    try { userBets = JSON.parse(localStorage.getItem('nfl_my_bets') || '[]'); } catch (_) { /* ignore */ }
 
     if (real.length > 0) {
       setMovements(real);

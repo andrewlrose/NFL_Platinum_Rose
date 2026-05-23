@@ -299,6 +299,7 @@ async function main() {
     const statsSection = buildTeamStatsSection(abbr, teamRows);
     const rawContent   = spliceStatsSection(existing, statsSection);
     const newContent   = rawContent
+      // eslint-disable-next-line no-control-regex
       .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // control chars
       .replace(/[\uD800-\uDFFF]/g, '');                   // lone surrogates
 

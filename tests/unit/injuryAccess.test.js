@@ -33,11 +33,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 vi.mock('../../src/lib/supabase.js', () => ({
   supabase:    null,
   isAvailable: () => false,
-  getRecentPlayerInjuries: async (hours = 168, limit = 100) => {
-    // Re-implement the exact guard from supabase.js to test it in isolation.
-    if (!false /* isAvailable() === false */) return [];
-    return [];
-  },
+  getRecentPlayerInjuries: async () => [],
 }));
 
 // ── Import the mock version for defensive-path tests ─────────────────────────
