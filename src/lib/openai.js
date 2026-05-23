@@ -5,6 +5,9 @@
 
 import { OPENAI_API } from './apiConfig.js';
 
+const TIMEOUT_MS  = 30_000; // 30 s per attempt
+const MAX_RETRIES = 1;      // 1 retry on 5xx (2 total attempts)
+
 /**
  * Extract NFL betting picks from a transcript using GPT-4o.
  *
@@ -12,7 +15,7 @@ import { OPENAI_API } from './apiConfig.js';
  * @param {object} sourceData - { name: string, apiKey: string } — expert source info
  * @param {string[]} availableGames - Array of "VISITOR @ HOME" strings for context
  * @returns {Promise<object[]>} - Array of extracted pick objects
- * @throws {Error} - On API error or parse failure
+ * @throws {Error} - On API error, parse failure, or timeout
  */
 export async function extractPicksFromTranscript(text, sourceData, availableGames) {
   const prompt = `
@@ -49,24 +52,39 @@ Make sure "selection" is the team's abbreviation or clear identifier from the av
 Transcript: ${text.substring(0, 15000)}
 `;
 
-  const response = await fetch(OPENAI_API.BASE_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${sourceData.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_API.MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a betting analyst JSON extractor. Return ONLY a valid JSON object with \'picks\' array. Ensure team names match the available games provided.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-    }),
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${sourceData.apiKey}`,
+  };
+
+  const body = JSON.stringify({
+    model: OPENAI_API.MODEL,
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a betting analyst JSON extractor. Return ONLY a valid JSON object with \'picks\' array. Ensure team names match the available games provided.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    response_format: { type: 'json_object' },
+    max_tokens: 1500,
   });
+
+  // Fetch with timeout + 1 retry on 5xx
+  let response;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    response = await fetch(OPENAI_API.BASE_URL, {
+      method: 'POST',
+      headers,
+      body,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (response.status >= 500 && attempt < MAX_RETRIES) {
+      await new Promise(r => setTimeout(r, 1000));
+      continue;
+    }
+    break;
+  }
 
   const data = await response.json();
 
@@ -80,3 +98,4 @@ Transcript: ${text.substring(0, 15000)}
 
   return picks;
 }
+
