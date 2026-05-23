@@ -9,6 +9,7 @@ import {
 import { fetchMultiBookOdds, getBestOdds, SPORTSBOOKS, getOddsQuotaState } from '../../lib/enhancedOddsApi';
 import { getBankrollData } from '../../lib/bankroll';
 import { getLatestOddsSnapshot } from '../../lib/supabase';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from '../../lib/storage';
 
 export default function LiveOddsDashboard() {
   const [games, setGames] = useState([]);
@@ -32,9 +33,9 @@ export default function LiveOddsDashboard() {
             console.log(`☁️ Using Supabase odds snapshot (${ageMin}m old, ${snap.games.length} games)`);
             setGames(snap.games);
             setLastUpdate(new Date(snap.fetchedAt));
-            // Mirror to localStorage so BetValueComparison + OddsCenter badge work
-            localStorage.setItem('cached_odds_data', JSON.stringify(snap.games));
-            localStorage.setItem('cached_odds_time', new Date(snap.fetchedAt).getTime().toString());
+            // Mirror to cache so BetValueComparison + OddsCenter badge work
+            saveToStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, snap.games);
+            saveToStorage(PR_STORAGE_KEYS.CACHED_ODDS_TIME.key, new Date(snap.fetchedAt).getTime());
             setLoading(false);
             loadUserBets();
             return;
@@ -44,14 +45,14 @@ export default function LiveOddsDashboard() {
         console.warn('⚠️ Supabase unavailable, falling back to localStorage/API');
       }
 
-      // 2. Try localStorage cache (< 10 min old)
-      const cached = localStorage.getItem('cached_odds_data');
-      const cacheTime = localStorage.getItem('cached_odds_time');
+      // 2. Try cache (< 10 min old)
+      const cached = loadFromStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, null);
+      const cacheTime = loadFromStorage(PR_STORAGE_KEYS.CACHED_ODDS_TIME.key, null);
       if (cached && cacheTime) {
         const age = Date.now() - parseInt(cacheTime);
         if (age < 10 * 60 * 1000) {
           console.log('📦 Using localStorage cache (age: ' + Math.round(age / 60000) + ' min)');
-          setGames(JSON.parse(cached));
+          setGames(cached);
           setLastUpdate(new Date(parseInt(cacheTime)));
           setLoading(false);
           loadUserBets();
@@ -77,8 +78,8 @@ export default function LiveOddsDashboard() {
       setQuotaState(getOddsQuotaState());
 
       // Cache the results
-      localStorage.setItem('cached_odds_data', JSON.stringify(oddsData));
-      localStorage.setItem('cached_odds_time', Date.now().toString());
+      saveToStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, oddsData);
+      saveToStorage(PR_STORAGE_KEYS.CACHED_ODDS_TIME.key, Date.now());
 
       console.log(`✅ Loaded odds for ${oddsData.length} games (cached for 10 minutes)`);
     } catch (error) {

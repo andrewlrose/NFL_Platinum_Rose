@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { Target, RefreshCw, Info, Zap, AlertCircle } from 'lucide-react';
 import { findArbitrageOpportunities, generateMockMultiBookData } from '../../lib/enhancedOddsApi';
+import { loadFromStorage, PR_STORAGE_KEYS } from '../../lib/storage';
 
 // American odds → decimal
 const toDecimal = (american) => {
@@ -65,10 +66,9 @@ export default function ArbitrageFinder() {
 
   const loadOpportunities = () => {
     // Try real cached odds first
-    const cached = localStorage.getItem('cached_odds_data');
-    if (cached) {
+    const games = loadFromStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, null);
+    if (games !== null) {
       try {
-        const games = JSON.parse(cached);
         const arbs = findArbitrageOpportunities(games);
         if (arbs.length > 0) {
           setOpportunities(arbs);

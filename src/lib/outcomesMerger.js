@@ -4,9 +4,9 @@
 // into a single normalized outcome feed for the Outcomes Dashboard.
 // ─────────────────────────────────────────────────────────────
 
-const BANKROLL_KEY = 'nfl_bankroll_data_v1';
-const PICKS_KEY    = 'pr_picks_v1';
-const JUICE        = 1.1; // standard -110 vig → win pays 1/1.1 ≈ 0.909u
+import { loadFromStorage, PR_STORAGE_KEYS } from './storage.js';
+
+const JUICE = 1.1; // standard -110 vig → win pays 1/1.1 ≈ 0.909u
 
 // ── Normalizers ───────────────────────────────────────────────
 
@@ -42,17 +42,12 @@ const fmtDate = (iso) => {
 // ── Source readers ────────────────────────────────────────────
 
 const readBankrollBets = () => {
-  try {
-    const raw = localStorage.getItem(BANKROLL_KEY);
-    return raw ? (JSON.parse(raw).bets || []) : [];
-  } catch { return []; }
+  const data = loadFromStorage(PR_STORAGE_KEYS.BANKROLL.key, null);
+  return data ? (data.bets || []) : [];
 };
 
 const readPicks = () => {
-  try {
-    const raw = localStorage.getItem(PICKS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  return loadFromStorage(PR_STORAGE_KEYS.PICKS.key, []);
 };
 
 // ── Main merger ───────────────────────────────────────────────

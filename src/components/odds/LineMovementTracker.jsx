@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { getLineMovements } from '../../lib/enhancedOddsApi';
 import { getLineMovementsDB } from '../../lib/supabase';
+import { loadFromStorage, PR_STORAGE_KEYS } from '../../lib/storage';
 
 // ─── significance thresholds (mirrored from SteamMoveTracker) ───────────────
 const SIG_THRESHOLDS = {
@@ -156,8 +157,7 @@ export default function LineMovementTracker() {
     const real = rawMoves.map(normalizeMove);
 
     // Load user bets for personalised alerts
-    let userBets = [];
-    try { userBets = JSON.parse(localStorage.getItem('nfl_my_bets') || '[]'); } catch (_) { /* ignore */ }
+    const userBets = loadFromStorage(PR_STORAGE_KEYS.MY_BETS.key, []);
 
     if (real.length > 0) {
       setMovements(real);

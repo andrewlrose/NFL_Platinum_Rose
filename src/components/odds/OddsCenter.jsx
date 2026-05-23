@@ -14,6 +14,7 @@ import {
   generateMockMultiBookData,
   getLineMovements,
 } from '../../lib/enhancedOddsApi';
+import { loadFromStorage, PR_STORAGE_KEYS } from '../../lib/storage';
 
 export default function OddsCenter() {
   const [activeTab, setActiveTab] = useState('live-odds');
@@ -23,10 +24,9 @@ export default function OddsCenter() {
   useEffect(() => {
     // --- Arbitrage badge: mirrors ArbitrageFinder.loadOpportunities ---
     const computeArbCount = () => {
-      const cached = localStorage.getItem('cached_odds_data');
-      if (cached) {
+      const games = loadFromStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, null);
+      if (games !== null) {
         try {
-          const games = JSON.parse(cached);
           const arbs = findArbitrageOpportunities(games);
           if (arbs.length > 0) return arbs.length;
         } catch (_) { /* fall through */ }

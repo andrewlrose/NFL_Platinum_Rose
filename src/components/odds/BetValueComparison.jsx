@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Minus, Info, RefreshCw, AlertCircle } from 'lucide-react';
 import { getBestOdds } from '../../lib/enhancedOddsApi';
 import { normalizeTeam } from '../../lib/teams';
+import { loadFromStorage, PR_STORAGE_KEYS } from '../../lib/storage';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -186,24 +187,19 @@ export default function BetValueComparison() {
 
   const load = () => {
     // Load user's card bets
-    try {
-      const raw = localStorage.getItem('nfl_my_bets');
-      setBets(raw ? JSON.parse(raw) : []);
-    } catch (_) { setBets([]); }
+    setBets(loadFromStorage(PR_STORAGE_KEYS.MY_BETS.key, []));
 
     // Load cached odds
-    try {
-      const raw   = localStorage.getItem('cached_odds_data');
-      const time  = localStorage.getItem('cached_odds_time');
-      if (raw) {
-        setOddsGames(JSON.parse(raw));
-        setHasOdds(true);
-        setLastSync(time ? new Date(parseInt(time)) : null);
-      } else {
-        setOddsGames([]);
-        setHasOdds(false);
-      }
-    } catch (_) { setOddsGames([]); setHasOdds(false); }
+    const oddsData = loadFromStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, null);
+    const time = loadFromStorage(PR_STORAGE_KEYS.CACHED_ODDS_TIME.key, null);
+    if (oddsData !== null) {
+      setOddsGames(oddsData);
+      setHasOdds(true);
+      setLastSync(time ? new Date(parseInt(time)) : null);
+    } else {
+      setOddsGames([]);
+      setHasOdds(false);
+    }
   };
 
   useEffect(() => { load(); }, []);

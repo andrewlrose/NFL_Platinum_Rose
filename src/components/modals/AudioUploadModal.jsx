@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mic, Users, Key, Zap, RefreshCw, CheckCircle, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { INITIAL_EXPERTS } from '../../lib/constants';
+import { loadFromStorage, saveToStorage, removeFromStorage, PR_STORAGE_KEYS } from '../../lib/storage';
 
 export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts = [] }) {
   const [text, setText] = useState('');
@@ -8,7 +9,7 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
   // Transcript analysis requires the user's personal OpenAI key (no operator key
   // is included in the bundle).  The user enters it once and it persists in
   // localStorage under 'PR_OPENAI_KEY'.
-  const [userKey, setUserKey] = useState(localStorage.getItem('PR_OPENAI_KEY') || '');
+  const [userKey, setUserKey] = useState(loadFromStorage(PR_STORAGE_KEYS.OPENAI_KEY.key, ''));
 
   const activeKey = userKey;
   // No operator key is bundled — users must supply their own OpenAI key
@@ -27,19 +28,19 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
       if (isOpen) {
           setText('');
           setErrorMsg(null);
-          const stored = localStorage.getItem('PR_OPENAI_KEY');
+          const stored = loadFromStorage(PR_STORAGE_KEYS.OPENAI_KEY.key, null);
           if (stored) setUserKey(stored);
       }
   }, [isOpen]);
 
   const handleSaveUserKey = (val) => {
       setUserKey(val);
-      if (val.startsWith('sk-')) localStorage.setItem('PR_OPENAI_KEY', val);
+      if (val.startsWith('sk-')) saveToStorage(PR_STORAGE_KEYS.OPENAI_KEY.key, val);
   };
 
   const handleClearUserKey = () => {
       setUserKey('');
-      localStorage.removeItem('PR_OPENAI_KEY');
+      removeFromStorage(PR_STORAGE_KEYS.OPENAI_KEY.key);
   };
 
   if (!isOpen) return null;

@@ -103,6 +103,18 @@ export const PR_STORAGE_KEYS = {
     permanence: 'critical',
     description: 'Logged player prop picks and SGP legs (PROPS agent)',
   },
+  // Odds API quota ———————————————————————————————————————————————————————
+  ODDS_QUOTA: {
+    key: 'oddsApi_quota',
+    permanence: 'ephemeral',
+    description: 'Odds API quota state (remaining requests + month)',
+  },
+  // Sync dirty queue —————————————————————————————————————————————————————
+  SYNC_QUEUE: {
+    key: 'nfl_sync_dirty_queue_v1',
+    permanence: 'persistent',
+    description: 'Dirty sync queue for failed Supabase writes',
+  },
 };
 
 // Convenience set of all critical keys (never wipe these)

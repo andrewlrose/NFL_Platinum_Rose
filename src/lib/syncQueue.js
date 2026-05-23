@@ -19,23 +19,16 @@
  * ]
  */
 
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage.js';
+
 export const QUEUE_KEY = 'nfl_sync_dirty_queue_v1';
 
 function loadQueue() {
-    try {
-        const raw = localStorage.getItem(QUEUE_KEY);
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
+    return loadFromStorage(PR_STORAGE_KEYS.SYNC_QUEUE.key, []);
 }
 
 function saveQueue(queue) {
-    try {
-        localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
-    } catch {
-        // storage quota exceeded — best-effort
-    }
+    saveToStorage(PR_STORAGE_KEYS.SYNC_QUEUE.key, queue);
 }
 
 /**

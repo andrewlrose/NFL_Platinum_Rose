@@ -3,6 +3,7 @@
 
 import { ODDS_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
 import { devig, calcEV } from './futures.js';
+import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage.js';
 
 // ── Odds API quota tracking ──────────────────────────────────────────────────
 // Persists remaining-request count + mock-fallback flag to localStorage so
@@ -18,30 +19,21 @@ const _currentMonth = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
  * fell back to generated mock data.
  */
 export const getOddsQuotaState = () => {
-  try {
-    const raw = localStorage.getItem(QUOTA_LS_KEY);
-    if (!raw) return { remaining: null, month: _currentMonth(), isMock: false };
-    const state = JSON.parse(raw);
-    // Reset when the calendar month rolls over.
-    if (state.month !== _currentMonth()) {
-      return { remaining: null, month: _currentMonth(), isMock: false };
-    }
-    return state;
-  } catch {
+  const state = loadFromStorage(PR_STORAGE_KEYS.ODDS_QUOTA.key, null);
+  if (!state) return { remaining: null, month: _currentMonth(), isMock: false };
+  // Reset when the calendar month rolls over.
+  if (state.month !== _currentMonth()) {
     return { remaining: null, month: _currentMonth(), isMock: false };
   }
+  return state;
 };
 
 const _setQuotaState = (remaining, isMock) => {
-  try {
-    localStorage.setItem(QUOTA_LS_KEY, JSON.stringify({
-      remaining,
-      month: _currentMonth(),
-      isMock,
-    }));
-  } catch {
-    // localStorage unavailable — non-fatal, ignore.
-  }
+  saveToStorage(PR_STORAGE_KEYS.ODDS_QUOTA.key, {
+    remaining,
+    month: _currentMonth(),
+    isMock,
+  });
 };
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -234,8 +226,8 @@ const detectLineMovement = (gameKey, bookKey, prevData, currentData, timestamp) 
 
   // Store movements for alert system
   if (movements.length > 0) {
-    const existingMovements = JSON.parse(localStorage.getItem('lineMovements') || '[]');
-    localStorage.setItem('lineMovements', JSON.stringify([...existingMovements, ...movements]));
+    const existingMovements = loadFromStorage(PR_STORAGE_KEYS.LINE_MOVEMENTS.key, []);
+    saveToStorage(PR_STORAGE_KEYS.LINE_MOVEMENTS.key, [...existingMovements, ...movements]);
   }
 };
 
@@ -322,7 +314,7 @@ export const getBestOdds = (gameData) => {
 };
 
 export const getLineMovements = (hours = 24) => {
-  const movements = JSON.parse(localStorage.getItem('lineMovements') || '[]');
+  const movements = loadFromStorage(PR_STORAGE_KEYS.LINE_MOVEMENTS.key, []);
   const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
 
   return movements

@@ -44,6 +44,19 @@ export default defineConfig([
       'react-hooks/set-state-in-effect':        'warn',
       'react-hooks/immutability':               'warn',
       'react-hooks/preserve-manual-memoization':'warn',
+      // Force all localStorage access through src/lib/storage.js helpers.
+      'no-restricted-globals': ['error', {
+        name: 'localStorage',
+        message: 'Use loadFromStorage / saveToStorage / removeFromStorage from src/lib/storage.js instead of accessing localStorage directly.',
+      }],
+    },
+  },
+
+  // ── Storage module: allow direct localStorage (it IS the abstraction) ────────
+  {
+    files: ['src/lib/storage.js'],
+    rules: {
+      'no-restricted-globals': 'off',
     },
   },
 
