@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 17 / 29 complete
+**Progress:** 18 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -211,11 +211,14 @@
     committed); now guarded by the same `if ! git diff --quiet` check.
   - **Test:** Trigger both workflows simultaneously; confirm second waits for first.
 
-- [ ] **SCHEDULE-INGEST** — Single week failure aborts entire 18-week schedule ingest
-  - **Evidence:** `agents/schedule-ingest.js:213` — bare `await fetch` with no timeout;
-    `run().catch → process.exit(1)` with no per-week try/catch.
-  - **Fix:** Wrap each week's fetch in `try/catch`; log failures but continue; add a
-    per-request timeout (e.g. `fetchWithTimeout` from shared utils).
+- [x] **SCHEDULE-INGEST** — Single week failure aborts entire 18-week schedule ingest
+  - **Fixed S152 (`bc5fad6`):** `fetchWeek` exported; `AbortSignal.timeout(15_000)` added
+    to every ESPN fetch. Regular-season loop (weeks 1–18) and playoff loop (weeks 1–4)
+    each wrap `fetchWeek` in `try/catch`; failures logged via `console.warn` and pushed
+    to `failedWeeks[]`; loop always continues. `failed_weeks` field added to all 3
+    receipt variants (dry-run, no-supabase, success).
+    9 unit tests in `tests/unit/scheduleIngest.test.js` — including "week 8 throws,
+    weeks 1–7 and 9–18 still succeed" — 477/477 passing.
   - **Test:** Mock week 8 fetch to throw; confirm weeks 1-7 and 9-18 still insert.
 
 - [ ] **ODDS-IDEMPOTENT** — Odds snapshot inserts append-only; re-runs double-insert rows
