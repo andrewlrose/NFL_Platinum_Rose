@@ -71,5 +71,19 @@ serve(async (req: Request) => {
 
   const upstream = await fetch(`${NFL_ODDS_URL}?${params}`);
   const data = await upstream.json();
-  return json(data, upstream.status);
+
+  // Forward quota header so the browser client can track monthly usage.
+  const xRemaining = upstream.headers.get('x-requests-remaining');
+  const responseHeaders: Record<string, string> = {
+    ...CORS_HEADERS,
+    'Content-Type': 'application/json',
+  };
+  if (xRemaining !== null) {
+    responseHeaders['x-requests-remaining'] = xRemaining;
+  }
+
+  return new Response(JSON.stringify(data), {
+    status: upstream.status,
+    headers: responseHeaders,
+  });
 });

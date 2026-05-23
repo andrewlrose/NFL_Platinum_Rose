@@ -2,11 +2,11 @@
 // Live Odds Integration & Line Shopping Dashboard
 
 import React, { useState, useEffect } from 'react';
-import { 
-  RefreshCw, TrendingUp, TrendingDown, AlertTriangle, Search, 
+import {
+  RefreshCw, TrendingUp, TrendingDown, AlertTriangle, Search,
   Filter, Clock, DollarSign, Target, Zap, Activity, Star
 } from 'lucide-react';
-import { fetchMultiBookOdds, getBestOdds, SPORTSBOOKS } from '../../lib/enhancedOddsApi';
+import { fetchMultiBookOdds, getBestOdds, SPORTSBOOKS, getOddsQuotaState } from '../../lib/enhancedOddsApi';
 import { getBankrollData } from '../../lib/bankroll';
 import { getLatestOddsSnapshot } from '../../lib/supabase';
 
@@ -19,6 +19,7 @@ export default function LiveOddsDashboard() {
   const [sortBy, setSortBy] = useState('time');
   const [showBestOdds, setShowBestOdds] = useState(true);
   const [userBets, setUserBets] = useState([]);
+  const [quotaState, setQuotaState] = useState(() => getOddsQuotaState());
 
   useEffect(() => {
     (async () => {
@@ -73,11 +74,12 @@ export default function LiveOddsDashboard() {
       const oddsData = await fetchMultiBookOdds();
       setGames(oddsData);
       setLastUpdate(new Date());
-      
+      setQuotaState(getOddsQuotaState());
+
       // Cache the results
       localStorage.setItem('cached_odds_data', JSON.stringify(oddsData));
       localStorage.setItem('cached_odds_time', Date.now().toString());
-      
+
       console.log(`✅ Loaded odds for ${oddsData.length} games (cached for 10 minutes)`);
     } catch (error) {
       console.error('Failed to load odds:', error);
@@ -103,13 +105,13 @@ export default function LiveOddsDashboard() {
   };
 
   const filteredGames = games.filter(game => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       game.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
       game.away_team.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filter === 'all' || 
+
+    const matchesFilter = filter === 'all' ||
       (filter === 'upcoming' && new Date(game.commence_time) > new Date());
-    
+
     return matchesSearch && matchesFilter;
   });
 
@@ -133,7 +135,7 @@ export default function LiveOddsDashboard() {
             </p>
           )}
         </div>
-        
+
         <button
           onClick={loadOdds}
           disabled={loading}
@@ -143,6 +145,17 @@ export default function LiveOddsDashboard() {
           Refresh Odds
         </button>
       </div>
+
+      {/* Simulated-data warning — shown whenever the last fetch fell back to mock */}
+      {quotaState.isMock && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-yellow-900/40 border border-yellow-600/50 rounded-lg text-yellow-300 text-sm">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>
+            &#9888;&#65039; Simulated data &mdash; quota exhausted or API
+            unavailable. Odds shown are <strong>not live</strong>.
+          </span>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
@@ -163,8 +176,8 @@ export default function LiveOddsDashboard() {
 
           {/* Filters */}
           <div className="flex gap-3">
-            <select 
-              value={filter} 
+            <select
+              value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="bg-slate-900 border border-slate-600 text-white px-3 py-2 rounded-lg"
             >
@@ -172,8 +185,8 @@ export default function LiveOddsDashboard() {
               <option value="upcoming">Upcoming Only</option>
             </select>
 
-            <select 
-              value={sortBy} 
+            <select
+              value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="bg-slate-900 border border-slate-600 text-white px-3 py-2 rounded-lg"
             >
@@ -238,7 +251,7 @@ export default function LiveOddsDashboard() {
                     {Object.entries(game.bookmakers).map(([bookKey, bookData]) => (
                       <div key={bookKey} className="bg-slate-900 rounded-lg p-3 border border-slate-700">
                         <div className="text-sm font-bold text-white mb-3">{bookData.name}</div>
-                        
+
                         {/* Spread */}
                         {bookData.markets.spread && (
                           <div className="mb-2">
@@ -247,7 +260,7 @@ export default function LiveOddsDashboard() {
                               <div className="flex justify-between">
                                 <span className="text-slate-300">{game.home_team.split(' ').pop()}</span>
                                 <span className="text-white font-bold">
-                                  {bookData.markets.spread.home_line > 0 ? '+' : ''}{bookData.markets.spread.home_line} 
+                                  {bookData.markets.spread.home_line > 0 ? '+' : ''}{bookData.markets.spread.home_line}
                                   <span className="text-slate-400 ml-1">{bookData.markets.spread.home_price}</span>
                                 </span>
                               </div>

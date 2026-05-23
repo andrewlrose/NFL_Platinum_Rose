@@ -4,6 +4,47 @@
 import { ODDS_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
 import { devig, calcEV } from './futures.js';
 
+// ── Odds API quota tracking ──────────────────────────────────────────────────
+// Persists remaining-request count + mock-fallback flag to localStorage so
+// the UI can warn the user when live data is unavailable.
+export const QUOTA_LS_KEY = 'oddsApi_quota';
+
+const _currentMonth = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+/**
+ * Returns the current quota state from localStorage.
+ * { remaining: number|null, month: 'YYYY-MM', isMock: boolean }
+ * `remaining` is null when unknown; `isMock` is true whenever the last fetch
+ * fell back to generated mock data.
+ */
+export const getOddsQuotaState = () => {
+  try {
+    const raw = localStorage.getItem(QUOTA_LS_KEY);
+    if (!raw) return { remaining: null, month: _currentMonth(), isMock: false };
+    const state = JSON.parse(raw);
+    // Reset when the calendar month rolls over.
+    if (state.month !== _currentMonth()) {
+      return { remaining: null, month: _currentMonth(), isMock: false };
+    }
+    return state;
+  } catch {
+    return { remaining: null, month: _currentMonth(), isMock: false };
+  }
+};
+
+const _setQuotaState = (remaining, isMock) => {
+  try {
+    localStorage.setItem(QUOTA_LS_KEY, JSON.stringify({
+      remaining,
+      month: _currentMonth(),
+      isMock,
+    }));
+  } catch {
+    // localStorage unavailable — non-fatal, ignore.
+  }
+};
+// ────────────────────────────────────────────────────────────────────────────
+
 const SPORTSBOOKS = {
   draftkings: { name: 'DraftKings', color: 'text-orange-400' },
   fanduel: { name: 'FanDuel', color: 'text-blue-400' },
@@ -22,6 +63,7 @@ let lastFetch = null;
 export const fetchMultiBookOdds = async () => {
   if (!ODDS_PROXY_URL) {
     console.warn('⚠️ ODDS_PROXY_URL not configured. Using mock data.');
+    _setQuotaState(null, true);
     return generateMockMultiBookData();
   }
 
@@ -50,6 +92,13 @@ export const fetchMultiBookOdds = async () => {
       throw new Error(`API Error: ${response.status}`);
     }
 
+    // Track remaining quota forwarded by the odds-proxy edge function.
+    const xRemaining = response.headers.get('x-requests-remaining');
+    _setQuotaState(
+      xRemaining !== null ? parseInt(xRemaining, 10) : null,
+      false
+    );
+
     const data = await response.json();
     console.log(`✅ Success! Fetched odds for ${data.length} games from multiple books.`);
 
@@ -61,6 +110,7 @@ export const fetchMultiBookOdds = async () => {
 
   } catch (error) {
     console.error("❌ Failed to fetch multi-book odds:", error);
+    _setQuotaState(null, true);
     return generateMockMultiBookData();
   }
 };
