@@ -1,6 +1,7 @@
 // src/lib/enhancedOddsApi.js
 // Enhanced odds API for multiple sportsbooks and line shopping
 
+import logger from './logger';
 import { ODDS_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
 import { devig, calcEV } from './futures.js';
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage.js';
@@ -54,13 +55,13 @@ let lastFetch = null;
 
 export const fetchMultiBookOdds = async () => {
   if (!ODDS_PROXY_URL) {
-    console.warn('⚠️ ODDS_PROXY_URL not configured. Using mock data.');
+    logger.warn('⚠️ ODDS_PROXY_URL not configured. Using mock data.');
     _setQuotaState(null, true);
     return generateMockMultiBookData();
   }
 
   try {
-    console.log('🔄 Fetching multi-sportsbook odds via proxy...');
+    logger.log('🔄 Fetching multi-sportsbook odds via proxy...');
 
     const bookmakers = Object.keys(SPORTSBOOKS).join(',');
     const response = await fetch(ODDS_PROXY_URL, {
@@ -92,7 +93,7 @@ export const fetchMultiBookOdds = async () => {
     );
 
     const data = await response.json();
-    console.log(`✅ Success! Fetched odds for ${data.length} games from multiple books.`);
+    logger.log(`✅ Success! Fetched odds for ${data.length} games from multiple books.`);
 
     // Process and track line movements
     const processedData = processMultiBookData(data);
@@ -101,7 +102,7 @@ export const fetchMultiBookOdds = async () => {
     return processedData;
 
   } catch (error) {
-    console.error("❌ Failed to fetch multi-book odds:", error);
+    logger.error("❌ Failed to fetch multi-book odds:", error);
     _setQuotaState(null, true);
     return generateMockMultiBookData();
   }
@@ -384,7 +385,7 @@ const oddsToImpliedProbability = (americanOdds) => {
 
 // Mock data generator for demonstration
 const generateMockMultiBookData = () => {
-  console.log("📊 Generating mock multi-sportsbook data...");
+  logger.log("📊 Generating mock multi-sportsbook data...");
 
   const mockGames = [
     {

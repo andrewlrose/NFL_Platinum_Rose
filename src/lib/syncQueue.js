@@ -20,6 +20,7 @@
  */
 
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage.js';
+import logger from './logger';
 
 export const QUEUE_KEY = 'nfl_sync_dirty_queue_v1';
 
@@ -69,7 +70,7 @@ export async function flushDirtyQueue(syncBetFn, syncPickFn, deletePickFn) {
     const queue = loadQueue();
     if (queue.length === 0) return;
 
-    console.log(`[syncQueue] Flushing ${queue.length} dirty item(s)…`);
+    logger.log(`[syncQueue] Flushing ${queue.length} dirty item(s)…`);
 
     for (const entry of queue) {
         try {
@@ -81,10 +82,10 @@ export async function flushDirtyQueue(syncBetFn, syncPickFn, deletePickFn) {
                 await deletePickFn(entry.id);
             }
             dequeueSuccess(entry.type, entry.id);
-            console.log(`[syncQueue] Flushed ${entry.type}:${entry.id}`);
+            logger.log(`[syncQueue] Flushed ${entry.type}:${entry.id}`);
         } catch (e) {
             // Still failing — leave in queue for next boot
-            console.warn(
+            logger.warn(
                 `[syncQueue] Retry failed for ${entry.type}:${entry.id}`,
                 e.message
             );

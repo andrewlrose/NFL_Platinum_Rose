@@ -1,6 +1,7 @@
 // src/components/analytics/AnalyticsDashboard.jsx
 // Thin orchestrator — delegates logic to analyticsEngine + sub-components
 
+import logger from '../../lib/logger';
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, BarChart3, Target } from 'lucide-react';
 import OutcomesDashboard from './OutcomesDashboard';

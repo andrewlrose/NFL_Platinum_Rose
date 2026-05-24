@@ -2,30 +2,30 @@ import React from 'react';
 import { LayoutDashboard, Trophy, Mic2, RefreshCw, Activity, ListFilter, Split, ShoppingBag, Save, UploadCloud, RotateCcw, Mic, Shield, Banknote, BarChart3, TrendingUp, Target, Briefcase, Database, Bot, MessageSquare, Layers, Zap } from 'lucide-react';
 import { getNFLWeekInfo } from '../../lib/constants';
 
-export default function Header({ 
-  activeTab, 
-  setActiveTab, 
-  cartCount, 
-  onSyncOdds, 
-  onOpenSplits,   
+export default function Header({
+  activeTab,
+  setActiveTab,
+  cartCount,
+  onSyncOdds,
+  onOpenSplits,
   onOpenSplitsData,
-  onOpenTeasers,  
+  onOpenTeasers,
   onOpenContest,
-  onImport,       
-  onAnalyze,      
-  onManage,       
+  onImport,
+  onAnalyze,
+  onManage,
   onSave,
   onReset,
   onOpenStorage,
   onOpenAgentStatus,
 }) {
-  
+
   const NavTab = ({ id, label, icon: Icon }) => (
-    <button 
+    <button
       onClick={() => setActiveTab(id)}
       className={`relative h-full px-6 flex items-center gap-2 font-bold text-sm transition-all border-b-2 ${
-        activeTab === id 
-        ? 'border-emerald-500 text-white' 
+        activeTab === id
+        ? 'border-emerald-500 text-white'
         : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
       }`}
     >
@@ -40,8 +40,8 @@ export default function Header({
   );
 
   const ToolButton = ({ onClick, icon: Icon, label, colorClass }) => (
-      <button 
-        onClick={onClick} 
+      <button
+        onClick={onClick}
         className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 transition-all ${colorClass}`}
       >
           <Icon size={14} />
@@ -50,8 +50,8 @@ export default function Header({
   );
 
   const IconButton = ({ onClick, icon: Icon, label, colorClass = "text-slate-400 hover:text-white" }) => (
-    <button 
-      onClick={onClick} 
+    <button
+      onClick={onClick}
       className={`p-2 rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-800 transition-all group relative ${colorClass}`}
       title={label}
     >
@@ -64,11 +64,11 @@ export default function Header({
 
   return (
     <header className="sticky top-0 z-40 bg-slate-950 shadow-2xl">
-      
+
       {/* --- TOP LAYER --- */}
       <div className="border-b border-slate-800 bg-slate-950 relative z-20">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between relative">
-            
+
             {/* LEFT: LOGO */}
             <div className="flex items-center gap-3 w-48">
                 <div className="bg-gradient-to-br from-rose-600 to-purple-700 w-8 h-8 rounded-lg flex items-center justify-center shadow-lg shadow-rose-900/20">
@@ -85,7 +85,7 @@ export default function Header({
 
             {/* CENTER: TOOLS */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex items-center gap-2">
-                <button 
+                <button
                     onClick={onSyncOdds}
                     className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-bold text-[10px] shadow-lg shadow-indigo-900/20 transition-all mr-2"
                 >
@@ -103,12 +103,12 @@ export default function Header({
                 <div className="hidden md:flex items-center gap-2">
                     {/* 🔥 NEW SHIELD BUTTON */}
                     <IconButton onClick={onManage} icon={Shield} label="Expert Mgr" colorClass="text-amber-400 hover:text-amber-300 hover:border-amber-500/30" />
-                    
+
                     <div className="h-6 w-px bg-slate-800 mx-1"></div>
 
                     <IconButton onClick={onAnalyze} icon={Mic} label="AI Transcript" colorClass="text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/30" />
                     <IconButton onClick={onImport} icon={UploadCloud} label="Bulk Import" colorClass="text-blue-400 hover:text-blue-300 hover:border-blue-500/30" />
-                    
+
                     <div className="h-6 w-px bg-slate-800 mx-1"></div>
 
                     <IconButton onClick={onSave} icon={Save} label="Save Picks" colorClass="text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/30" />
@@ -138,7 +138,14 @@ export default function Header({
             <NavTab id="dfs" label="DFS" icon={Layers} />
         </div>
       </div>
-      
+
+      {/* --- DISCLAIMER STRIP --- */}
+      <div className="bg-slate-950 border-b border-slate-900/60 py-0.5 text-center">
+        <span className="text-[9px] text-slate-600 font-mono tracking-wider">
+          For entertainment only — not financial advice. Must be 21+ to wager. Please gamble responsibly.
+        </span>
+      </div>
+
       {/* MOBILE NAV */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 p-2 z-50 flex justify-around pb-safe">
           <button onClick={() => setActiveTab('dashboard')} className={`p-2 rounded-lg flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-emerald-400' : 'text-slate-500'}`}><LayoutDashboard size={20}/><span className="text-[10px] font-bold">Board</span></button>

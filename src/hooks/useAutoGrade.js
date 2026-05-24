@@ -8,6 +8,7 @@
 //   3. Calls gradeGame() for every matching final result
 //   4. Returns { autoGraded, pendingCount, lastChecked, checking }
 //
+import logger from '../lib/logger';
 // The returned `autoGraded` counter increments each time grading runs —
 // pass it as a `key` or `refreshKey` prop to force PicksTracker re-render.
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -71,7 +72,7 @@ export function useAutoGrade() {
       // 4. Query Supabase once for all pending game IDs
       const results = await getGameResultsByIds(gameIds);
       if (results.length === 0) {
-        console.log('[useAutoGrade] No final results found for pending picks.');
+        logger.log('[useAutoGrade] No final results found for pending picks.');
         setLastChecked(new Date());
         return;
       }
@@ -85,7 +86,7 @@ export function useAutoGrade() {
         const count = gradeGame(result.espn_id, result.home_score, result.away_score);
         if (count > 0) {
           gradedThisRun += count;
-          console.log(
+          logger.log(
             `[useAutoGrade] ✅ AI Lab: graded ${count} pick(s): ` +
             `${result.away_team} @ ${result.home_team} ` +
             `${result.away_score}–${result.home_score}`
@@ -97,19 +98,19 @@ export function useAutoGrade() {
       const expertGraded = gradeExpertPicksFromResults(results);
       if (expertGraded > 0) {
         gradedThisRun += expertGraded;
-        console.log(`[useAutoGrade] ✅ Expert: graded ${expertGraded} pick(s).`);
+        logger.log(`[useAutoGrade] ✅ Expert: graded ${expertGraded} pick(s).`);
       }
 
       if (gradedThisRun > 0) {
         setAutoGraded(prev => prev + gradedThisRun);
         const remaining = loadPicks().filter(p => p.result === 'PENDING').length;
         setPendingCount(remaining);
-        console.log(`[useAutoGrade] ${gradedThisRun} total pick(s) graded. ${remaining} AI picks still pending.`);
+        logger.log(`[useAutoGrade] ${gradedThisRun} total pick(s) graded. ${remaining} AI picks still pending.`);
       }
 
       setLastChecked(new Date());
     } catch (err) {
-      console.warn('[useAutoGrade] Check failed:', err.message);
+      logger.warn('[useAutoGrade] Check failed:', err.message);
     } finally {
       setChecking(false);
       runningRef.current = false;

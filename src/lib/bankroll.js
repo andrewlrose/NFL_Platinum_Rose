@@ -1,6 +1,7 @@
 // src/lib/bankroll.js
 // Bankroll management, bet tracking, and analytics
 
+import logger from './logger';
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage';
 import { syncBet } from './supabase';
 import { enqueueDirty, dequeueSuccess } from './syncQueue';
@@ -67,7 +68,7 @@ export const getBankrollData = () => {
         }
         return stored;
     } catch (error) {
-        console.error('Error loading bankroll data:', error);
+        logger.error('Error loading bankroll data:', error);
         return {
             settings: DEFAULT_SETTINGS,
             bets: [],
@@ -86,7 +87,7 @@ export const saveBankrollData = (data) => {
         saveToStorage(STORAGE_KEY, data);
         return true;
     } catch (error) {
-        console.error('Error saving bankroll data:', error);
+        logger.error('Error saving bankroll data:', error);
         return false;
     }
 };
@@ -234,7 +235,7 @@ export const calculateAnalytics = (timeframe = 'all') => {
     let filteredBets = data.bets;
 
     // Debug logging
-    console.log('🔍 Analytics Debug:', {
+    logger.log('🔍 Analytics Debug:', {
         totalBetsInStorage: data.bets.length,
         timeframe: timeframe,
         allBets: data.bets.map(bet => ({
@@ -452,7 +453,7 @@ export const importBankrollData = (jsonData) => {
         saveBankrollData(importedData);
         return true;
     } catch (error) {
-        console.error('Import failed:', error);
+        logger.error('Import failed:', error);
         return false;
     }
 };

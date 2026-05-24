@@ -1,0 +1,38 @@
+<fulfillmentToken fulfillmentType="loan" auth="user" xmlns="http://ns.adobe.com/adept">
+  <distributor>urn:uuid:f1227b83-f91b-4f30-9ae2-0f65ffeea9ac</distributor>
+  <operatorURL>https://acsepub.contentreserve.com/fulfillment</operatorURL>
+  <transaction>LosAngeles~078-5800177-00001_90e2fd35-ccce-46cb-9ea0-ce4eac9338bf-410</transaction>
+  <purchase>2026-05-20T23:43:19-04:00</purchase>
+  <expiration>2026-05-21T05:43:19-04:00</expiration>
+  <resourceItemInfo>
+    <resource>urn:uuid:11352aec-9ece-4d29-98ba-60fc8b3950a4</resource>
+    <resourceItem>1</resourceItem>
+    <metadata>
+      <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">The Genius of Desperation</dc:title>
+      <dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Doug Farrar</dc:creator>
+      <dc:publisher xmlns:dc="http://purl.org/dc/elements/1.1/">Triumph Books</dc:publisher>
+      <dc:identifier xmlns:dc="http://purl.org/dc/elements/1.1/">978-1-64125-082-5</dc:identifier>
+      <dc:format xmlns:dc="http://purl.org/dc/elements/1.1/">application/epub+zip</dc:format>
+      <dc:language xmlns:dc="http://purl.org/dc/elements/1.1/">en-US</dc:language>
+      <thumbnailURL>https://images.cdn.overdrive.com/ImageType-200/6251-1/{90E2FD35-CCCE-46CB-9EA0-CE4EAC9338BF}IMG200.JPG</thumbnailURL>
+    </metadata>
+    <licenseToken>
+      <resource>urn:uuid:11352aec-9ece-4d29-98ba-60fc8b3950a4</resource>
+      <permissions>
+        <display>
+          <duration>1814392</duration>
+        </display>
+        <excerpt>
+          <duration>1814392</duration>
+        </excerpt>
+        <print>
+          <duration>1814392</duration>
+        </print>
+        <play>
+          <duration>1814392</duration>
+        </play>
+      </permissions>
+    </licenseToken>
+  </resourceItemInfo>
+  <hmac>w0pG2gK0O4HeU5fuKYg02CdwSuw=</hmac>
+</fulfillmentToken>

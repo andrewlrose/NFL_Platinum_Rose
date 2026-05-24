@@ -118,26 +118,7 @@ function normalizeTeam(abbr) {
   return AN_ABBR_MAP[upper] || upper;
 }
 
-// ── Week calculation (mirrors game-odds-ingest.js) ────────────────────────────
-
-function weekFromDate(dt, season) {
-  const d = new Date(dt);
-  const sep1 = new Date(season, 8, 1);
-  const dayOfWeek = sep1.getDay();
-  const daysToThu = (4 - dayOfWeek + 7) % 7;
-  const week1Thu = new Date(sep1);
-  week1Thu.setDate(sep1.getDate() + daysToThu);
-  const week1Start = new Date(week1Thu);
-  week1Start.setDate(week1Thu.getDate() - 2);
-  const diffDays = Math.floor((d - week1Start) / (1000 * 60 * 60 * 24));
-  return Math.max(1, Math.ceil(diffDays / 7));
-}
-
-function buildGameId(homeAbbr, awayAbbr, startTime, season) {
-  const week = weekFromDate(startTime, season);
-  const ww = String(week).padStart(2, '0');
-  return `${season}_${ww}_${homeAbbr}_${awayAbbr}`;
-}
+const { weekFromDate, buildGameId } = require('../packages/shared/src/week-utils');
 
 // ── Splits extraction ─────────────────────────────────────────────────────────
 //

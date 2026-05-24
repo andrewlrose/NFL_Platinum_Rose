@@ -8,6 +8,7 @@
 //   2. Grading – grade picks against final scores
 //   3. Standings – compute W-L-P, units, ROI per source
 //   4. Validation – enforce schema, dates, confidence format
+import logger from './logger';
 // ─────────────────────────────────────────────────────────────
 
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from './storage';
@@ -77,7 +78,7 @@ const normalizeConfidence = (raw) => {
   if (typeof raw !== 'number' || isNaN(raw)) return 50;
   // If it looks like a decimal (0.01 – 0.99), convert to percentage
   if (raw > 0 && raw < 1) {
-    console.warn(`⚠️ Confidence was decimal (${raw}), converting to ${raw * 100}`);
+    logger.warn(`⚠️ Confidence was decimal (${raw}), converting to ${raw * 100}`);
     return Math.round(raw * 100);
   }
   return Math.round(raw);
@@ -149,7 +150,7 @@ export const addPick = (pickData) => {
 
   const check = validatePick(pick);
   if (!check.valid) {
-    console.error('❌ Pick validation failed:', check.errors, pick);
+    logger.error('❌ Pick validation failed:', check.errors, pick);
     return null;
   }
 
@@ -158,14 +159,14 @@ export const addPick = (pickData) => {
   // Stable-key dedup — same source + gameId + pickType + line → same ID
   const isDupe = picks.some(p => p.id === pick.id);
   if (isDupe) {
-    console.warn('⚠️ Duplicate pick blocked:', pick.id);
+    logger.warn('⚠️ Duplicate pick blocked:', pick.id);
     return null;
   }
 
   picks.push(pick);
   writePicks(picks);
   fireSync(pick);  // cloud sync — non-blocking
-  console.log(`✅ Pick saved: ${pick.source} ${pick.selection} ${pick.pickType} ${pick.line}`);
+  logger.log(`✅ Pick saved: ${pick.source} ${pick.selection} ${pick.pickType} ${pick.line}`);
   return pick;
 };
 
@@ -193,7 +194,7 @@ export const deletePick = (pickId) => {
 export const clearAllPicks = () => {
   writePicks([]);
   writeResults({});
-  console.log('🗑️ All picks and results cleared');
+  logger.log('🗑️ All picks and results cleared');
 };
 
 // ── Grading ─────────────────────────────────────────────────
@@ -261,7 +262,7 @@ export const gradePick = (pickId, homeScore, visitorScore) => {
   const picks = readPicks();
   const idx = picks.findIndex(p => p.id === pickId);
   if (idx === -1) {
-    console.error(`Pick not found: ${pickId}`);
+    logger.error(`Pick not found: ${pickId}`);
     return null;
   }
 
@@ -281,7 +282,7 @@ export const gradePick = (pickId, homeScore, visitorScore) => {
 
   writePicks(picks);
   fireSync(picks[idx]);  // cloud sync — non-blocking
-  console.log(`📝 Graded: ${pick.selection} ${pick.line} → ${result} (${homeScore}-${visitorScore})`);
+  logger.log(`📝 Graded: ${pick.selection} ${pick.line} → ${result} (${homeScore}-${visitorScore})`);
   return picks[idx];
 };
 
@@ -322,7 +323,7 @@ export const gradeGame = (gameId, homeScore, visitorScore) => {
   results[gameId] = { homeScore, visitorScore, gradedAt: new Date().toISOString() };
   writeResults(results);
 
-  console.log(`📝 Graded ${graded} picks for game ${gameId}: ${homeScore}-${visitorScore}`);
+  logger.log(`📝 Graded ${graded} picks for game ${gameId}: ${homeScore}-${visitorScore}`);
   return graded;
 };
 
@@ -440,38 +441,38 @@ export const healthCheck = () => {
   const stale = findStalePicksPending();
   const standings = calculateStandings();
 
-  console.log('\n🩺 PICKS DATABASE HEALTH CHECK\n' + '═'.repeat(60));
-  console.log(`Total picks:   ${picks.length}`);
-  console.log(`Pending:       ${picks.filter(p => p.result === 'PENDING').length}`);
-  console.log(`Graded:        ${picks.filter(p => p.result !== 'PENDING').length}`);
-  console.log(`Stale pending: ${stale.length} (past game date, never graded)`);
+  logger.log('\n🩺 PICKS DATABASE HEALTH CHECK\n' + '═'.repeat(60));
+  logger.log(`Total picks:   ${picks.length}`);
+  logger.log(`Pending:       ${picks.filter(p => p.result === 'PENDING').length}`);
+  logger.log(`Graded:        ${picks.filter(p => p.result !== 'PENDING').length}`);
+  logger.log(`Stale pending: ${stale.length} (past game date, never graded)`);
 
   if (stale.length > 0) {
-    console.log('\n⚠️ STALE PENDING PICKS (should be graded):');
+    logger.log('\n⚠️ STALE PENDING PICKS (should be graded):');
     stale.forEach(p => {
-      console.log(`  ${p.gameDate} | ${p.visitor} @ ${p.home} | ${p.source} ${p.selection} ${p.line}`);
+      logger.log(`  ${p.gameDate} | ${p.visitor} @ ${p.home} | ${p.source} ${p.selection} ${p.line}`);
     });
   }
 
   // Check confidence format
   const badConf = picks.filter(p => p.confidence > 0 && p.confidence < 1);
   if (badConf.length) {
-    console.log(`\n❌ ${badConf.length} picks have decimal confidence (bug):`);
-    badConf.slice(0, 5).forEach(p => console.log(`  ${p.id}: ${p.confidence}`));
+    logger.log(`\n❌ ${badConf.length} picks have decimal confidence (bug):`);
+    badConf.slice(0, 5).forEach(p => logger.log(`  ${p.id}: ${p.confidence}`));
   }
 
   // Check missing dates
   const noDate = picks.filter(p => !p.gameDate);
   if (noDate.length) {
-    console.log(`\n❌ ${noDate.length} picks are missing gameDate — cannot be graded`);
+    logger.log(`\n❌ ${noDate.length} picks are missing gameDate — cannot be graded`);
   }
 
-  console.log('\n📊 STANDINGS:');
+  logger.log('\n📊 STANDINGS:');
   Object.entries(standings).forEach(([src, s]) => {
-    console.log(`  ${src}: ${s.record} | Win%: ${s.winRate} | Units: ${s.units > 0 ? '+' : ''}${s.units.toFixed(2)} | ROI: ${s.roi}%`);
+    logger.log(`  ${src}: ${s.record} | Win%: ${s.winRate} | Units: ${s.units > 0 ? '+' : ''}${s.units.toFixed(2)} | ROI: ${s.roi}%`);
   });
 
-  console.log('\n' + '═'.repeat(60) + '\n');
+  logger.log('\n' + '═'.repeat(60) + '\n');
 
   return { picks, stale, standings };
 };

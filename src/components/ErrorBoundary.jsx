@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import logger from '../lib/logger';
 
 /**
  * Top-level error boundary. Wraps the entire app so uncaught render errors
@@ -17,7 +18,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('[ui] [ErrorBoundary]', error, info);
+    logger.error('[ui] [ErrorBoundary]', error, info);
   }
 
   render() {

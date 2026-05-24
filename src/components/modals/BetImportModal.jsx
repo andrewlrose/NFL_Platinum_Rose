@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logger from '../../lib/logger';
 import { X, Upload, FileText, CheckCircle, AlertTriangle, Copy, Download, Trash2 } from 'lucide-react';
 import { parseImportedBet, convertTobankrollBet, validateImportedBet, formatImportedBetDisplay } from '../../lib/betImport';
 import { addBet, getBankrollData } from '../../lib/bankroll';
@@ -48,7 +49,7 @@ export default function BetImportModal({
       // Move to preview step
       setImportStep('preview');
     } catch (error) {
-      console.error('Error parsing bet:', error);
+      logger.error('Error parsing bet:', error);
       alert('Error parsing bet text. Please check the format and try again.');
     } finally {
       setIsProcessing(false);
@@ -83,7 +84,7 @@ export default function BetImportModal({
       // Add to bankroll
       const betId = addBet(bankrollBet);
       
-      console.log(`Imported bet with ID: ${betId}`);
+      logger.log(`Imported bet with ID: ${betId}`);
       
       // Move to success step
       setImportStep('success');
@@ -92,7 +93,7 @@ export default function BetImportModal({
       onImportComplete(betId, bankrollBet);
       
     } catch (error) {
-      console.error('Error importing bet:', error);
+      logger.error('Error importing bet:', error);
       alert('Error importing bet to bankroll. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -116,7 +117,7 @@ export default function BetImportModal({
 NFL Seattle Seahawks -1-124
 Los Angeles Rams vs Seattle Seahawks
 Game Start 01/25/2026 @ 03:45 PM
-LIVENFL New England Patriots +3½-151
+LIVENFL New England Patriots +3Â½-151
 New England Patriots vs Denver Broncos
 Game Start 01/25/2026 @ 12:10 PM
 NFL TOTAL o44-136 (Los Angeles Rams vrs Seattle Seahawks)
@@ -289,7 +290,7 @@ NFL Futures - Super Bowl Futures - Super Bowl 2026 LX Winner - Buffalo Bills +60
                     FanDuel: Coming soon
                   </li>
                   <li className="text-xs text-slate-400 mt-2">
-                    ℹ️ Futures bets are tracked for portfolio management and hedging
+                    â„¹ï¸ Futures bets are tracked for portfolio management and hedging
                   </li>
                 </ul>
               </div>
@@ -378,7 +379,7 @@ NFL Futures - Super Bowl Futures - Super Bowl 2026 LX Winner - Buffalo Bills +60
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="font-medium text-white">
-                                    {leg.betType === 'open' ? '🔓 OPEN SLOT' : `${leg.team} ${leg.line}`}
+                                    {leg.betType === 'open' ? 'ðŸ”“ OPEN SLOT' : `${leg.team} ${leg.line}`}
                                   </p>
                                   <p className="text-xs text-slate-400">{leg.game}</p>
                                   {leg.gameTime && leg.gameTime !== 'TBD' && (

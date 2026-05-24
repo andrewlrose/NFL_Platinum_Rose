@@ -1,6 +1,7 @@
 // src/lib/injuries.js
 // NFL Injury tracking and data fetching
 
+import logger from './logger';
 import { normalizeTeam } from './teams.js';
 
 // Try multiple ESPN API endpoints for injury data
@@ -61,7 +62,7 @@ const MOCK_INJURIES = {
 export const fetchTeamInjuries = async (teamAbbrev) => {
     const teamId = ESPN_TEAM_IDS[teamAbbrev?.toUpperCase()];
     if (!teamId) {
-        console.warn(`⚠️ No ESPN team ID for: ${teamAbbrev}`);
+        logger.warn(`⚠️ No ESPN team ID for: ${teamAbbrev}`);
         return MOCK_INJURIES[teamAbbrev] || [];
     }
 
@@ -74,23 +75,23 @@ export const fetchTeamInjuries = async (teamAbbrev) => {
             const response = await fetch(url);
             
             if (!response.ok) {
-                if (i === 0) console.log(`🏥 ESPN API ${response.status} for ${teamAbbrev}, trying alternatives...`);
+                if (i === 0) logger.log(`🏥 ESPN API ${response.status} for ${teamAbbrev}, trying alternatives...`);
                 continue; // Try next API
             }
             
             const data = await response.json();
             const injuries = normalizeInjuries(data.items || data.injuries || []);
-            console.log(`✅ Live injuries for ${teamAbbrev}: ${injuries.length} players`);
+            logger.log(`✅ Live injuries for ${teamAbbrev}: ${injuries.length} players`);
             return injuries;
             
         } catch (error) {
-            if (i === 0) console.log(`🏥 ESPN API error for ${teamAbbrev}, trying alternatives...`);
+            if (i === 0) logger.log(`🏥 ESPN API error for ${teamAbbrev}, trying alternatives...`);
             continue; // Try next API
         }
     }
     
     // All APIs failed, use mock data
-    console.log(`🏥 Using mock injuries for ${teamAbbrev}: ${(MOCK_INJURIES[teamAbbrev] || []).length} players`);
+    logger.log(`🏥 Using mock injuries for ${teamAbbrev}: ${(MOCK_INJURIES[teamAbbrev] || []).length} players`);
     return MOCK_INJURIES[teamAbbrev] || [];
 };
 
@@ -98,7 +99,7 @@ export const fetchTeamInjuries = async (teamAbbrev) => {
  * Fetch injuries for all teams in the schedule
  */
 export const fetchAllInjuries = async (schedule = []) => {
-    console.log("🏥 Fetching injury reports for all teams...");
+    logger.log("🏥 Fetching injury reports for all teams...");
     
     const teams = new Set();
     schedule.forEach(game => {
@@ -120,7 +121,7 @@ export const fetchAllInjuries = async (schedule = []) => {
     });
     
     const totalInjuries = Object.values(injuryData).reduce((sum, arr) => sum + arr.length, 0);
-    console.log(`✅ Injury reports loaded: ${totalInjuries} injuries across ${teams.size} teams`);
+    logger.log(`✅ Injury reports loaded: ${totalInjuries} injuries across ${teams.size} teams`);
     
     return injuryData;
 };

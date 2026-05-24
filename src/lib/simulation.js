@@ -1,6 +1,7 @@
 // File: src/lib/simulation.js
 // Uses unified team database from teams.js
 
+import logger from './logger';
 import { ABBREV_TO_TEAM } from './teams.js';
 
 // 1. Math Helper: Box-Muller Transform
@@ -57,7 +58,7 @@ export const mergeRBSDMStats = (offCSV, defCSV) => {
         }
 
         if (headerIdx === -1) {
-            console.error(`Could not find header in ${type} CSV`);
+            logger.error(`Could not find header in ${type} CSV`);
             return;
         }
         if (epaIdx === -1) epaIdx = 2; 

@@ -9,6 +9,7 @@ export default defineConfig([
   globalIgnores([
     'dist/**',
     'node_modules/**',
+    'coverage/**',
     '.atlas-bridge/**',
     '.claude/**',
     '.venv/**',

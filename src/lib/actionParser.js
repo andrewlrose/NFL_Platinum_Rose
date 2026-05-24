@@ -1,6 +1,7 @@
 // src/lib/actionParser.js
 // Uses unified team database from teams.js
 
+import logger from './logger';
 import { NAME_MAP } from './teams.js';
 
 export const parseActionNetworkDump = (text) => {
@@ -10,7 +11,7 @@ export const parseActionNetworkDump = (text) => {
     // This turns the vertical "mess" into a single long string of tokens.
     const normalizedText = text.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
 
-    console.log("Parsing Normalized Stream...");
+    logger.log("Parsing Normalized Stream...");
 
     // 2. Identify all known teams in the stream
     // We create a list of found tokens in order: [{type: 'team', val: 'Falcons'}, {type: 'team', val: 'Buccaneers'}...]
@@ -47,7 +48,7 @@ export const parseActionNetworkDump = (text) => {
         }
     }
 
-    console.log("Tokens found:", tokens);
+    logger.log("Tokens found:", tokens);
 
     // 3. Match Pattern: Team -> Team -> ... -> Stats
     // We look for a stats block, then look backwards for the 2 closest teams.
@@ -73,7 +74,7 @@ export const parseActionNetworkDump = (text) => {
             }
 
             if (home && visitor) {
-                console.log(`✅ MATCH: ${visitor} @ ${home} -> ${token.homeBets}% Tickets / ${token.homeCash}% Cash`);
+                logger.log(`✅ MATCH: ${visitor} @ ${home} -> ${token.homeBets}% Tickets / ${token.homeCash}% Cash`);
                 
                 updates.push({
                     visitor,
@@ -117,12 +118,12 @@ export const parseActionNetworkDump = (text) => {
 export const parseActionNetworkSplits = (text) => {
     const results = [];
     
-    console.log("🔍 Parsing Action Network Splits format...");
-    console.log("Input length:", text.length, "chars");
+    logger.log("🔍 Parsing Action Network Splits format...");
+    logger.log("Input length:", text.length, "chars");
     
     // Split by lines and filter out empty lines
     const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
-    console.log("📝 Lines found:", lines.length);
+    logger.log("📝 Lines found:", lines.length);
     
     // Find team names - look for lines that match known team names
     let teams = [];
@@ -146,15 +147,15 @@ export const parseActionNetworkSplits = (text) => {
         });
         
         if (found && !teams.find(t => t === found)) {
-            console.log(`🏈 Found team: ${found}`);
+            logger.log(`🏈 Found team: ${found}`);
             teams.push(found);
         }
     }
     
-    console.log("🏈 Teams found:", teams);
+    logger.log("🏈 Teams found:", teams);
     
     if (teams.length < 2) {
-        console.log("❌ Could not find 2 teams");
+        logger.log("❌ Could not find 2 teams");
         return results;
     }
     
@@ -162,7 +163,7 @@ export const parseActionNetworkSplits = (text) => {
     const percentMatches = text.match(/(\d+)%/g) || [];
     const percentages = percentMatches.map(p => parseInt(p.replace('%', '')));
     
-    console.log("📊 All percentages found:", percentages);
+    logger.log("📊 All percentages found:", percentages);
     
     // Expected pattern: bet%, bet%, money%, money%, [diff%]
     // For example: 63%, 37%, 60%, 40%, +3%
@@ -184,7 +185,7 @@ export const parseActionNetworkSplits = (text) => {
         }
     }
     
-    console.log("📊 Bet/Money percentages:", betMoneyPercentages);
+    logger.log("📊 Bet/Money percentages:", betMoneyPercentages);
     
     if (betMoneyPercentages.length >= 4) {
         const visitor = teams[0];
@@ -195,9 +196,9 @@ export const parseActionNetworkSplits = (text) => {
         const visCash = betMoneyPercentages[2];
         const homeCash = betMoneyPercentages[3];
         
-        console.log(`✅ MATCH: ${visitor} @ ${home}`);
-        console.log(`   Bets: ${visBets}% / ${homeBets}%`);
-        console.log(`   Money: ${visCash}% / ${homeCash}%`);
+        logger.log(`✅ MATCH: ${visitor} @ ${home}`);
+        logger.log(`   Bets: ${visBets}% / ${homeBets}%`);
+        logger.log(`   Money: ${visCash}% / ${homeCash}%`);
         
         results.push({
             visitor,
@@ -229,7 +230,7 @@ export const parseActionNetworkSplits = (text) => {
             }
         });
     } else {
-        console.log(`⚠️ Not enough percentages found: ${betMoneyPercentages.length}`);
+        logger.log(`⚠️ Not enough percentages found: ${betMoneyPercentages.length}`);
     }
     
     return results;
@@ -244,14 +245,14 @@ export const parseActionNetworkSplits = (text) => {
  * Patriots Team Icon | Patriots | +185 | 23% | 22% | ...
  */
 export const parseActionNetworkMoneyline = (text) => {
-    console.log("🏈 Parsing Moneyline format...");
+    logger.log("🏈 Parsing Moneyline format...");
     const results = [];
     
     // Split by lines and clean
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
     
-    console.log(`📝 Total lines to process: ${lines.length}`);
-    console.log(`📝 First few lines:`, lines.slice(0, 5));
+    logger.log(`📝 Total lines to process: ${lines.length}`);
+    logger.log(`📝 First few lines:`, lines.slice(0, 5));
     
     // Find team lines (contain team names and "Team Icon" or odds)
     const teams = [];
@@ -273,7 +274,7 @@ export const parseActionNetworkMoneyline = (text) => {
         if (teamMatch) {
             const teamName = teamMatch[0];
             teams.push(teamName);
-            console.log(`✓ Found team: ${teamName}`);
+            logger.log(`✓ Found team: ${teamName}`);
         }
         
         // Look for percentage lines (77%, 23%, 78%, 22%, etc.)
@@ -282,13 +283,13 @@ export const parseActionNetworkMoneyline = (text) => {
             percentMatch.forEach(p => {
                 const pctNum = parseInt(p);
                 percentages.push(pctNum);
-                console.log(`  → Found %: ${pctNum}%`);
+                logger.log(`  → Found %: ${pctNum}%`);
             });
         }
     }
     
-    console.log(`📊 Found ${teams.length} teams: ${teams.join(', ')}`);
-    console.log(`📈 Found ${percentages.length} percentages: ${percentages.slice(0, 8).join(', ')}`);
+    logger.log(`📊 Found ${teams.length} teams: ${teams.join(', ')}`);
+    logger.log(`📈 Found ${percentages.length} percentages: ${percentages.slice(0, 8).join(', ')}`);
     
     // We need 2 teams and 4 percentages (2 bet %, 2 money %)
     if (teams.length >= 2 && percentages.length >= 4) {
@@ -301,9 +302,9 @@ export const parseActionNetworkMoneyline = (text) => {
         const visMoney = percentages[2];
         const homeMoney = percentages[3];
         
-        console.log(`✅ MONEYLINE MATCH: ${visitor} @ ${home}`);
-        console.log(`   Bets: ${visBets}% / ${homeBets}%`);
-        console.log(`   Money: ${visMoney}% / ${homeMoney}%`);
+        logger.log(`✅ MONEYLINE MATCH: ${visitor} @ ${home}`);
+        logger.log(`   Bets: ${visBets}% / ${homeBets}%`);
+        logger.log(`   Money: ${visMoney}% / ${homeMoney}%`);
         
         results.push({
             visitor,
@@ -342,7 +343,7 @@ export const parseActionNetworkMoneyline = (text) => {
             }
         });
     } else {
-        console.log(`⚠️ Not enough teams or percentages for ML format`);
+        logger.log(`⚠️ Not enough teams or percentages for ML format`);
     }
     
     return results;
@@ -352,7 +353,7 @@ export const parseActionNetworkMoneyline = (text) => {
  * Auto-detect format and parse accordingly
  */
 export const parseActionNetworkAuto = (text) => {
-    console.log("🔍 Auto-detecting Action Network format...");
+    logger.log("🔍 Auto-detecting Action Network format...");
     
     // Check for moneyline format (has team names, percentages, and odds)
     const hasTeamNames = /Seahawks|Patriots|Bengals|Ravens|Bills|Chiefs|Cowboys|Eagles|Packers|Lions|Vikings|Saints|Buccaneers|Falcons|Panthers|Bears|Texans|Colts|Titans|Jaguars|Broncos|Chargers|Raiders|49ers|Cardinals|Rams|Dolphins|Jets|Giants|Steelers|Browns|Commanders/i.test(text);
@@ -360,14 +361,14 @@ export const parseActionNetworkAuto = (text) => {
     const hasOdds = /[-+]\d{2,4}\b|Best Odds|% of Bets|% of Money/i.test(text);
     
     if (hasTeamNames && hasPercentages && hasOdds) {
-        console.log("🏈 Detected Moneyline format (teams + percentages + odds)");
+        logger.log("🏈 Detected Moneyline format (teams + percentages + odds)");
         const result = parseActionNetworkMoneyline(text);
         if (result && result.length > 0) return result;
     }
     
     // Check for inline format (numbers%numbers%numbers%numbers%)
     if (text.match(/\d+%\d+%\d+%\d+%/)) {
-        console.log("📋 Detected inline format");
+        logger.log("📋 Detected inline format");
         return parseActionNetworkDump(text);
     }
     
@@ -379,17 +380,17 @@ export const parseActionNetworkAuto = (text) => {
                          text.toLowerCase().includes('team icon');
     
     if (hasMultiplePercentages && hasTeamNamesTabular) {
-        console.log("📊 Detected tabular format (multiline)");
+        logger.log("📊 Detected tabular format (multiline)");
         return parseActionNetworkSplits(text);
     }
     
     // Fallback: if it has percentages, try the splits parser
     if (hasMultiplePercentages) {
-        console.log("📊 Trying splits parser (has percentages)");
+        logger.log("📊 Trying splits parser (has percentages)");
         return parseActionNetworkSplits(text);
     }
     
-    console.log("❓ Unknown format - no percentages or team names found");
-    console.log("Sample of input:", text.substring(0, 200));
+    logger.log("❓ Unknown format - no percentages or team names found");
+    logger.log("Sample of input:", text.substring(0, 200));
     return [];
 };

@@ -8,6 +8,7 @@
 //   - Key catalog (PR_STORAGE_KEYS) — single source of truth
 //   - Backup / restore for disaster recovery
 // ─────────────────────────────────────────────────────────────────────────────
+import logger from './logger';
 
 /**
  * Catalog of ALL localStorage keys used by the app.
@@ -134,7 +135,7 @@ export const loadFromStorage = (key, defaultValue) => {
     const stored = localStorage.getItem(key);
     return stored !== null ? JSON.parse(stored) : defaultValue;
   } catch (e) {
-    console.warn(`[storage] Failed to load "${key}":`, e);
+    logger.warn(`[storage] Failed to load "${key}":`, e);
     return defaultValue;
   }
 };
@@ -144,7 +145,7 @@ export const saveToStorage = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.warn(`[storage] Failed to save "${key}":`, e);
+    logger.warn(`[storage] Failed to save "${key}":`, e);
   }
 };
 
@@ -159,20 +160,20 @@ export const clearStorage = (key, emptyValue = null) => {
   try {
     localStorage.setItem(key, JSON.stringify(emptyValue));
   } catch (e) {
-    console.warn(`[storage] Failed to clear "${key}":`, e);
+    logger.warn(`[storage] Failed to clear "${key}":`, e);
   }
 };
 
 /** Remove a key entirely (use only for ephemeral/cache keys). */
 export const removeFromStorage = (key) => {
   if (CRITICAL_KEYS.has(key)) {
-    console.warn(`[storage] removeFromStorage blocked: "${key}" is a critical key. Use clearStorage() instead.`);
+    logger.warn(`[storage] removeFromStorage blocked: "${key}" is a critical key. Use clearStorage() instead.`);
     return;
   }
   try {
     localStorage.removeItem(key);
   } catch (e) {
-    console.warn(`[storage] Failed to remove "${key}":`, e);
+    logger.warn(`[storage] Failed to remove "${key}":`, e);
   }
 };
 
@@ -259,6 +260,6 @@ export const getStorageDiagnostics = () => {
     }
     rows.push({ key: entry.key, permanence: entry.permanence, size: `${(bytes / 1024).toFixed(1)} KB`, count, present: raw !== null });
   }
-  console.table(rows);
+  logger.log(rows);
   return rows;
 };

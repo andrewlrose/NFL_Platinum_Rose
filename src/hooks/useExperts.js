@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import logger from '../lib/logger';
 import { extractPicksFromTranscript } from '../lib/openai';
 import { loadFromStorage, saveToStorage, PR_STORAGE_KEYS } from '../lib/storage';
 
@@ -25,7 +26,7 @@ export function useExperts({ schedule, findGameForTeam, openModal, closeModal })
   // --- AI Transcript → Picks ---
   const handleAIAnalyze = useCallback(async (text, sourceData) => {
     try {
-      console.log("Analyzing text...");
+      logger.log("Analyzing text...");
       const availableGames = schedule.map(g => `${g.visitor} @ ${g.home}`);
 
       const picks = await extractPicksFromTranscript(text, sourceData, availableGames);
@@ -53,7 +54,7 @@ export function useExperts({ schedule, findGameForTeam, openModal, closeModal })
       closeModal('audio');
       openModal('review');
     } catch (error) {
-      console.error("AI Error:", error);
+      logger.error("AI Error:", error);
       alert(error.message || "Error parsing transcript.");
     }
   }, [schedule, findGameForTeam, closeModal, openModal]);

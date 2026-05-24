@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logger from '../../lib/logger';
 import { Microscope, Play, RefreshCw, Activity, Star, Trophy, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { TEAM_LOGOS } from '../../lib/teams';
 
@@ -23,7 +24,7 @@ const RankBadge = ({ rank, type }) => {
     if (rank <= 5) color = "text-emerald-400 font-bold";
     else if (rank <= 12) color = "text-emerald-200";
     else if (rank >= 25) color = "text-rose-400";
-    
+
     return (
         <div className="flex items-center gap-1 text-[9px]">
             <span className="text-slate-500 uppercase">{type}</span>
@@ -36,7 +37,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
   const [isRunning, setIsRunning] = useState(false);
   const [simResults, setSimResults] = useState(savedResults || {});
   const [ratings, setRatings] = useState({});
-  const [ranks, setRanks] = useState({}); // 🔥 Store League Rankings
+  const [ranks, setRanks] = useState({}); // ðŸ”¥ Store League Rankings
 
   // New: tempo toggle + league mean
   const [useTempo, setUseTempo] = useState(false);
@@ -73,11 +74,11 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
         });
         setRatings(processedRatings);
 
-        // 🔥 CALCULATE RANKINGS
+        // ðŸ”¥ CALCULATE RANKINGS
         const teamKeys = Object.keys(processedRatings);
         const offSorted = [...teamKeys].sort((a,b) => processedRatings[b].off - processedRatings[a].off); // Higher is better
         const defSorted = [...teamKeys].sort((a,b) => processedRatings[a].def - processedRatings[b].def); // Lower is better (EPA)
-        
+
         const newRanks = {};
         teamKeys.forEach(t => {
             newRanks[t] = {
@@ -89,10 +90,10 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
     }
   }, [stats]);
 
-  // --- MONTE CARLO ENGINE (Web Worker — off main thread) ---
+  // --- MONTE CARLO ENGINE (Web Worker â€” off main thread) ---
   const handleRunSims = () => {
       if (!ratings || Object.keys(ratings).length === 0) {
-          alert("⚠️ No Data Loaded! Waiting for stats engine...");
+          alert("âš ï¸ No Data Loaded! Waiting for stats engine...");
           return;
       }
 
@@ -111,7 +112,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
       };
 
       worker.onerror = (e) => {
-          console.error('[DevLab] Simulation worker error:', e.message);
+          logger.error('[DevLab] Simulation worker error:', e.message);
           worker.terminate();
           setIsRunning(false);
       };
@@ -119,7 +120,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
       worker.postMessage({ games, ratings, useTempo });
   };
 
-  // --- 🔥 NEW "HUMAN READABLE" CARD ---
+  // --- ðŸ”¥ NEW "HUMAN READABLE" CARD ---
   const SimCard = ({ game, res }) => {
       if (!res) return null;
       if (!res.hasData) return (<div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 flex flex-col items-center justify-center opacity-70"><div className="text-slate-500 font-bold mb-1">{game.visitor} @ {game.home}</div><div className="text-[10px] text-rose-400">Data Missing</div></div>);
@@ -146,7 +147,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
 
       return (
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg hover:border-slate-700 transition-all group relative overflow-hidden">
-              
+
               {/* --- HEADER: Value Rating --- */}
               <div className="flex justify-between items-start mb-4 border-b border-slate-800 pb-2">
                   <div>
@@ -190,7 +191,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
                           {confidence === 'None' ? 'No Edge' : `${confidence} (${edgePct.toFixed(0)}%)`}
                       </span>
                   </div>
-                  
+
                   {/* Stats Context Bar */}
                   <div className="grid grid-cols-2 gap-2 text-[9px] text-center pt-2 border-t border-slate-800">
                       <div className="bg-slate-800/50 rounded p-1">
@@ -218,7 +219,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row justify-between items-center shadow-lg gap-4">
          <div>
              <h2 className="text-2xl font-bold text-white flex items-center gap-3"><Microscope className="text-emerald-400" /> <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-500">AI Dev Lab</span></h2>
-             <p className="text-slate-400 text-sm mt-1">Monte Carlo Engine • Totals, Spreads & Player Props • {Object.keys(ratings || {}).length} Teams Loaded</p>
+             <p className="text-slate-400 text-sm mt-1">Monte Carlo Engine â€¢ Totals, Spreads & Player Props â€¢ {Object.keys(ratings || {}).length} Teams Loaded</p>
          </div>
          <div className="flex gap-3 items-center">
              <label className="flex items-center gap-2 text-sm text-slate-300">
@@ -229,7 +230,7 @@ export default function DevLab({ games, stats, onSimComplete, savedResults }) {
              <button onClick={handleRunSims} disabled={isRunning} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 shadow-lg transition-all disabled:opacity-50">{isRunning ? <RefreshCw className="animate-spin" /> : <Play fill="currentColor" />}{isRunning ? "Running..." : "Run Simulation"}</button>
          </div>
       </div>
-      
+
       <div className="bg-slate-950 border border-slate-900 rounded-xl p-6 min-h-[60vh]">
          {Object.keys(simResults).length === 0 ? (
              <div className="flex flex-col items-center justify-center h-full py-20 text-slate-700">

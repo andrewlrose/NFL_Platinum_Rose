@@ -110,32 +110,7 @@ function normalizeTeam(name) {
   return TEAM_NAME_MAP[name] || name.toUpperCase().replace(/\s+/g, '_');
 }
 
-// Build the deterministic game_id used in the `games` table
-// Format: YYYY_WW_HOME_AWAY  (week derived from commence_time in season context)
-// Since TheOddsAPI doesn't provide week, we use the date to derive it.
-// Week 1 = the week containing the first Thursday of September each season.
-function weekFromDate(dt, season) {
-  const d = new Date(dt);
-  // First Thursday of September
-  const sep1 = new Date(season, 8, 1); // month is 0-indexed
-  const dayOfWeek = sep1.getDay(); // 0=Sun, 4=Thu
-  const daysToThu = (4 - dayOfWeek + 7) % 7;
-  const week1Thu = new Date(sep1);
-  week1Thu.setDate(sep1.getDate() + daysToThu);
-  // Week 1 starts the Tuesday before that Thursday
-  const week1Start = new Date(week1Thu);
-  week1Start.setDate(week1Thu.getDate() - 2);
-
-  const diffDays = Math.floor((d - week1Start) / (1000 * 60 * 60 * 24));
-  const week = Math.max(1, Math.ceil(diffDays / 7));
-  return week;
-}
-
-function buildGameId(homeAbbr, awayAbbr, commenceTime, season) {
-  const week = weekFromDate(commenceTime, season);
-  const ww = String(week).padStart(2, '0');
-  return `${season}_${ww}_${homeAbbr}_${awayAbbr}`;
-}
+const { weekFromDate, buildGameId } = require('../packages/shared/src/week-utils');
 
 // ── Parsing ───────────────────────────────────────────────────────────────────
 

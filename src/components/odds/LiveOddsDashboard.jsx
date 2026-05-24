@@ -1,6 +1,7 @@
 // src/components/odds/LiveOddsDashboard.jsx
 // Live Odds Integration & Line Shopping Dashboard
 
+import logger from '../../lib/logger';
 import React, { useState, useEffect } from 'react';
 import {
   RefreshCw, TrendingUp, TrendingDown, AlertTriangle, Search,

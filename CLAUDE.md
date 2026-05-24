@@ -5,7 +5,8 @@ NFL betting analytics and line shopping dashboard (React + Vite + Tailwind CSS).
 Integrates real-time odds from 8 sportsbooks, tracks betting performance, manages expert picks, and provides simulation-based edge analysis.
 
 **Repository**: https://github.com/andrewlrose/NFL_Platinum_Rose
-**Workspace**: `E:\dev\projects\NFL_Dashboard`
+**Workspace (Windows dev)**: `E:\dev\projects\NFL_Dashboard`
+**Workspace (M6/Linux)**: `~/projects/NFL_Dashboard` (path may vary — use GitHub URL as canonical)
 **Dev URL**: http://localhost:5173/platinum-rose-app/
 
 ## Orchestration Directives
@@ -130,6 +131,7 @@ DraftKings, FanDuel, BetMGM, Caesars, BetOnline, Bookmaker, PointsBet, Unibet
 - **Tight turnaround (< 4 hrs since last session):** Use the resume command → HANDOFF_PROMPT.md only.
 - **Overnight gap or unsure if tree is clean:** Paste `agents/dev/SESSION_STARTER_PROMPT.md` activation block first — it runs live git/vitest/server checks.
 - Either way: read `WORKING-CONTEXT.md` before touching any file.
+- **Persistent Backlogs:** Check `HANDOFF.md`'s `## Persistent Backlogs` table — if it has open rows, read each referenced file and surface open items before proceeding.
 
 ### Resume Command Format (Gen-4 canonical)
 ```
@@ -145,6 +147,7 @@ git push origin main
 # Then run /handoff to update HANDOFF_PROMPT.md
 ```
 - Commit message format: `S{session number}: {what changed}`
+- **Persistent Backlogs:** Mark completed items `[x]` in each referenced backlog file; update Open Items count and Last Touched column in `HANDOFF.md`.
 
 ### Git Rejected Push Recovery
 - **1–3 commits ahead, no agent conflicts**: `git push --force-with-lease origin main`

@@ -1,6 +1,7 @@
 // src/lib/oddsApi.js
 // Uses unified team database from teams.js
 
+import logger from './logger';
 import { TEAM_MAPPING, normalizeTeam, getDomeTeams, getTeamAbbreviation } from './teams.js';
 import { ODDS_API, ODDS_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
 
@@ -20,12 +21,12 @@ const getWeather = (homeTeam) => {
 
 export const fetchLiveOdds = async () => {
     if (!ODDS_PROXY_URL) {
-        console.warn('⚠️ ODDS_PROXY_URL not configured. Returning empty odds.');
+        logger.warn('⚠️ ODDS_PROXY_URL not configured. Returning empty odds.');
         return [];
     }
 
     try {
-        console.log('🔄 Fetching live odds via proxy...');
+        logger.log('🔄 Fetching live odds via proxy...');
         const response = await fetch(ODDS_PROXY_URL, {
             method: 'POST',
             headers: {
@@ -49,11 +50,11 @@ export const fetchLiveOdds = async () => {
         }
 
         const data = await response.json();
-        console.log(`✅ Success! Fetched ${data.length} games.`);
+        logger.log(`✅ Success! Fetched ${data.length} games.`);
         return normalizeData(data, false);
 
     } catch (error) {
-        console.error("❌ Failed to fetch odds:", error);
+        logger.error("❌ Failed to fetch odds:", error);
         return [];
     }
 };

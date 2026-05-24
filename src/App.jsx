@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
+import logger from './lib/logger';
 
 // --- Hooks ---
 import { useModals } from './hooks/useModals';
@@ -89,55 +90,59 @@ function App() {
   // --- Auto-grade pending picks from Supabase game_results ---
   const { autoGraded, runGradingCheck, checking } = useAutoGrade();
 
+  // --- Sync handlers (also called by Header buttons) ---
+  const handleSync = useCallback(async () => {
+    try {
+      const [cloudPicks, cloudBets] = await Promise.all([loadUserPicks(), loadUserBets()]);
+      let hydrated = false;
+
+      if (cloudPicks.length > 0) {
+        const localPicks = loadFromStorage(PR_STORAGE_KEYS.PICKS.key, []);
+        const { merged: mergedPicks, changed: picksChanged } =
+          mergeByUpdatedAt(localPicks, cloudPicks);
+
+        if (picksChanged) {
+          saveToStorage(PR_STORAGE_KEYS.PICKS.key, mergedPicks);
+          logger.log('[sync] Picks hydrated/updated from Supabase');
+          hydrated = true;
+        }
+      }
+
+      if (cloudBets.length > 0) {
+        const localData = getBankrollData();
+        const { merged: mergedBets, changed: betsChanged } =
+          mergeByUpdatedAt(localData.bets, cloudBets);
+
+        if (betsChanged) {
+          localData.bets = mergedBets;
+          saveBankrollData(localData);
+          logger.log('[sync] Bets hydrated/updated from Supabase');
+          hydrated = true;
+        }
+      }
+
+      if (hydrated) setPicksRefreshKey(k => k + 1);
+
+      await flushDirtyQueue(syncBet, syncPick, deleteSyncedPick);
+    } catch (e) {
+      logger.warn('[sync] Sync failed (non-fatal):', e.message);
+    }
+  }, [setPicksRefreshKey]);
+
+  const handleSave = useCallback(async () => {
+    try {
+      await flushDirtyQueue(syncBet, syncPick, deleteSyncedPick);
+      logger.log('[sync] Manual save complete');
+    } catch (e) {
+      logger.warn('[sync] Manual save failed (non-fatal):', e.message);
+    }
+  }, []);
+
   // --- Boot hydration: restore picks + bets from Supabase if missing locally,
   //     update locally-stale records when cloud has a newer updated_at, and
   //     flush any dirty-queue items that failed during the previous session. ---
   useEffect(() => {
-    async function hydrateFromSupabase() {
-      try {
-        const [cloudPicks, cloudBets] = await Promise.all([loadUserPicks(), loadUserBets()]);
-        let hydrated = false;
-
-        if (cloudPicks.length > 0) {
-          const localPicks = loadFromStorage(PR_STORAGE_KEYS.PICKS.key, []);
-          const { merged: mergedPicks, changed: picksChanged } =
-            mergeByUpdatedAt(localPicks, cloudPicks);
-
-          if (picksChanged) {
-            saveToStorage(PR_STORAGE_KEYS.PICKS.key, mergedPicks);
-            console.log('[sync] Picks hydrated/updated from Supabase');
-            hydrated = true;
-          }
-        }
-
-        if (cloudBets.length > 0) {
-          const localData = getBankrollData();
-          const { merged: mergedBets, changed: betsChanged } =
-            mergeByUpdatedAt(localData.bets, cloudBets);
-
-          if (betsChanged) {
-            localData.bets = mergedBets;
-            saveBankrollData(localData);
-            console.log('[sync] Bets hydrated/updated from Supabase');
-            hydrated = true;
-          }
-        }
-
-        if (hydrated) setPicksRefreshKey(k => k + 1);
-      } catch (e) {
-        console.warn('[sync] Boot hydration failed (non-fatal):', e.message);
-      }
-    }
-
-    async function flushQueue() {
-      try {
-        await flushDirtyQueue(syncBet, syncPick, deleteSyncedPick);
-      } catch (e) {
-        console.warn('[sync] Dirty-queue flush failed (non-fatal):', e.message);
-      }
-    }
-
-    hydrateFromSupabase().then(flushQueue);
+    handleSync();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Derived Data (cross-cutting: merges schedule + experts + splits) ---
@@ -160,7 +165,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-gray-200 font-sans pb-20 selection:bg-[#00d2be] selection:text-black">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={() => console.log("Sync")} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={() => alert("Save functionality coming soon")} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }} onOpenStorage={() => openModal('storage')} onOpenAgentStatus={() => setAgentStatusOpen(true)} />
+      <Header activeTab={activeTab} setActiveTab={setActiveTab} cartCount={myBets.length} onSyncOdds={handleSync} onOpenSplits={() => openModal('pulse')} onOpenSplitsData={() => openModal('splits')} onOpenTeasers={() => openModal('teasers')} onOpenContest={() => openModal('contest')} onImport={() => openModal('import')} onAnalyze={() => openModal('audio')} onManage={() => openModal('expertMgr')} onSave={handleSave} onReset={() => { if(window.confirm("Reset all picks?")) clearBets(); }} onOpenStorage={() => openModal('storage')} onOpenAgentStatus={() => setAgentStatusOpen(true)} />
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Suspense fallback={<div className="flex items-center justify-center py-24 text-[#00d2be] font-mono text-sm">Loading...</div>}>
           {activeTab === 'dashboard' && <div className="animate-in fade-in zoom-in duration-300"><Dashboard schedule={gamesWithSplits} stats={stats} simResults={simResults} onGameClick={setSelectedGame} onShowInjuries={(game) => { setSelectedGame(game); openModal('injuryReport'); }} onAddBankrollBet={(game) => { setBetEntryGame(game); openModal('betEntry'); }} /></div>}
@@ -191,7 +196,7 @@ function App() {
       {modals.injuryReport && <InjuryReportModal isOpen onClose={() => closeModal('injuryReport')} game={selectedGame} injuries={injuries} />}
       {modals.unitCalculator && <UnitCalculatorModal isOpen onClose={() => closeModal('unitCalculator')} />}
       {modals.betEntry && <BetEntryModal isOpen onClose={() => { closeModal('betEntry'); setBetEntryGame(null); }} selectedGame={betEntryGame} schedule={schedule} refreshBankroll={() => {}} />}
-      {modals.betImport && <BetImportModal isOpen onClose={() => closeModal('betImport')} onImportComplete={(betId, bet) => { console.log('Bet imported:', betId, bet); alert('Bet imported successfully!'); }} />}
+      {modals.betImport && <BetImportModal isOpen onClose={() => closeModal('betImport')} onImportComplete={(betId, bet) => { logger.log('Bet imported:', betId, bet); alert('Bet imported successfully!'); }} />}
       {modals.pendingBets && <PendingBetsModal isOpen onClose={() => closeModal('pendingBets')} onEditBet={(bet) => { setSelectedBetForEdit(bet); openModal('editBet'); }} />}
       {modals.editBet && <EditBetModal isOpen onClose={() => { closeModal('editBet'); setSelectedBetForEdit(null); }} bet={selectedBetForEdit} schedule={schedule} onBetUpdated={() => { closeModal('pendingBets'); setTimeout(() => openModal('pendingBets'), 100); }} />}
       {modals.gradeModal && <ManualGradeModal isOpen onClose={() => { closeModal('gradeModal'); setGradeGameData(null); setPicksRefreshKey(k => k + 1); }} gameData={gradeGameData} onGraded={() => setPicksRefreshKey(k => k + 1)} />}

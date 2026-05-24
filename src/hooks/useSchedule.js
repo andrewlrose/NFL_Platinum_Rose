@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import logger from '../lib/logger';
 import { TEAM_ALIASES } from '../lib/teams';
 import { fetchAllInjuries } from '../lib/injuries';
 import { parseActionNetworkAuto } from '../lib/actionParser';
@@ -35,7 +36,7 @@ export function useSchedule() {
 
   // --- BOOT SEQUENCE ---
   useEffect(() => {
-    console.log("🚀 Booting Up: Fetching Live Schedule & Odds...");
+    logger.log("🚀 Booting Up: Fetching Live Schedule & Odds...");
 
     Promise.all([
       // 1. Schedule (Local)
@@ -51,7 +52,7 @@ export function useSchedule() {
           return r.json();
         })
         .catch(err => {
-          console.warn("⚠️ Stats load failed (using empty defaults):", err);
+          logger.warn("⚠️ Stats load failed (using empty defaults):", err);
           return [];
         }),
 
@@ -62,12 +63,12 @@ export function useSchedule() {
           return r.json();
         })
         .catch(err => {
-          console.warn("⚠️ Splits load failed:", err);
+          logger.warn("⚠️ Splits load failed:", err);
           return {};
         })
     ]).then(([scheduleData, liveOddsData, statsData, splitsData]) => {
-      console.log(`✅ Schedule Loaded: ${scheduleData.length} games`);
-      console.log(`✅ Live Odds Loaded: ${liveOddsData.length} games from TheOddsAPI`);
+      logger.log(`✅ Schedule Loaded: ${scheduleData.length} games`);
+      logger.log(`✅ Live Odds Loaded: ${liveOddsData.length} games from TheOddsAPI`);
 
       // Merge live odds into schedule
       const mergedSchedule = scheduleData.map(game => {
@@ -87,7 +88,7 @@ export function useSchedule() {
         });
 
         if (liveGame) {
-          console.log(`🔄 Live odds merged: ${game.visitor} @ ${game.home} → Spread: ${liveGame.spread}, Total: ${liveGame.total}, ML: ${liveGame.visitor_ml}/${liveGame.home_ml}`);
+          logger.log(`🔄 Live odds merged: ${game.visitor} @ ${game.home} → Spread: ${liveGame.spread}, Total: ${liveGame.total}, ML: ${liveGame.visitor_ml}/${liveGame.home_ml}`);
           return {
             ...game,
             spread: liveGame.spread ?? game.spread,
@@ -97,7 +98,7 @@ export function useSchedule() {
             oddsSource: 'TheOddsAPI'
           };
         }
-        console.warn(`⚠️ No live odds found for ${game.visitor} @ ${game.home}, using ESPN fallback`);
+        logger.warn(`⚠️ No live odds found for ${game.visitor} @ ${game.home}, using ESPN fallback`);
         return { ...game, oddsSource: 'ESPN' };
       });
 
@@ -112,25 +113,25 @@ export function useSchedule() {
       const localHasData = localSplits && Object.keys(localSplits).length > 0;
       if (!localHasData && splitsData && Object.keys(splitsData).length > 0) {
         setSplits(splitsData);
-        console.log('📥 Initialized splits from GitHub raw (localStorage was empty)');
+        logger.log('📥 Initialized splits from GitHub raw (localStorage was empty)');
       } else if (!localHasData) {
         // Both empty — leave state as initialized (empty object)
-        console.log('ℹ️ No splits data available (localStorage empty, GitHub fetch empty/failed)');
+        logger.log('ℹ️ No splits data available (localStorage empty, GitHub fetch empty/failed)');
       } else {
-        console.log(`✅ Retained ${Object.keys(localSplits).length} game splits from localStorage`);
+        logger.log(`✅ Retained ${Object.keys(localSplits).length} game splits from localStorage`);
       }
 
       // Injuries (separate async call)
       fetchAllInjuries(mergedSchedule)
         .then(injuryData => {
-          console.log(`🏥 Injuries loaded for ${Object.keys(injuryData).length} teams`);
+          logger.log(`🏥 Injuries loaded for ${Object.keys(injuryData).length} teams`);
           setInjuries(injuryData);
         })
-        .catch(err => console.warn("⚠️ Injury fetch failed:", err))
+        .catch(err => logger.warn("⚠️ Injury fetch failed:", err))
         .finally(() => setLoading(false));
 
     }).catch(err => {
-      console.error("CRITICAL Error loading data:", err);
+      logger.error("CRITICAL Error loading data:", err);
       setLoading(false);
     });
   }, []);
@@ -140,7 +141,7 @@ export function useSchedule() {
     if (!rawInput) return null;
     const clean = rawInput.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-    console.log(`🔍 Searching for game matching: "${rawInput}" (cleaned: "${clean}")`);
+    logger.log(`🔍 Searching for game matching: "${rawInput}" (cleaned: "${clean}")`);
 
     // 1. Alias dictionary
     for (const [alias, standard] of Object.entries(TEAM_ALIASES)) {
@@ -152,7 +153,7 @@ export function useSchedule() {
           return h.includes(standardClean) || v.includes(standardClean);
         });
         if (found) {
-          console.log(`✅ Found via alias "${alias}" -> "${standard}":`, found);
+          logger.log(`✅ Found via alias "${alias}" -> "${standard}":`, found);
           return found;
         }
       }
@@ -165,7 +166,7 @@ export function useSchedule() {
       return h === clean || v === clean;
     });
     if (found) {
-      console.log(`✅ Found via direct abbreviation match:`, found);
+      logger.log(`✅ Found via direct abbreviation match:`, found);
       return found;
     }
 
@@ -176,18 +177,18 @@ export function useSchedule() {
       return home.includes(clean) || vis.includes(clean) || clean.includes(home) || clean.includes(vis);
     });
     if (foundSubstring) {
-      console.log(`✅ Found via substring match:`, foundSubstring);
+      logger.log(`✅ Found via substring match:`, foundSubstring);
       return foundSubstring;
     }
 
-    console.log(`❌ No game found for "${rawInput}"`);
-    console.log(`Available games:`, schedule.map(g => `${g.visitor} @ ${g.home}`));
+    logger.log(`❌ No game found for "${rawInput}"`);
+    logger.log(`Available games:`, schedule.map(g => `${g.visitor} @ ${g.home}`));
     return null;
   }, [schedule]);
 
   // --- BULK SPLITS IMPORT ---
   const handleBulkImport = useCallback((text) => {
-    console.log("📋 Processing bulk import...");
+    logger.log("📋 Processing bulk import...");
 
     const parsed = parseActionNetworkAuto(text);
 
@@ -196,13 +197,13 @@ export function useSchedule() {
       return;
     }
 
-    console.log("✅ Parsed splits:", parsed);
+    logger.log("✅ Parsed splits:", parsed);
 
     const newSplits = { ...splits };
     let updateCount = 0;
 
     parsed.forEach(p => {
-      console.log(`🔍 Looking for game: ${p.visitor} @ ${p.home}`);
+      logger.log(`🔍 Looking for game: ${p.visitor} @ ${p.home}`);
 
       const game = schedule.find(g => {
         const schedVisitor = g.visitor.toLowerCase().replace(/[^a-z]/g, '');
@@ -211,24 +212,24 @@ export function useSchedule() {
         const parsedHome = p.home.toLowerCase().replace(/[^a-z]/g, '');
 
         if (schedVisitor === parsedVisitor && schedHome === parsedHome) {
-          console.log(`✅ Direct match: ${g.visitor} @ ${g.home}`);
+          logger.log(`✅ Direct match: ${g.visitor} @ ${g.home}`);
           return true;
         }
 
         if ((schedVisitor.includes(parsedVisitor) || parsedVisitor.includes(schedVisitor)) &&
             (schedHome.includes(parsedHome) || parsedHome.includes(schedHome))) {
-          console.log(`✅ Substring match: ${g.visitor} @ ${g.home}`);
+          logger.log(`✅ Substring match: ${g.visitor} @ ${g.home}`);
           return true;
         }
 
         const visitorGame = findGameForTeam(p.visitor);
         const homeGame = findGameForTeam(p.home);
         if (visitorGame && visitorGame.id === g.id) {
-          console.log(`✅ Found via visitor team search: ${g.visitor} @ ${g.home}`);
+          logger.log(`✅ Found via visitor team search: ${g.visitor} @ ${g.home}`);
           return true;
         }
         if (homeGame && homeGame.id === g.id) {
-          console.log(`✅ Found via home team search: ${g.visitor} @ ${g.home}`);
+          logger.log(`✅ Found via home team search: ${g.visitor} @ ${g.home}`);
           return true;
         }
 
@@ -236,7 +237,7 @@ export function useSchedule() {
       });
 
       if (game) {
-        console.log(`📊 Updating splits for ${game.visitor} @ ${game.home}`);
+        logger.log(`📊 Updating splits for ${game.visitor} @ ${game.home}`);
 
         const existingSplits = newSplits[game.id] || {};
         const mergedSplits = {
@@ -251,8 +252,8 @@ export function useSchedule() {
         newSplits[game.id] = mergedSplits;
         updateCount++;
       } else {
-        console.warn(`⚠️ No game found for ${p.visitor} @ ${p.home}`);
-        console.log(`Available games:`, schedule.map(g => `${g.visitor} @ ${g.home}`));
+        logger.warn(`⚠️ No game found for ${p.visitor} @ ${p.home}`);
+        logger.log(`Available games:`, schedule.map(g => `${g.visitor} @ ${g.home}`));
       }
     });
 

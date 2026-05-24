@@ -6,6 +6,7 @@
 // Agents use service_role key via process.env, not this file.
 // ═══════════════════════════════════════════════════════════════════════════════
 
+import logger from './logger';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL      = import.meta.env.VITE_SUPABASE_URL || '';

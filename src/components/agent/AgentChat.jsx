@@ -11,6 +11,7 @@
 //   - Chat history is persisted to localStorage nfl_betting_agent_chat_v1
 // ═══════════════════════════════════════════════════════════════════════════════
 
+import logger from '../../lib/logger';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Bot, User, Wrench, ChevronDown, ChevronRight, Trash2, AlertCircle, Key, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';

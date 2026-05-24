@@ -15,6 +15,7 @@ export default defineConfig({
   },
 
   build: {
+    chunkSizeWarningLimit: 600,   // kB — warn if any chunk exceeds 600 kB
     rollupOptions: {
       output: {
         manualChunks: {

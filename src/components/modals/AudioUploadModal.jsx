@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logger from '../../lib/logger';
 import { X, Mic, Users, Key, Zap, RefreshCw, CheckCircle, Trash2, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { INITIAL_EXPERTS } from '../../lib/constants';
 import { loadFromStorage, saveToStorage, removeFromStorage, PR_STORAGE_KEYS } from '../../lib/storage';
@@ -12,11 +13,11 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
   const [userKey, setUserKey] = useState(loadFromStorage(PR_STORAGE_KEYS.OPENAI_KEY.key, ''));
 
   const activeKey = userKey;
-  // No operator key is bundled — users must supply their own OpenAI key
+  // No operator key is bundled â€” users must supply their own OpenAI key
   const hasGlobalKey = false;
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null); // 🔥 NEW: Error State
+  const [errorMsg, setErrorMsg] = useState(null); // ðŸ”¥ NEW: Error State
   const [isNewSource, setIsNewSource] = useState(false);
   const [selectedSource, setSelectedSource] = useState("");
   const [newSourceName, setNewSourceName] = useState('');
@@ -62,10 +63,10 @@ export default function AudioUploadModal({ isOpen, onClose, onAnalyze, experts =
     };
 
     try {
-        // 🔥 SAFE EXECUTION
+        // ðŸ”¥ SAFE EXECUTION
         await onAnalyze(text, sourceData);
     } catch (err) {
-        console.error("Modal Caught Error:", err);
+        logger.error("Modal Caught Error:", err);
         setErrorMsg("Analysis failed. Check console for details.");
     } finally {
         setIsProcessing(false);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logger from '../../lib/logger';
 import { X, Clock, Edit, CheckCircle, XCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { getBankrollData, updateBetResult, BET_STATUS } from '../../lib/bankroll';
 
@@ -57,7 +58,7 @@ export default function PendingBetsModal({
       const pending = data.bets.filter(bet => bet.status === BET_STATUS.PENDING);
       setPendingBets(pending);
     } catch (error) {
-      console.error('Error loading pending bets:', error);
+      logger.error('Error loading pending bets:', error);
     } finally {
       setLoading(false);
     }
@@ -244,7 +245,7 @@ export default function PendingBetsModal({
                           Bet Legs ({bet.legs.length})
                           {bet.openSlots > 0 && (
                             <span className="text-orange-400 ml-2">
-                              • {bet.openSlots} open slot{bet.openSlots !== 1 ? 's' : ''}
+                              â€¢ {bet.openSlots} open slot{bet.openSlots !== 1 ? 's' : ''}
                             </span>
                           )}
                         </h4>
@@ -325,7 +326,7 @@ export default function PendingBetsModal({
         <div className="p-6 border-t border-slate-700 bg-slate-800/30">
           <div className="flex justify-between items-center">
             <div className="text-sm text-slate-400">
-              💡 Tip: Use "Fill Slots" to complete open parlay legs for hedging opportunities
+              ðŸ’¡ Tip: Use "Fill Slots" to complete open parlay legs for hedging opportunities
             </div>
             <button
               onClick={onClose}

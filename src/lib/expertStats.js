@@ -8,6 +8,7 @@
 //       expertPicks: {
 //         spread: [ExpertPick, ...],
 //         total:  [ExpertPick, ...],
+import logger from './logger';
 //       }
 //     }
 //   }
@@ -141,7 +142,7 @@ export function gradeExpertPicksFromResults(gameResults) {
 
   if (totalGraded > 0) {
     saveToStorage(CONSENSUS_KEY, consensus);
-    console.log(`[expertStats] ✅ Graded ${totalGraded} expert pick(s) from game results.`);
+    logger.log(`[expertStats] ✅ Graded ${totalGraded} expert pick(s) from game results.`);
   }
 
   return totalGraded;

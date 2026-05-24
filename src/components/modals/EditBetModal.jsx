@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logger from '../../lib/logger';
 import { X, Plus, Save, Trash2, AlertTriangle, Edit } from 'lucide-react';
 import { getBankrollData, saveBankrollData, updateBet, BET_TYPES } from '../../lib/bankroll';
 
@@ -21,9 +22,9 @@ export default function EditBetModal({
   const [editingLegIndex, setEditingLegIndex] = useState(null); // For editing existing legs
 
   useEffect(() => {
-    console.log('🏈 EditBetModal - Schedule data:', schedule);
+    logger.log('ðŸˆ EditBetModal - Schedule data:', schedule);
     if (schedule && schedule.length > 0) {
-      console.log('🏈 EditBetModal - Available games:', getGameOptions());
+      logger.log('ðŸˆ EditBetModal - Available games:', getGameOptions());
     }
     
     if (bet && isOpen) {
@@ -210,7 +211,7 @@ export default function EditBetModal({
             <div>
               <h2 className="text-xl font-bold text-white">Edit Parlay</h2>
               <p className="text-slate-400 text-sm">
-                {bet.description || 'Imported Parlay'} • {editedBet?.openSlots || 0} open slots
+                {bet.description || 'Imported Parlay'} â€¢ {editedBet?.openSlots || 0} open slots
               </p>
             </div>
           </div>

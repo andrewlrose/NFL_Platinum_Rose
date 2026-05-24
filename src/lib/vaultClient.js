@@ -22,6 +22,7 @@
 //   The agent tools and system prompt injection are backend-agnostic.
 // ═══════════════════════════════════════════════════════════════════════════════
 
+import logger from './logger';
 import { supabase, isAvailable as supabaseAvailable } from './supabase.js';
 
 // ─── Config ───────────────────────────────────────────────────────────────────

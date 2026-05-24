@@ -1,6 +1,7 @@
 // src/components/bankroll/BankrollDashboard.jsx
 // Main bankroll management dashboard
 
+import logger from '../../lib/logger';
 import React, { useState, useEffect } from 'react';
 import { 
     DollarSign, TrendingUp, TrendingDown, Target, Calculator, 
