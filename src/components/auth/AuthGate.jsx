@@ -13,7 +13,9 @@
 import React, { useState, useEffect } from 'react';
 import { isAvailable, getSession, signIn, onAuthStateChange } from '../../lib/supabase.js';
 
-export default function AuthGate({ children }) {
+// ─── Inner gate (has hooks) ───────────────────────────────────────────────────
+
+function AuthGateInner({ children }) {
   const [session, setSession]   = useState(undefined); // undefined = loading
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -137,4 +139,17 @@ export default function AuthGate({ children }) {
       </div>
     </div>
   );
+}
+
+// ─── Public wrapper ───────────────────────────────────────────────────────────
+// Checks build-time bypass flag before mounting any hooks, avoiding a
+// hook-count violation when VITE_BYPASS_AUTH=true.
+
+export default function AuthGate({ children }) {
+  // Build-time escape hatch for smoke tests.  Set VITE_BYPASS_AUTH=true at
+  // `vite build` time (via --mode test / .env.test) to skip the login wall.
+  if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+    return <>{children}</>;
+  }
+  return <AuthGateInner>{children}</AuthGateInner>;
 }

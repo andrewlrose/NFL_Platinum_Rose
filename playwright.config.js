@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright smoke-test config for NFL Platinum Rose.
- * 
+ *
  * CI flow:
  *   1. `npm run build`   (GHA step)
  *   2. `npm run test:smoke` — starts preview server, runs Chromium tests
@@ -45,12 +45,14 @@ export default defineConfig({
     },
   ],
 
-  // Start `vite preview` before running tests (requires `npm run build` to have been run first)
+  // Start a test build (VITE_BYPASS_AUTH=true) then `vite preview` before
+  // running tests. reuseExistingServer skips this on localhost when a preview
+  // server is already running (avoids double-build during local iteration).
   webServer: {
-    command:           'npm run preview',
+    command:           'npm run build:test && npm run preview',
     url:               'http://localhost:4173/platinum-rose-app/',
     reuseExistingServer: !process.env.CI,
-    timeout:           30_000,
+    timeout:           120_000,
     stdout:            'ignore',
     stderr:            'pipe',
   },

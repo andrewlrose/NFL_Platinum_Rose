@@ -24,13 +24,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app
-        run: npm run build
-        env:
-          # Supabase anon key is public-safe — app renders fine without it (null client)
-          # but supplying it lets AgentStatusModal load real data in CI if desired.
-          VITE_SUPABASE_URL:      ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Install Playwright browsers (Chromium only)
         run: npx playwright install --with-deps chromium

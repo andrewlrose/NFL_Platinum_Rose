@@ -126,7 +126,11 @@ test.describe('Tab navigation', () => {
 
     for (const tabLabel of TABS) {
       await test.step(`tab: ${tabLabel}`, async () => {
-        await page.getByRole('button', { name: tabLabel, exact: true }).click();
+        const btn = page.getByRole('button', { name: tabLabel, exact: true });
+        // Tab bar uses overflow:hidden — some tabs are outside the visible
+        // viewport and can't be reached via normal click().  dispatchEvent
+        // fires the React click handler directly, bypassing viewport checks.
+        await btn.dispatchEvent('click');
         // Brief settle — React renders synchronously except for lazy-loaded chunks
         await page.waitForTimeout(400);
         await assertNoError(page);
