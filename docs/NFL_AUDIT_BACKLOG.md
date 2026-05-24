@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 21 / 29 complete
+**Progress:** 22 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -249,12 +249,13 @@
     yfinance 1.4.0, numpy 2.4.6).
     `npm audit --omit=dev` → 0 vulnerabilities; `pip-audit` → No known vulnerabilities found.
 
-- [ ] **SMOKE-TEST** — Tab-navigation smoke test failing (viewport issue on "The Board" tab)
-  - **Evidence:** After `npx playwright install chromium`, 8/9 smoke checks pass; the
-    tab-navigation sweep fails because "The Board" button is outside viewport during click.
-  - **Fix:** Add `scrollIntoView()` or `force: true` to the Playwright selector;
-    or adjust the nav layout so all primary tabs are visible at desktop test width.
-  - **Test:** `npm run test:smoke` exits 0 with all checks passing.
+- [x] **SMOKE-TEST** — Tab-navigation smoke test failing (auth gate + viewport overflow) — fixed `b352f85`
+  - Root cause: Supabase auth gate blocked all app UI in test builds (VITE_SUPABASE_URL baked in); secondary
+    issue: tab bar uses `overflow:hidden` so "The Board" button is outside Chromium's viewport.
+  - Fix: `AuthGate` wrapper with `VITE_BYPASS_AUTH=true` escape hatch; `.env.test` + `build:test` script
+    (`vite build --mode test`); `playwright.config.js` webServer runs `build:test && preview`;
+    smoke tests use `dispatchEvent('click')` instead of `click()` for off-screen tabs.
+  - **Result:** 9 / 9 smoke tests passing.
 
 ---
 
