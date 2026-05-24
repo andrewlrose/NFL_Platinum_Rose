@@ -267,10 +267,12 @@
   - `.gitignore` patterns added: `betting_splits.json`, `public/*.bak`,
     `.nfl/session-log.jsonl`, `.nfl/receipts/`, `supabase/.temp/`, `coverage/`.
 
-- [x] **CONSOLE-LOGS** â€” ~102 `console.log` calls in `src/` ship in production bundle
-  - **Evidence:** `picksDatabase.js:162/278/319`; `App.jsx` `onSyncOdds=()=>console.log("Sync")`.
-  - **Fix:** Strip `console.log` from `src/`; replace with a controlled logger or remove.
-    Add ESLint `no-console` rule once lint is clean.
+- [x] **CONSOLE-LOGS** — 48 raw `console.*` calls in `src/` routed through `logger` — fixed `0b0a035`
+  - `supabase.js` (24×warn), `vaultClient.js` (13×warn), `LiveOddsDashboard.jsx` (6×mixed),
+    `AnalyticsDashboard.jsx` (1×error), `BankrollDashboard.jsx` (1×error).
+  - All files already imported `logger`; bulk-replaced `console.{log,warn,error}` → `logger.*`.
+  - `eslint.config.js`: added `'no-console': 'error'` to `src/**` block;
+    added `src/lib/logger.js` override (`'no-console': 'off'`) so the abstraction itself is exempt.
 
 - [x] **APP-STUBS** â€” `App.jsx` stub handlers wired to live UI controls
   - **Evidence:** `onSyncOdds=()=>console.log("Sync")`, `onSaveâ†’alert("coming soon")`.
