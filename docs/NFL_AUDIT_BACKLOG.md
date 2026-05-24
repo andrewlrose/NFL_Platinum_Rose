@@ -4,7 +4,7 @@
 **Sources:**
 - Meridian Assurance Group — *NFL Platinum Rose End-to-End System Audit* (21 May 2026)
 - CODEX Ultrathink — *NFL Dashboard Formal Audit Report* (21 May 2026)
-**Progress:** 20 / 29 complete
+**Progress:** 21 / 29 complete
 
 > **Completion rule:** Mark `[ ]` → `[x]` only when the fix is committed to `main`
 > AND verified by test, live query, or CI pass. Dev-only changes do not count.
@@ -239,13 +239,15 @@
     re-serialised per attempt.
     7 unit tests in `tests/unit/openaiClient.test.js` — 493/493 passing.
 
-- [ ] **DEPS** — 6 npm advisories; Python requirements unresolvable
-  - **Evidence:** `npm audit --omit=dev` reports 1 Moderate (ws) in production;
-    full audit shows 3 High (dev paths including Vite). `python -m pip_audit` fails on
-    `numpy==2.4.0` conflict at `requirements.txt:14,36,39`.
-  - **Fix:** `npm audit fix`; manually patch `ws` if needed. Reconcile Python requirements
-    (pin compatible numpy version; verify with `pip-audit`).
-  - **Test:** `npm audit --omit=dev` exits 0; `pip-audit` completes without errors.
+- [x] **DEPS** — 6 npm advisories; Python requirements unresolvable
+  - **Fixed S152 (`af63004`):** npm: `ws` fixed via `npm audit fix`; `nodemailer` bumped
+    ^6.9.16→^8.0.8 (4 HIGH CVEs; createTransport/sendMail API unchanged). Python:
+    `nfl_data_py` removed (not imported; required numpy<2.0 incompatible with Python 3.13);
+    17 package bumps (urllib3 2.7.0, streamlit 1.54.0, tornado 6.5.5, pillow 12.2.0,
+    protobuf 6.33.5, pyarrow 23.0.1, requests 2.33.0, langchain-core 1.3.3, langsmith 0.8.0,
+    lxml 6.1.0, orjson 3.11.6, curl_cffi 0.15.0, GitPython 3.1.50, idna 3.15,
+    yfinance 1.4.0, numpy 2.4.6).
+    `npm audit --omit=dev` → 0 vulnerabilities; `pip-audit` → No known vulnerabilities found.
 
 - [ ] **SMOKE-TEST** — Tab-navigation smoke test failing (viewport issue on "The Board" tab)
   - **Evidence:** After `npx playwright install chromium`, 8/9 smoke checks pass; the
