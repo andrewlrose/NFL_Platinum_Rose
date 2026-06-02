@@ -60,13 +60,20 @@ const SB_TOP_TEAMS = [
 
 const SHARP_BOOKS  = new Set(['betonline', 'bookmaker', 'pinnacle']);
 
-// Keywords that flag an article as NFL-relevant
-const NFL_KEYWORDS = [
-  'nfl', 'football', 'quarterback', 'super bowl', 'playoff', 'draft',
-  'touchdown', 'receiver', 'running back', 'offensive line', 'defensive',
-  'wide receiver', 'tight end', 'coach', 'head coach', 'offensive coordinator',
-  'free agent', 'trade', 'injury report', 'week ', 'spread', 'over/under',
-  'futures', 'win total', 'division', 'conference', 'afc', 'nfc',
+// Unambiguous NFL/football identifiers — at least one must appear in the
+// title or summary for an article to qualify. Generic sports/betting terms
+// (conference, spread, over/under, playoff, draft, coach, etc.) are
+// intentionally excluded; they appear across all sports and caused NBA/MLB
+// articles to slip through.
+const NFL_ANCHORS = [
+  // Sport & format identifiers
+  'nfl', 'football', 'super bowl', 'quarterback', 'touchdown',
+  // Position groups (football-specific phrasing)
+  'wide receiver', 'tight end', 'running back', 'offensive line',
+  'pass rush', 'pass rusher', 'offensive coordinator', 'defensive coordinator',
+  // Conference acronyms (NFL-specific; NBA uses Eastern/Western in full)
+  'afc', 'nfc',
+  // All 32 NFL team names (no NBA/MLB overlap at this specificity level)
   'chiefs', 'eagles', 'ravens', 'bills', '49ers', 'lions', 'texans', 'chargers',
   'cowboys', 'packers', 'bears', 'steelers', 'patriots', 'jets', 'giants',
   'dolphins', 'browns', 'bengals', 'broncos', 'raiders', 'seahawks', 'rams',
@@ -77,7 +84,7 @@ const NFL_KEYWORDS = [
 function isNFLRelevant(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
-  return NFL_KEYWORDS.some(kw => lower.includes(kw));
+  return NFL_ANCHORS.some(anchor => lower.includes(anchor));
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -184,6 +191,13 @@ async function fetchSharpTweets(supabase) {
   return data || [];
 }
 
+// Sources that are already NFL-specific — skip isNFLRelevant check for these.
+// Note: Action Network is NOT listed here because old articles from the general
+// feed (/feed) are still in the DB — let the keyword filter handle them.
+const TRUSTED_NFL_SOURCES = new Set([
+  'ESPN NFL', 'Sharp Football', 'Pro Football Talk', 'PFF',
+]);
+
 async function fetchIntelNotes(supabase) {
   const since = daysAgo(INTEL_DAYS);
   const { data, error } = await supabase
@@ -192,15 +206,45 @@ async function fetchIntelNotes(supabase) {
     .gte('captured_at', since)
     .order('confidence', { ascending: false })
     .order('published_at', { ascending: false })
-    .limit(15);
+    .limit(50);   // fetch more rows so the client-side NFL filter has enough to work with
 
   if (error) {
     console.warn(`fetchIntelNotes: ${error.message}`);
     return [];
   }
   const rows = data || [];
-  // Filter to NFL-relevant content only (table contains multi-sport articles)
-  return rows.filter(r => isNFLRelevant(r.title) || isNFLRelevant(r.summary));
+  // Trusted NFL-only sources bypass the keyword filter; betting/general sources
+  // (VSiN, BettingPros) still require a keyword match to exclude non-NFL content.
+  return rows
+    .filter(r => TRUSTED_NFL_SOURCES.has(r.source) || isNFLRelevant(r.title) || isNFLRelevant(r.summary))
+    .slice(0, 15);
+}
+
+async function fetchPodcastIntel(supabase) {
+  const { data, error } = await supabase
+    .from('podcast_transcripts')
+    .select(`
+      id, intel, picks, processed_at,
+      podcast_episodes (
+        title, pub_date,
+        podcast_feeds ( name, expert )
+      )
+    `)
+    .order('processed_at', { ascending: false })
+    .limit(5);
+
+  if (error) {
+    console.warn(`fetchPodcastIntel: ${error.message}`);
+    return [];
+  }
+  // Only return episodes that have actual intel items and are NFL-relevant.
+  // Some podcast feeds (e.g. Action Network Sports Betting) cover all sports.
+  return (data || []).filter(ep => {
+    if (!Array.isArray(ep.intel) || ep.intel.length === 0) return false;
+    const title = ep.podcast_episodes?.title || '';
+    const intelText = ep.intel.join(' ');
+    return isNFLRelevant(title) || isNFLRelevant(intelText);
+  });
 }
 
 async function fetchInjuries(supabase) {
@@ -399,6 +443,8 @@ const CSS = `
   .intel-title a { color: #93c5fd; text-decoration: none; }
   .intel-summary { font-size: 12px; color: #888; line-height: 1.5; }
   .intel-meta    { font-size: 11px; color: #555; margin-top: 4px; }
+  .podcast-intel { margin: 6px 0 0 0; padding-left: 16px; }
+  .podcast-intel li { font-size: 12px; color: #aaa; line-height: 1.6; margin-bottom: 2px; }
   .conf-high { color: #4ade80; }
   .conf-med  { color: #d1b854; }
   .conf-low  { color: #888; }
@@ -551,10 +597,37 @@ function renderIntel(notes) {
   </div>`;
 }
 
+function renderPodcastIntel(episodes) {
+  if (!episodes.length) return '';
+
+  const items = episodes.map(ep => {
+    const epInfo = ep.podcast_episodes;
+    const feedName = epInfo?.podcast_feeds?.name || 'Podcast';
+    const title = epInfo?.title || 'Untitled Episode';
+    const date = epInfo?.pub_date
+      ? new Date(epInfo.pub_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : '';
+    const intel = Array.isArray(ep.intel) ? ep.intel.slice(0, 4) : [];
+    const intelHtml = intel.length
+      ? `<ul class="podcast-intel">${intel.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+      : '';
+    return `<div class="intel-item">
+      <div class="intel-title">🎙 ${escapeHtml(title)}</div>
+      ${intelHtml}
+      <div class="intel-meta"><strong>${escapeHtml(feedName)}</strong> · ${date}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="section">
+    <div class="section-title">🎙 Podcast Intel</div>
+    ${items}
+  </div>`;
+}
+
 function renderInjuries(injuries) {
   if (!injuries.length) return ''; // hidden in offseason
 
-  // Group by team
+  // Group by team (caller is responsible for deduplication)
   const byTeam = new Map();
   for (const inj of injuries) {
     if (!byTeam.has(inj.team_abbr)) byTeam.set(inj.team_abbr, []);
@@ -647,7 +720,7 @@ function buildEmail(sections) {
 </html>`;
 }
 
-function buildPlainText(sbTable, tweets, notes, injuries, games) {
+function buildPlainText(sbTable, tweets, notes, podcastEps, injuries, games) {
   const lines = [`NFL Daily Brief — ${nowStr()}`, ''];
 
   if (sbTable.length) {
@@ -674,6 +747,17 @@ function buildPlainText(sbTable, tweets, notes, injuries, games) {
       if (n.summary) lines.push(`  ${n.summary}`);
     });
     lines.push('');
+  }
+
+  if (podcastEps.length) {
+    lines.push('PODCAST INTEL', '─'.repeat(40));
+    podcastEps.slice(0, 3).forEach(ep => {
+      const title = ep.podcast_episodes?.title || 'Untitled';
+      const source = ep.podcast_episodes?.podcast_feeds?.name || 'Podcast';
+      lines.push(`🎙 ${title} (${source})`);
+      (ep.intel || []).slice(0, 3).forEach(i => lines.push(`  · ${i}`));
+      lines.push('');
+    });
   }
 
   if (injuries.length) {
@@ -736,19 +820,33 @@ async function main() {
 
   // Fetch all data in parallel
   console.log('Fetching data from Supabase...');
-  const [sbSnaps, sbMovers, tweets, notes, injuries, gameRows] = await Promise.all([
+  const [sbSnaps, sbMovers, tweets, notes, podcastEps, injuries, gameRows] = await Promise.all([
     fetchFuturesSnapshot(supabase),
     fetchFuturesMovers(supabase),
     fetchSharpTweets(supabase),
     fetchIntelNotes(supabase),
+    fetchPodcastIntel(supabase),
     fetchInjuries(supabase),
     fetchUpcomingGames(supabase),
   ]);
 
+  // Deduplicate injuries: keep only the most recent report per player per team.
+  // The ingest table stores each status update as a new row.
+  const injuryMap = new Map();
+  for (const inj of injuries) {
+    const key = `${inj.team_abbr}:${inj.player_name}`;
+    const existing = injuryMap.get(key);
+    if (!existing || inj.reported_at > existing.reported_at) {
+      injuryMap.set(key, inj);
+    }
+  }
+  const dedupedInjuries = [...injuryMap.values()];
+
   console.log(`  SB snapshots:  ${sbSnaps.length} rows`);
   console.log(`  Sharp tweets:  ${tweets.length} rows`);
   console.log(`  Intel notes:   ${notes.length} rows`);
-  console.log(`  Injuries:      ${injuries.length} rows`);
+  console.log(`  Podcast eps:   ${podcastEps.length} rows`);
+  console.log(`  Injuries:      ${injuries.length} rows (${dedupedInjuries.length} unique players)`);
   console.log(`  Upcoming games:${gameRows.length} rows`);
 
   // Build SB table for plain text
@@ -759,12 +857,13 @@ async function main() {
     renderFutures(sbSnaps, sbMovers),
     renderTweets(tweets),
     renderIntel(notes),
-    renderInjuries(injuries),
+    renderPodcastIntel(podcastEps),
+    renderInjuries(dedupedInjuries),
     renderGames(gameRows),
   ];
 
   const htmlBody = buildEmail(sections);
-  const textBody = buildPlainText(sbTable, tweets, notes, injuries, gameRows);
+  const textBody = buildPlainText(sbTable, tweets, notes, podcastEps, dedupedInjuries, gameRows);
 
   const today   = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -775,7 +874,12 @@ async function main() {
     console.log(`\nSubject: ${subject}`);
     console.log('─'.repeat(55));
     console.log(textBody);
-    console.log('\n[HTML body generated — add --email flag or remove --dry-run to send]');
+    // Save HTML preview to file for inspection
+    const previewDir  = path.join(ROOT, 'preview');
+    const previewFile = path.join(previewDir, 'newsletter_live_preview.html');
+    await mkdir(previewDir, { recursive: true });
+    await writeFile(previewFile, htmlBody);
+    console.log(`\nHTML preview saved: ${previewFile}`);
   } else {
     console.log(`\nSending to ${TO_EMAIL}...`);
     const msgId = await sendEmail(subject, htmlBody, textBody);

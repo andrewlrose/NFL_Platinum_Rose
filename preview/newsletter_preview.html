@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NFL Daily Brief — Preview</title>
+  <style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0d0d0d; color: #e5e5e5; margin: 0; padding: 0; }
+  .wrapper { max-width: 680px; margin: 0 auto; background: #141414; }
+  .header  { background: linear-gradient(135deg, #1a3c5e 0%, #0d2137 100%);
+             padding: 24px 32px; }
+  .header h1 { margin: 0; font-size: 22px; color: #fff; letter-spacing: -0.3px; }
+  .header .sub { color: #8db4d4; font-size: 13px; margin-top: 4px; }
+  .section { padding: 20px 32px; border-bottom: 1px solid #222; }
+  .section:last-child { border-bottom: none; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: 0.8px; color: #5b9bd5; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #888; font-weight: 600; padding: 4px 8px 8px 0;
+       border-bottom: 1px solid #2a2a2a; }
+  td { padding: 6px 8px 6px 0; border-bottom: 1px solid #1e1e1e; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .team  { font-weight: 700; color: #fff; }
+  .up    { color: #4ade80; }
+  .down  { color: #f87171; }
+  .odds  { font-family: 'SF Mono', 'Consolas', monospace; color: #d1b854; }
+  .pct   { font-family: 'SF Mono', 'Consolas', monospace; color: #93c5fd; }
+  .tweet { background: #1a1a1a; border-left: 3px solid #1d9bf0;
+           padding: 10px 14px; margin-bottom: 10px; border-radius: 0 4px 4px 0; }
+  .tweet .handle { color: #1d9bf0; font-size: 12px; font-weight: 700;
+                   margin-bottom: 4px; }
+  .tweet .tier   { background: #1d9bf044; color: #93c5fd; font-size: 10px;
+                   font-weight: 700; padding: 1px 6px; border-radius: 10px;
+                   vertical-align: middle; margin-left: 6px; }
+  .tweet .text   { font-size: 13px; line-height: 1.5; color: #d4d4d4; }
+  .tweet .meta   { font-size: 11px; color: #555; margin-top: 6px; }
+  .intel-item    { margin-bottom: 14px; padding-bottom: 14px;
+                   border-bottom: 1px solid #1e1e1e; }
+  .intel-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .intel-title   { font-weight: 600; color: #e5e5e5; font-size: 13px; margin-bottom: 4px; }
+  .intel-title a { color: #93c5fd; text-decoration: none; }
+  .intel-summary { font-size: 12px; color: #888; line-height: 1.5; }
+  .intel-meta    { font-size: 11px; color: #555; margin-top: 4px; }
+  .conf-high { color: #4ade80; }
+  .conf-med  { color: #d1b854; }
+  .conf-low  { color: #888; }
+  .badge     { display: inline-block; padding: 1px 7px; border-radius: 10px;
+               font-size: 10px; font-weight: 700; margin-left: 4px; }
+  .badge-out   { background: #7f1d1d; color: #fca5a5; }
+  .badge-doubt { background: #78350f; color: #fcd34d; }
+  .badge-ir    { background: #1e1b4b; color: #a5b4fc; }
+  .footer  { padding: 16px 32px; text-align: center; font-size: 11px; color: #444; }
+  .no-data { color: #444; font-style: italic; font-size: 13px; }
+
+  /* ── Preview annotation styles (not in production) ── */
+  .preview-banner { background: #2d1b00; border: 1px solid #f59e0b; color: #fcd34d;
+                    padding: 10px 20px; text-align: center; font-size: 12px;
+                    font-family: monospace; }
+  </style>
+</head>
+<body>
+
+<div class="preview-banner">
+  ⚠️ PREVIEW — Static mock data. Offseason: Injuries + Upcoming Games sections are hidden (empty in DB). Date: Saturday, May 31, 2026.
+</div>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🏈 NFL Daily Brief</h1>
+    <div class="sub">Saturday, May 31, 2026 at 6:02 AM · andrewlrose@gmail.com</div>
+  </div>
+
+  <!-- SECTION 1: SUPER BOWL FUTURES -->
+  <div class="section">
+    <div class="section-title">🏆 Super Bowl Futures — Top 10</div>
+    <table>
+      <thead><tr>
+        <th>Team</th><th>Consensus %</th><th>Sharp</th><th>Public</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="team">KC</td>  <td class="pct">14.2%</td><td class="odds">+600</td> <td class="odds">+575</td></tr>
+        <tr><td class="team">PHI</td> <td class="pct">10.8%</td><td class="odds">+825</td> <td class="odds">+800</td></tr>
+        <tr><td class="team">BAL</td> <td class="pct">9.1%</td> <td class="odds">+1000</td><td class="odds">+950</td></tr>
+        <tr><td class="team">BUF</td> <td class="pct">8.7%</td> <td class="odds">+1050</td><td class="odds">+1000</td></tr>
+        <tr><td class="team">SF</td>  <td class="pct">7.3%</td> <td class="odds">+1250</td><td class="odds">+1200</td></tr>
+        <tr><td class="team">DET</td> <td class="pct">6.9%</td> <td class="odds">+1400</td><td class="odds">+1350</td></tr>
+        <tr><td class="team">HOU</td> <td class="pct">5.4%</td> <td class="odds">+1750</td><td class="odds">+1800</td></tr>
+        <tr><td class="team">LAC</td> <td class="pct">4.8%</td> <td class="odds">+2000</td><td class="odds">+1950</td></tr>
+        <tr><td class="team">DAL</td> <td class="pct">4.2%</td> <td class="odds">+2200</td><td class="odds">+2400</td></tr>
+        <tr><td class="team">GB</td>  <td class="pct">3.9%</td> <td class="odds">+2500</td><td class="odds">+2400</td></tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:16px;">
+      <div class="section-title" style="margin-bottom:10px;">📊 7-Day Movers</div>
+      <table>
+        <thead><tr>
+          <th>Team</th><th>Move</th><th>Now</th><th>Was</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="team">BUF</td><td class="up">📈 +2.3pp</td><td class="odds">+1050</td><td class="odds">+1200</td></tr>
+          <tr><td class="team">SF</td> <td class="down">📉 -1.8pp</td><td class="odds">+1250</td><td class="odds">+1100</td></tr>
+          <tr><td class="team">DAL</td><td class="up">📈 +1.6pp</td><td class="odds">+2200</td><td class="odds">+2600</td></tr>
+          <tr><td class="team">DET</td><td class="down">📉 -1.5pp</td><td class="odds">+1400</td><td class="odds">+1250</td></tr>
+          <tr><td class="team">HOU</td><td class="up">📈 +1.2pp</td><td class="odds">+1750</td><td class="odds">+2000</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 2: SHARP SIGNALS -->
+  <div class="section">
+    <div class="section-title">⚡ Sharp Signals (last 48h)</div>
+
+    <div class="tweet">
+      <div class="handle">@SharpFootball
+        <span class="tier">SHARP</span>
+      </div>
+      <div class="text">Bills money has been flowing in all week at Pinnacle and Bookmaker. Line opened KC -3 for the season opener, now sitting at KC -1.5 at sharp books. This is meaningful movement — sharp side is BUF.</div>
+      <div class="meta">May 30, 2026, 4:45 PM · <a href="#" style="color:#555;">view</a></div>
+    </div>
+
+    <div class="tweet">
+      <div class="handle">@TheActionNetwork
+        <span class="tier">ANALYST</span>
+      </div>
+      <div class="text">Win totals are up for 2026. Early public lean is heavy on KC (Over 12.5), PHI (Over 11.5), and DAL (Over 10.5). Sharp activity on BAL Under 11 quietly building at Pinnacle since yesterday.</div>
+      <div class="meta">May 30, 2026, 2:11 PM · <a href="#" style="color:#555;">view</a></div>
+    </div>
+
+    <div class="tweet">
+      <div class="handle">@ESPN_NFL_Insider
+        <span class="tier">ANALYST</span>
+      </div>
+      <div class="text">Sources: Chiefs are expected to extend Patrick Mahomes beyond his current deal. Talks have been ongoing since March. No dollar figure confirmed yet but both sides motivated.</div>
+      <div class="meta">May 29, 2026, 11:30 AM · <a href="#" style="color:#555;">view</a></div>
+    </div>
+
+    <div class="tweet">
+      <div class="handle">@VSiNLive
+        <span class="tier">SHARP</span>
+      </div>
+      <div class="text">Notable: Eagles division win total (NFC East) attracting more sharp action than expected this early. PHI currently -160 favorites to win the division at Bookmaker.</div>
+      <div class="meta">May 29, 2026, 9:08 AM · <a href="#" style="color:#555;">view</a></div>
+    </div>
+
+    <div class="tweet">
+      <div class="handle">@PFF_NFL
+        <span class="tier">ANALYST</span>
+      </div>
+      <div class="text">Our 2026 offensive line rankings are out. Top 5: SF, PHI, KC, BUF, DET. Bottom 5: NE, LV, NYG, CAR, TEN. Jalen Carter's second contract will reshape PHI's cap structure significantly.</div>
+      <div class="meta">May 28, 2026, 3:22 PM · <a href="#" style="color:#555;">view</a></div>
+    </div>
+
+    <div class="tweet">
+      <div class="handle">@FootballOutsiders
+        <span class="tier">ANALYST</span>
+      </div>
+      <div class="text">Early DVOA projections favor BAL and KC as the two most complete rosters heading into 2026. HOU makes a surprising jump to top 5 on defensive improvements.</div>
+      <div class="meta">May 28, 2026, 11:15 AM · <a href="#" style="color:#555;">view</a></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: INTEL DIGEST -->
+  <div class="section">
+    <div class="section-title">📰 Intel Digest (last 7 days)</div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">2026 NFL Win Totals: Early Sharp Action and Public Splits</a></div>
+      <div class="intel-summary">Sharp action has hit the under on several high-profile win totals including Baltimore (U11), San Francisco (U10.5), and Dallas (U9.5). Public money remains heavily on overs across the board. The sharpest discrepancy is BAL where public is 74% Over but sharp books have moved toward Under.</div>
+      <div class="intel-meta"><strong>The Ringer</strong> · <span class="conf-high">82% conf</span> · May 30, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">Offseason Roster Moves: Who Improved, Who Didn't</a></div>
+      <div class="intel-summary">A comprehensive look at all 32 teams' free agency and draft grades. Buffalo and Houston are consensus winners. New England and Las Vegas seen as losers after losing key veteran starters without adequate replacements.</div>
+      <div class="intel-meta"><strong>ESPN</strong> · <span class="conf-high">76% conf</span> · May 29, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">Lamar Jackson Contract Extension: Cap Implications for BAL</a></div>
+      <div class="intel-summary">Baltimore's new extension pushes dead cap risk into 2028-2029. In the short term it allows them to add talent in 2026-2027, but it creates a narrow window. Analysis suggests BAL is in "win now" mode through 2027.</div>
+      <div class="intel-meta"><strong>Over the Cap</strong> · <span class="conf-high">71% conf</span> · May 29, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">Rookie WR Class 2026: Fantasy and Betting Value</a></div>
+      <div class="intel-summary">Three rookie receivers projected for immediate impact roles: Malik Nabers II (PHI), Jordan Anderson (HOU), and Darius Webb (BUF). PFF projects all three to see 80+ targets in year one based on current depth charts and OTA reports.</div>
+      <div class="intel-meta"><strong>PFF</strong> · <span class="conf-med">58% conf</span> · May 28, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">NFC West Preview: Can Anyone Stop the 49ers?</a></div>
+      <div class="intel-summary">Despite last season's playoff exit, SF remains the division favorite at -180. LAR and SEA have both upgraded at quarterback. Arizona still in rebuild. Division win total market is attracting sharp attention on SF Under (currently Over -175).</div>
+      <div class="intel-meta"><strong>NFL.com</strong> · <span class="conf-med">54% conf</span> · May 27, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">Coaching Carousel Fallout: Coordinators Who Could Determine Playoff Races</a></div>
+      <div class="intel-summary">Five new offensive coordinators are joining teams with playoff aspirations. The biggest wild cards are in Minnesota (new system under first-year OC) and Indianapolis (returning coordinator with different personnel).</div>
+      <div class="intel-meta"><strong>The Athletic</strong> · <span class="conf-med">49% conf</span> · May 26, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">Quarterback Health Report: Heading Into Training Camp</a></div>
+      <div class="intel-summary">Updates on Tua (knee), Dak (shoulder), and Trevor Lawrence (wrist) heading into June. All three are cleared for full participation at camp per team sources. Lawrence's wrist was the most serious concern; team doctors say recovery exceeded expectations.</div>
+      <div class="intel-meta"><strong>NFL Network</strong> · <span class="conf-low">38% conf</span> · May 25, 2026</div>
+    </div>
+
+    <div class="intel-item">
+      <div class="intel-title"><a href="#">Super Bowl Futures: Where Is the Value in Late May?</a></div>
+      <div class="intel-summary">Long-shot value analysis on teams priced between +2000 and +4000. Houston at +1750 and Detroit at +1400 flagged as potential underpriced based on roster quality vs. public perception. KC and PHI seen as efficient — little edge in either direction.</div>
+      <div class="intel-meta"><strong>Covers.com</strong> · <span class="conf-low">35% conf</span> · May 24, 2026</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: INJURIES — hidden in offseason (no rows) -->
+  <!-- (empty — player_injuries table returns 0 rows in offseason) -->
+
+  <!-- SECTION 5: UPCOMING GAMES — hidden in offseason (no rows) -->
+  <!-- (empty — game_odds_snapshots has no future commence_time rows in offseason) -->
+
+  <div class="footer">
+    Generated by NFL Dashboard · <a href="https://github.com/andrewlrose/NFL_Dashboard" style="color:#333;">github.com/andrewlrose/NFL_Dashboard</a>
+  </div>
+
+</div>
+</body>
+</html>

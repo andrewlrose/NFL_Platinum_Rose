@@ -24,8 +24,10 @@ const BODY_MAX_CHARS = 4_000;
 const FEEDS = [
   // ── Betting / sharp-money sources ─────────────────────────────────────────
   {
+    // NFL-specific feed — all articles are already NFL content, so the
+    // looksNflRelevant filter passes everything through cleanly.
     source: 'Action Network',
-    url: 'https://www.actionnetwork.com/feed',
+    url: 'https://www.actionnetwork.com/nfl/feed',
     confidence: 0.74,
     source_type: 'betting',
   },

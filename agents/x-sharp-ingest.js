@@ -140,8 +140,10 @@ function parseRssItems(xml) {
     .filter(item => !!item.tweet_url && !!item.text);
 }
 
-async function fetchAccountFeed(handle) {
-  const url = `${RSSHUB_BASE}/twitter/user/${handle}`;
+async function fetchAccountFeed(account) {
+  const handle = account.handle;
+  // Use direct rss_url if configured; fall back to RSSHub Twitter scraper.
+  const url = account.rss_url || `${RSSHUB_BASE}/twitter/user/${handle}`;
 
   try {
     const res = await fetch(url, {
@@ -157,7 +159,7 @@ async function fetchAccountFeed(handle) {
         handle,
         ok: false,
         status: res.status,
-        error: `HTTP ${res.status} from RSSHub for @${handle}`,
+        error: `HTTP ${res.status} from feed for @${handle}`,
         items: [],
       };
     }
@@ -211,7 +213,7 @@ async function main() {
 
   for (const account of accounts) {
     console.log(`  Fetching @${account.handle}…`);
-    const result = await fetchAccountFeed(account.handle);
+    const result = await fetchAccountFeed(account);
     feedResults.push({
       handle: account.handle,
       tier:   account.tier,

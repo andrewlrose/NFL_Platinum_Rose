@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NFL Daily Brief</title>
+  <style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0d0d0d; color: #e5e5e5; margin: 0; padding: 0; }
+  .wrapper { max-width: 680px; margin: 0 auto; background: #141414; }
+  .header  { background: linear-gradient(135deg, #1a3c5e 0%, #0d2137 100%);
+             padding: 24px 32px; }
+  .header h1 { margin: 0; font-size: 22px; color: #fff; letter-spacing: -0.3px; }
+  .header .sub { color: #8db4d4; font-size: 13px; margin-top: 4px; }
+  .section { padding: 20px 32px; border-bottom: 1px solid #222; }
+  .section:last-child { border-bottom: none; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase;
+                   letter-spacing: 0.8px; color: #5b9bd5; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: #888; font-weight: 600; padding: 4px 8px 8px 0;
+       border-bottom: 1px solid #2a2a2a; }
+  td { padding: 6px 8px 6px 0; border-bottom: 1px solid #1e1e1e; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .team  { font-weight: 700; color: #fff; }
+  .up    { color: #4ade80; }
+  .down  { color: #f87171; }
+  .odds  { font-family: 'SF Mono', 'Consolas', monospace; color: #d1b854; }
+  .pct   { font-family: 'SF Mono', 'Consolas', monospace; color: #93c5fd; }
+  .tweet { background: #1a1a1a; border-left: 3px solid #1d9bf0;
+           padding: 10px 14px; margin-bottom: 10px; border-radius: 0 4px 4px 0; }
+  .tweet .handle { color: #1d9bf0; font-size: 12px; font-weight: 700;
+                   margin-bottom: 4px; }
+  .tweet .tier   { background: #1d9bf044; color: #93c5fd; font-size: 10px;
+                   font-weight: 700; padding: 1px 6px; border-radius: 10px;
+                   vertical-align: middle; margin-left: 6px; }
+  .tweet .text   { font-size: 13px; line-height: 1.5; color: #d4d4d4; }
+  .tweet .meta   { font-size: 11px; color: #555; margin-top: 6px; }
+  .intel-item    { margin-bottom: 14px; padding-bottom: 14px;
+                   border-bottom: 1px solid #1e1e1e; }
+  .intel-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .intel-title   { font-weight: 600; color: #e5e5e5; font-size: 13px; margin-bottom: 4px; }
+  .intel-title a { color: #93c5fd; text-decoration: none; }
+  .intel-summary { font-size: 12px; color: #888; line-height: 1.5; }
+  .intel-meta    { font-size: 11px; color: #555; margin-top: 4px; }
+  .podcast-intel { margin: 6px 0 0 0; padding-left: 16px; }
+  .podcast-intel li { font-size: 12px; color: #aaa; line-height: 1.6; margin-bottom: 2px; }
+  .conf-high { color: #4ade80; }
+  .conf-med  { color: #d1b854; }
+  .conf-low  { color: #888; }
+  .badge     { display: inline-block; padding: 1px 7px; border-radius: 10px;
+               font-size: 10px; font-weight: 700; margin-left: 4px; }
+  .badge-out   { background: #7f1d1d; color: #fca5a5; }
+  .badge-doubt { background: #78350f; color: #fcd34d; }
+  .badge-ir    { background: #1e1b4b; color: #a5b4fc; }
+  .footer  { padding: 16px 32px; text-align: center; font-size: 11px; color: #444; }
+  .no-data { color: #444; font-style: italic; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>🏈 NFL Daily Brief</h1>
+      <div class="sub">Tuesday, Jun 2, 2026, 12:54 PM · andrewlrose@gmail.com</div>
+    </div>
+    <div class="section">
+    <div class="section-title">🏆 Super Bowl Futures — Top 10</div>
+    <table>
+      <thead><tr>
+        <th>Team</th><th>Consensus %</th><th>Sharp</th><th>Public</th>
+      </tr></thead>
+      <tbody>
+    <tr>
+      <td class="team">Los Angeles Rams</td>
+      <td class="pct">11.6%</td>
+      <td class="odds">—</td>
+      <td class="odds">+700</td>
+    </tr>
+    <tr>
+      <td class="team">Seattle Seahawks</td>
+      <td class="pct">9.2%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1000</td>
+    </tr>
+    <tr>
+      <td class="team">Baltimore Ravens</td>
+      <td class="pct">9.1%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1000</td>
+    </tr>
+    <tr>
+      <td class="team">Buffalo Bills</td>
+      <td class="pct">9.1%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1000</td>
+    </tr>
+    <tr>
+      <td class="team">Kansas City Chiefs</td>
+      <td class="pct">6.0%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1600</td>
+    </tr>
+    <tr>
+      <td class="team">Philadelphia Eagles</td>
+      <td class="pct">5.9%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1800</td>
+    </tr>
+    <tr>
+      <td class="team">Los Angeles Chargers</td>
+      <td class="pct">5.9%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1600</td>
+    </tr>
+    <tr>
+      <td class="team">San Francisco 49ers</td>
+      <td class="pct">5.7%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1500</td>
+    </tr>
+    <tr>
+      <td class="team">Detroit Lions</td>
+      <td class="pct">5.6%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1800</td>
+    </tr>
+    <tr>
+      <td class="team">New England Patriots</td>
+      <td class="pct">5.6%</td>
+      <td class="odds">—</td>
+      <td class="odds">+1700</td>
+    </tr></tbody>
+    </table>
+    
+  </div>
+<div class="section">
+      <div class="section-title">⚡ Sharp Signals (48h)</div>
+      <p class="no-data">No sharp tweets in the last 48 hours.</p>
+    </div>
+<div class="section">
+    <div class="section-title">📰 Intel Digest (last 7 days)</div>
+    <div class="intel-item">
+      <div class="intel-title"><a href="https://www.actionnetwork.com/nfl/rams-super-bowl-odds-futures-shift-after-blockbuster-myles-garrett-trade">Rams Super Bowl Odds &amp; Futures After Blockbuster Myles Garrett Trade</a></div>
+      <div class="intel-summary">The lull of the NFL offseason was jolted on Monday with the Cleveland Browns reportedly trading two-time Defensive Player of the Year Myles Garrett to the Los Angeles Rams in</div>
+      <div class="intel-meta"><strong>Action Network</strong> · <span class="conf-high">74% conf</span> · Jun 1, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://www.bettingpros.com/articles/2026-nfl-win-totals-expert-picks-best-bets/">2026 NFL Win Totals: Expert Picks &amp;#038; Best Bets</a></div>
+      <div class="intel-summary">NFL win totals are one of the most popular futures markets every offseason, giving bettors a chance to take a stance on which teams are being overvalued or undervalued before the season begins. With the new NFL season on the horizon, we asked our Featured Pros to share their favorite 2026 NFL win totals bets. [&amp;#8230;] The post 2026 NFL Win Totals: Expert Picks &amp;#038; Best Bets appeared first on BettingPros .</div>
+      <div class="intel-meta"><strong>BettingPros</strong> · <span class="conf-high">72% conf</span> · Jun 1, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://vsin.com/the-vsin-daily/stanley-cup-final-game-1-betting-odds-picks-and-best-bets-for-hurricanes-vs-golden-knights/">Stanley Cup Final Game 1 Betting Odds, Picks And Best Bets For Hurricanes vs. Golden Knights</a></div>
+      <div class="intel-summary">We cover a lot of ground in today&amp;#8217;s email: opening night for the Stanley Cup Final, NFL trade news, NBA Finals preview, the Belmont draw &amp;#8230; and Greg Peterson&amp;#8217;s dating life. 🏒 Stanley Cup Final: Opening night VSiN hockey analyst Jonathan Davis offers his strategy for betting the Golden Knights-Hurricanes series, which starts tonight (8 [&amp;#8230;] The post Stanley Cup Final Game 1 Betting Odds, Picks And Best Bets For Hurricanes vs. Golden Knights appeared first on VSiN .</div>
+      <div class="intel-meta"><strong>VSiN</strong> · <span class="conf-high">71% conf</span> · Jun 1, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://vsin.com/the-vsin-daily/spurs-beat-thunder-in-game-7-favored-vs-knicks-in-nba-finals/">How VSiN Is Preparing Bettors For 2026 NFL Season</a></div>
+      <div class="intel-summary">🏈 NFL: Football season starts now We head into a new month with Game 1s in the NBA Finals and Stanley Cup Final on the menu this week. But let&amp;#8217;s take a moment to remind everyone of something important: It&amp;#8217;s always NFL season at VSiN. VSiN is now offering special early-bird pricing of $175 for [&amp;#8230;] The post How VSiN Is Preparing Bettors For 2026 NFL Season appeared first on VSiN .</div>
+      <div class="intel-meta"><strong>VSiN</strong> · <span class="conf-high">71% conf</span> · May 31, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://vsin.com/nfl/tuleys-takes-early-bets-for-nfl-week-1/">Tuley&amp;#8217;s Takes: Early Bets for NFL Week 1</a></div>
+      <div class="intel-summary">Tuley&amp;#8217;s Takes &amp;#8211; Early Bets for NFL Week 1: The NFL’s 2026 schedule was released on Thursday, May 14 (with some early leaks) and, of course, sportsbooks here in Las Vegas and everywhere else rushed out their Week 1 openers. We saw some movement in the lines as the market settled, mostly with early bettors [&amp;#8230;] The post Tuley&amp;#8217;s Takes: Early Bets for NFL Week 1 appeared first on VSiN .</div>
+      <div class="intel-meta"><strong>VSiN</strong> · <span class="conf-high">71% conf</span> · May 26, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://www.sharpfootballanalysis.com/analysis/2026-nfl-draft-steals-reaches-most-valuable/">2026 NFL Draft Steals &amp;#038; Reaches: Most Valuable Draft Classes</a></div>
+      <div class="intel-summary">Subscribe to the Sharp Football Email Newsletter to receive all our 2026 NFL content: Rather than grading draft classes, an exercise I enjoy doing and believe has some merit, I like evaluating draft classes based on a “wisdom of crowds” approach. The methodology I use incorporates consensus mock drafts from Ben Robinson and consensus big boards assembled [...]</div>
+      <div class="intel-meta"><strong>Sharp Football</strong> · <span class="conf-med">69% conf</span> · Jun 1, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://www.sharpfootballanalysis.com/analysis/nfl-draft-grades-2026/">NFL Draft Grades 2026: Grading All 32 Teams After the Draft</a></div>
+      <div class="intel-summary">Subscribe to the Sharp Football Email Newsletter to receive all our 2026 NFL content: The 2026 NFL draft is in the books, which means it's time to hand out grades. I know some people roll their eyes at draft grades because we won't actually know how teams fared until a few years [...]</div>
+      <div class="intel-meta"><strong>Sharp Football</strong> · <span class="conf-med">69% conf</span> · Jun 1, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title"><a href="https://www.sharpfootballanalysis.com/analysis/nfl-power-rankings/">NFL Power Rankings 2026: Post NFL Draft, All 32 Teams</a></div>
+      <div class="intel-summary">Subscribe to the Sharp Football Email Newsletter to receive all our 2026 NFL content: The Seahawks are Super Bowl Champions, but is the best 2026 team one of their division rivals? Learn where each NFL team stacks up in our updated power rankings and among the best NFL teams for the 2026 [...]</div>
+      <div class="intel-meta"><strong>Sharp Football</strong> · <span class="conf-med">69% conf</span> · Jun 1, 2026</div>
+    </div>
+  </div>
+<div class="section">
+    <div class="section-title">🎙 Podcast Intel</div>
+    <div class="intel-item">
+      <div class="intel-title">🎙 NFL Schedule Release PART 2 with Warren Sharp</div>
+      <ul class="podcast-intel"><li>Chargers have a negative 24-day net rest differential, worst since 2013.</li><li>Chargers play seven games with rest disadvantages, most in the league.</li><li>Chargers face four teams coming off a bye, including Chiefs and Patriots.</li><li>Chargers' first two games are easy, but rest of schedule is second hardest.</li></ul>
+      <div class="intel-meta"><strong>Sharp or Square</strong> · May 26, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title">🎙 NFL WEEK 1 BETTING LINES - 2026 Regular Season Openers</div>
+      <ul class="podcast-intel"><li>Week 1 lines are a major focus for bettors.</li><li>NFL likely moving to an 18-game schedule soon.</li><li>Seattle favored by 4.5 points against New England.</li><li>Rams favored by 2.5 points against 49ers in Australia.</li></ul>
+      <div class="intel-meta"><strong>Sharp or Square</strong> · May 28, 2026</div>
+    </div><div class="intel-item">
+      <div class="intel-title">🎙 Warren Sharp: NFL Schedule Release Bets</div>
+      <ul class="podcast-intel"><li>Teams with a 3 to 6 day rest advantage from week 6 onward cover the spread 54.6% of the time.</li><li>Road teams with more than six days of rest after week 6 cover the spread 53.3% of the time.</li><li>Teams with a positive net rest advantage tend to perform better in terms of win totals.</li><li>Teams with a negative net rest disadvantage tend to underperform in terms of win totals.</li></ul>
+      <div class="intel-meta"><strong>Even Money</strong> · May 19, 2026</div>
+    </div>
+  </div>
+<div class="section">
+    <div class="section-title">🏥 Injury Report</div>
+    <table>
+      <thead><tr>
+        <th>Team</th><th>Player</th><th>Status</th><th>Type</th>
+      </tr></thead>
+      <tbody>
+      <tr>
+        <td class="team">NYG</td>
+        <td>Gunner Olszewski <em style="color:#666;font-size:11px;">WR</em></td>
+        <td><span class="badge badge-out">OUT</span></td>
+        <td style="color:#888;font-size:12px;">Olszewski will have surgery on his ruptured Achilles on Monday, Art Stapleton of The Bergen Record reports.</td>
+      </tr></tbody>
+    </table>
+  </div>
+
+    <div class="footer">
+      Generated by NFL Dashboard · <a href="https://github.com/andrewlrose/NFL_Dashboard" style="color:#333;">github.com/andrewlrose/NFL_Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

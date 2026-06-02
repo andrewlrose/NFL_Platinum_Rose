@@ -280,10 +280,16 @@ export function truncateToHour(date) {
 export async function writeSnapshots(supabase, rows, useEnhancedColumns) {
   if (rows.length === 0) return 0;
 
-  // Upsert in batches of 200 — idempotent on
-  // (market_type, team, book, snapshot_time).
-  // snapshot_time is pre-truncated to the UTC hour so re-runs within the same
-  // hour resolve to a no-op update rather than a duplicate insert.
+  // Delete-then-insert pattern — idempotent on snapshot_time (truncated to
+  // UTC hour). Works without requiring a unique constraint on the table; a
+  // second run in the same hour replaces the previous batch cleanly.
+  const snapshotTime = rows[0].snapshot_time;
+  const { error: delError } = await supabase
+    .from('futures_odds_snapshots')
+    .delete()
+    .eq('snapshot_time', snapshotTime);
+  if (delError) throw new Error(`Supabase delete error: ${delError.message}`);
+
   const BATCH = 200;
   let written = 0;
   for (let i = 0; i < rows.length; i += BATCH) {
@@ -302,8 +308,8 @@ export async function writeSnapshots(supabase, rows, useEnhancedColumns) {
 
     const { error } = await supabase
       .from('futures_odds_snapshots')
-      .upsert(batch, { onConflict: 'market_type,team,book,snapshot_time' });
-    if (error) throw new Error(`Supabase upsert error: ${error.message}`);
+      .insert(batch);
+    if (error) throw new Error(`Supabase insert error: ${error.message}`);
     written += batch.length;
   }
   return written;

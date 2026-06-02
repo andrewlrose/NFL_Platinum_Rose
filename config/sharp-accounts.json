@@ -1,62 +1,108 @@
 {
-  "_comment": "Sharp X/Twitter accounts monitored by x-sharp-ingest.js. Add handles here — the agent polls each via RSSHub. Set RSSHUB_BASE_URL env var to override the public instance (recommended: self-host rsshub for reliability).",
+  "_comment": "NFL intel sources for x-sharp-ingest.js. rss_url = direct RSS feed (preferred). Accounts without rss_url fall back to RSSHub Twitter scraper (currently broken on rsshub.app — self-host or add rss_url instead).",
   "rsshub_base_url_default": "https://rsshub.app",
   "accounts": [
     {
       "handle": "SharpFootball",
-      "display_name": "Warren Sharp",
+      "display_name": "Warren Sharp (sharpfootballanalysis.com)",
+      "rss_url": "https://sharpfootballanalysis.com/feed/",
       "tier": "analyst",
       "tags": ["analytics", "trends", "ATS", "situational"],
       "active": true
     },
     {
-      "handle": "ActionNetworkHQ",
-      "display_name": "Action Network",
-      "tier": "media",
-      "tags": ["picks", "betting", "public-money", "steam"],
-      "active": true
-    },
-    {
-      "handle": "VSiN",
-      "display_name": "VSiN (Vegas Stats & Info Network)",
-      "tier": "sharp",
-      "tags": ["sharp-money", "line-movement", "bookmaker-intel"],
-      "active": true
-    },
-    {
       "handle": "PFF",
       "display_name": "Pro Football Focus",
+      "rss_url": "https://www.pff.com/news/nfl/rss",
       "tier": "analyst",
       "tags": ["grades", "advanced-stats", "matchup", "snap-counts"],
       "active": true
     },
     {
+      "handle": "ProFootballTalk",
+      "display_name": "ProFootballTalk (NBC Sports)",
+      "rss_url": "https://profootballtalk.nbcsports.com/feed/",
+      "tier": "analyst",
+      "tags": ["transactions", "injuries", "news", "rumor"],
+      "active": true
+    },
+    {
+      "handle": "RotowireNFL",
+      "display_name": "Rotowire NFL",
+      "rss_url": "https://www.rotowire.com/rss/news.php?sport=NFL",
+      "tier": "analyst",
+      "tags": ["injuries", "lineup", "depth-chart"],
+      "active": true
+    },
+    {
+      "handle": "FootballOutsiders",
+      "display_name": "Football Outsiders",
+      "rss_url": "https://www.footballoutsiders.com/rss.xml",
+      "tier": "analyst",
+      "tags": ["analytics", "DVOA", "efficiency"],
+      "active": true
+    },
+    {
+      "handle": "ESPNNfl",
+      "display_name": "ESPN NFL News",
+      "rss_url": "https://www.espn.com/espn/rss/nfl/news",
+      "tier": "analyst",
+      "tags": ["news", "injuries", "transactions"],
+      "active": true
+    },
+    {
+      "handle": "ActionNetworkHQ",
+      "display_name": "Action Network",
+      "rss_url": null,
+      "tier": "analyst",
+      "tags": ["picks", "betting", "public-money", "steam"],
+      "active": false,
+      "_note": "No public RSS feed. Re-enable if rss_url found."
+    },
+    {
+      "handle": "VSiN",
+      "display_name": "VSiN (Vegas Stats & Info Network)",
+      "rss_url": null,
+      "tier": "sharp",
+      "tags": ["sharp-money", "line-movement", "bookmaker-intel"],
+      "active": false,
+      "_note": "No public RSS feed. Re-enable if rss_url found."
+    },
+    {
       "handle": "bettingpros",
       "display_name": "BettingPros",
-      "tier": "media",
+      "rss_url": null,
+      "tier": "analyst",
       "tags": ["consensus", "best-bets", "injury-news"],
-      "active": true
+      "active": false,
+      "_note": "No public RSS feed. Re-enable if rss_url found."
     },
     {
       "handle": "FantasyDouche",
       "display_name": "Adam Levitan",
+      "rss_url": null,
       "tier": "analyst",
       "tags": ["DFS", "props", "targets", "air-yards"],
-      "active": true
+      "active": false,
+      "_note": "Twitter-only analyst. Re-enable with rss_url if available."
     },
     {
       "handle": "MattEchols",
       "display_name": "Matt Echols (SIS)",
+      "rss_url": null,
       "tier": "analyst",
       "tags": ["analytics", "EPA", "situational", "run-pass"],
-      "active": true
+      "active": false,
+      "_note": "Twitter-only analyst. Re-enable with rss_url if available."
     },
     {
       "handle": "PlatinumRoseNFL",
       "display_name": "Platinum Rose (Creator Account)",
+      "rss_url": null,
       "tier": "creator",
       "tags": ["picks", "session-notes", "own-account"],
-      "active": true
+      "active": false,
+      "_note": "Creator's own account — no automated RSS needed."
     }
   ]
 }
