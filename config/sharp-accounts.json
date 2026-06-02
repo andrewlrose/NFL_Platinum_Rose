@@ -13,7 +13,7 @@
     {
       "handle": "PFF",
       "display_name": "Pro Football Focus",
-      "rss_url": "https://www.pff.com/news/nfl/rss",
+      "rss_url": "https://www.pff.com/feed",
       "tier": "analyst",
       "tags": ["grades", "advanced-stats", "matchup", "snap-counts"],
       "active": true
