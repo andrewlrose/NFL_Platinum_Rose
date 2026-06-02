@@ -48,10 +48,18 @@ const GMAIL_PASS   = process.env.GMAIL_APP_PASSWORD;
 const TO_EMAIL     = process.env.TO_EMAIL || 'andrewlrose@hotmail.com';
 const DRY_RUN      = process.argv.includes('--dry-run') || process.env.DRY_RUN === 'true';
 
-const TWEET_HOURS  = Number(process.env.TWEET_LOOKBACK_HOURS || 48);
-const INTEL_DAYS   = Number(process.env.INTEL_LOOKBACK_DAYS  || 7);
-const INJURY_DAYS  = Number(process.env.INJURY_LOOKBACK_DAYS || 7);
-const GAMES_DAYS   = Number(process.env.GAMES_LOOKAHEAD_DAYS || 8);
+const TWEET_HOURS    = Number(process.env.TWEET_LOOKBACK_HOURS || 48);
+const INTEL_DAYS     = Number(process.env.INTEL_LOOKBACK_DAYS  || 7);
+const INJURY_DAYS    = Number(process.env.INJURY_LOOKBACK_DAYS || 7);
+const GAMES_DAYS     = Number(process.env.GAMES_LOOKAHEAD_DAYS || 8);
+const DASHBOARD_BASE = process.env.DASHBOARD_URL || 'https://andrewlrose.github.io/platinum-rose-app/';
+
+function dashLink(tab, label = 'View in Dashboard →') {
+  const url = `${DASHBOARD_BASE.replace(/\/$/, '')}/?tab=${tab}`;
+  return `<div style="text-align:right;margin-top:10px;">
+    <a href="${url}" style="font-size:11px;color:#555;text-decoration:none;">🔗 ${label}</a>
+  </div>`;
+}
 
 // Teams with most betting interest — top 10 for futures snapshot
 const SB_TOP_TEAMS = [
@@ -539,6 +547,7 @@ function renderFutures(sbRows, moverRows) {
       <tbody>${rows}</tbody>
     </table>
     ${moverHtml}
+    ${dashLink('futures', 'Full Futures + Odds Monitor →')}
   </div>`;
 }
 
@@ -563,6 +572,7 @@ function renderTweets(tweets) {
   return `<div class="section">
     <div class="section-title">⚡ Sharp Signals (last ${TWEET_HOURS}h)</div>
     ${items}
+    ${dashLink('odds', 'Live Odds + Line Movement →')}
   </div>`;
 }
 
@@ -594,6 +604,7 @@ function renderIntel(notes) {
   return `<div class="section">
     <div class="section-title">📰 Intel Digest (last ${INTEL_DAYS} days)</div>
     ${items}
+    ${dashLink('agent', 'Ask the Agent →')}
   </div>`;
 }
 
@@ -621,6 +632,7 @@ function renderPodcastIntel(episodes) {
   return `<div class="section">
     <div class="section-title">🎙 Podcast Intel</div>
     ${items}
+    ${dashLink('picks', 'Picks Tracker + Podcast →')}
   </div>`;
 }
 

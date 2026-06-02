@@ -53,15 +53,35 @@ import StorageBackupModal from './components/modals/StorageBackupModal';
 import PodcastIngestModal from './components/modals/PodcastIngestModal';
 import AgentStatusModal from './components/modals/AgentStatusModal';
 
+const VALID_TABS = new Set([
+  'dashboard','standings','mycard','devlab','bankroll',
+  'analytics','odds','picks','futures','agent','props','dfs',
+]);
+
 function App() {
   // --- UI State (local to App) ---
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    return VALID_TABS.has(tab) ? tab : 'dashboard';
+  });
   const [selectedGame, setSelectedGame] = useState(null);
   const [betEntryGame, setBetEntryGame] = useState(null);
   const [podcastModalOpen, setPodcastModalOpen] = useState(false);
   const [agentStatusOpen, setAgentStatusOpen] = useState(false);
 
   // --- Custom Hooks ---
+  // Sync active tab to URL so briefing deeplinks work
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (activeTab === 'dashboard') {
+      url.searchParams.delete('tab');
+    } else {
+      url.searchParams.set('tab', activeTab);
+    }
+    window.history.replaceState(null, '', url.toString());
+  }, [activeTab]);
+
   const {
     modals, openModal, closeModal,
     selectedBetForEdit, setSelectedBetForEdit,
