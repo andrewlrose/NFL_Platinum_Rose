@@ -1,0 +1,24 @@
+{
+  "name": "@nfl/m6-podcast-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "M6-hosted podcast ingest + digest service (Fastify). See spec §3 Phase 2.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "fastify": "^5.0.0",
+    "@fastify/static": "^8.0.0",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.5"
+  }
+}

@@ -1,0 +1,38 @@
+[Unit]
+Description=NFL Podcast Pipeline (M6 local ingest + digest)
+Documentation=file:///home/andrewlrose/projects/NFL_Dashboard/packages/m6-podcast-service/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=andrewlrose
+Group=andrewlrose
+WorkingDirectory=/home/andrewlrose/projects/NFL_Dashboard/packages/m6-podcast-service
+EnvironmentFile=/etc/nfl-podcast.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=15s
+
+# Hardening — same posture as atlas-dispatch.service
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/nfl /var/log/nfl-podcast
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+
+# Logs go to journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nfl-podcast
+
+[Install]
+WantedBy=multi-user.target
