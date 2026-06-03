@@ -7,7 +7,7 @@ import {
   getLastRunSummary,
   getQueueDepth,
 } from './runRegistry.js';
-import { buildPhase4Worker, parsePipelineInput } from './pipelineWorker.js';
+import { buildPipelineWorker, parsePipelineInput } from './pipelineWorker.js';
 
 /**
  * Build a configured Fastify instance. Exposed as a function so tests can
@@ -19,8 +19,9 @@ import { buildPhase4Worker, parsePipelineInput } from './pipelineWorker.js';
  */
 export function buildServer(opts = {}) {
   const hmacSecret = opts.hmacSecret ?? config.hmacSecret;
-  // Worker can be injected by tests to skip spawning Python.
-  const worker = opts.worker ?? buildPhase4Worker();
+  // Worker can be injected by tests to skip spawning Python. Default routes
+  // by input.mode (extract / transcribe / full).
+  const worker = opts.worker ?? buildPipelineWorker();
   const app = Fastify({
     logger: opts.logger ?? { level: config.nodeEnv === 'test' ? 'silent' : 'info' },
     bodyLimit: 1 * 1024 * 1024, // 1 MB; ingest payloads are tiny

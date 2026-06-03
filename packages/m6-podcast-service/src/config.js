@@ -32,6 +32,9 @@ export const config = {
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL ?? 'http://127.0.0.1:11434',
   ollamaModel: process.env.OLLAMA_MODEL ?? 'qwen3:8b',
 
+  whisperModel: process.env.WHISPER_MODEL ?? 'large-v3-turbo',
+  whisperModelDir: process.env.WHISPER_MODEL_DIR ?? '/var/lib/nfl/models',
+
   audioDir: process.env.NFL_AUDIO_DIR ?? '/var/lib/nfl/audio',
   transcriptDir: process.env.NFL_TRANSCRIPT_DIR ?? '/var/lib/nfl/transcripts',
   digestDir: process.env.NFL_DIGEST_DIR ?? '/var/lib/nfl/digest',
