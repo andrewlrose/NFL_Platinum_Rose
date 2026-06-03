@@ -106,24 +106,21 @@ export default function OddsCenter() {
     <div className="space-y-6">
       {/* Navigation Tabs */}
       <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-        <div className="flex overflow-x-auto">
+        <div className="flex">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 px-6 py-4 min-w-fit relative ${
+                className={`relative flex flex-1 items-center justify-center gap-2 px-3 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                   activeTab === tab.id
                     ? 'bg-blue-600 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-slate-700'
                 }`}
               >
-                <Icon size={20} />
-                <div className="text-left">
-                  <div className="font-medium">{tab.label}</div>
-                  <div className="text-xs opacity-75">{tab.description}</div>
-                </div>
+                <Icon size={16} />
+                <span>{tab.label}</span>
                 {tab.badge && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {tab.badge}

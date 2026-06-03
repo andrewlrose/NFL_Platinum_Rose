@@ -23,16 +23,16 @@ export default function Header({
   const NavTab = ({ id, label, icon: Icon }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`relative h-full px-6 flex items-center gap-2 font-bold text-sm transition-all border-b-2 ${
+      className={`relative h-full px-3 flex items-center gap-1.5 font-bold text-[11px] whitespace-nowrap transition-all border-b-2 ${
         activeTab === id
         ? 'border-emerald-500 text-white'
         : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5'
       }`}
     >
-      <Icon size={16} className={activeTab === id ? "text-emerald-400" : ""} />
+      <Icon size={14} className={activeTab === id ? "text-emerald-400" : ""} />
       {label}
       {id === 'mycard' && cartCount > 0 && (
-          <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full ml-1.5 shadow-sm shadow-emerald-500/50">
+          <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full ml-1 shadow-sm shadow-emerald-500/50">
               {cartCount}
           </span>
       )}
@@ -123,16 +123,16 @@ export default function Header({
 
       {/* --- BOTTOM LAYER: NAVIGATION --- */}
       <div className="bg-slate-900/80 border-b border-slate-800 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 h-11 flex items-center justify-center gap-4 overflow-x-auto no-scrollbar">
+        <div className="max-w-7xl mx-auto px-2 h-11 flex items-center justify-between">
             <NavTab id="dashboard" label="The Board" icon={LayoutDashboard} />
             <NavTab id="mycard" label="My Card" icon={ShoppingBag} />
             <NavTab id="bankroll" label="Bankroll" icon={Banknote} />
             <NavTab id="analytics" label="Analytics" icon={BarChart3} />
             <NavTab id="odds" label="Live Odds" icon={TrendingUp} />
-            <NavTab id="standings" label="Expert Standings" icon={Trophy} />
-            <NavTab id="picks" label="Picks Tracker" icon={Target} />
+            <NavTab id="standings" label="Standings" icon={Trophy} />
+            <NavTab id="picks" label="Picks" icon={Target} />
             <NavTab id="futures" label="Futures" icon={Briefcase} />
-            <NavTab id="devlab" label="AI Dev Lab" icon={Mic2} />
+            <NavTab id="devlab" label="Dev Lab" icon={Mic2} />
             <NavTab id="agent" label="Agent" icon={MessageSquare} />
             <NavTab id="props" label="Props" icon={Zap} />
             <NavTab id="dfs" label="DFS" icon={Layers} />
