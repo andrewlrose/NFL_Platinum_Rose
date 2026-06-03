@@ -25,15 +25,25 @@ export default function LiveOddsDashboard() {
 
   useEffect(() => {
     (async () => {
-      // 1. Try Supabase snapshot (written by OddsIngestAgent every 4h)
+      // 1. Try Supabase snapshot (written by game-odds-ingest agent)
       try {
         const snap = await getLatestOddsSnapshot();
         if (snap?.games?.length) {
           const ageMin = Math.round((Date.now() - new Date(snap.fetchedAt).getTime()) / 60000);
-          if (ageMin < 60) { // use if < 1 hour old
+          // Accept up to 7 days old — covers offseason and weekly ingest cadence
+          if (ageMin < 7 * 24 * 60) {
             logger.log(`☁️ Using Supabase odds snapshot (${ageMin}m old, ${snap.games.length} games)`);
             setGames(snap.games);
             setLastUpdate(new Date(snap.fetchedAt));
+            // Clear isMock so the simulated-data warning doesn't show
+            const currentQuota = getOddsQuotaState();
+            if (currentQuota.isMock) {
+              saveToStorage(PR_STORAGE_KEYS.ODDS_QUOTA.key, {
+                ...currentQuota,
+                isMock: false,
+              });
+              setQuotaState({ ...currentQuota, isMock: false });
+            }
             // Mirror to cache so BetValueComparison + OddsCenter badge work
             saveToStorage(PR_STORAGE_KEYS.CACHED_ODDS.key, snap.games);
             saveToStorage(PR_STORAGE_KEYS.CACHED_ODDS_TIME.key, new Date(snap.fetchedAt).getTime());

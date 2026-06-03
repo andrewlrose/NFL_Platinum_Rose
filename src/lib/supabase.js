@@ -36,24 +36,108 @@ function withQueryTimeout(queryPromise) {
 
 // ─── Odds ────────────────────────────────────────────────────────────────────
 
+// Reverse map: DB abbreviation → full team name (matches TheOddsAPI format)
+const ABBR_TO_TEAM = {
+  ARI: 'Arizona Cardinals',   ATL: 'Atlanta Falcons',
+  BAL: 'Baltimore Ravens',    BUF: 'Buffalo Bills',
+  CAR: 'Carolina Panthers',   CHI: 'Chicago Bears',
+  CIN: 'Cincinnati Bengals',  CLE: 'Cleveland Browns',
+  DAL: 'Dallas Cowboys',      DEN: 'Denver Broncos',
+  DET: 'Detroit Lions',       GB:  'Green Bay Packers',
+  HOU: 'Houston Texans',      IND: 'Indianapolis Colts',
+  JAX: 'Jacksonville Jaguars',KC:  'Kansas City Chiefs',
+  LV:  'Las Vegas Raiders',   LAC: 'Los Angeles Chargers',
+  LAR: 'Los Angeles Rams',    MIA: 'Miami Dolphins',
+  MIN: 'Minnesota Vikings',   NE:  'New England Patriots',
+  NO:  'New Orleans Saints',  NYG: 'New York Giants',
+  NYJ: 'New York Jets',       PHI: 'Philadelphia Eagles',
+  PIT: 'Pittsburgh Steelers', SF:  'San Francisco 49ers',
+  SEA: 'Seattle Seahawks',    TB:  'Tampa Bay Buccaneers',
+  TEN: 'Tennessee Titans',    WSH: 'Washington Commanders',
+};
+
+const BOOK_META = {
+  draftkings: { name: 'DraftKings', color: 'text-orange-400' },
+  fanduel:    { name: 'FanDuel',    color: 'text-blue-400'   },
+  betmgm:     { name: 'BetMGM',     color: 'text-yellow-400' },
+  caesars:    { name: 'Caesars',    color: 'text-purple-400' },
+  betonline:  { name: 'BetOnline',  color: 'text-green-400'  },
+  bookmaker:  { name: 'Bookmaker',  color: 'text-red-400'    },
+  pointsbet:  { name: 'PointsBet',  color: 'text-pink-400'   },
+};
+
 /**
- * Get the most recent odds snapshot written by OddsIngestAgent.
- * Returns { games: ProcessedGame[], fetchedAt: string } or null.
+ * Get the most recent odds snapshot from game_odds_snapshots.
+ * Reshapes normalized rows into ProcessedGame[] matching enhancedOddsApi format:
+ * { id, home_team, away_team, commence_time, bookmakers: { [book]: { name, color, markets: { moneyline, spread, total } } } }
  */
 export async function getLatestOddsSnapshot() {
   if (!isAvailable()) return null;
   try {
-    const { data, error } = await withQueryTimeout(
+    // Find the most recent captured_at bucket
+    const { data: latest, error: latestErr } = await withQueryTimeout(
       supabase
-        .from('odds_snapshots')
-        .select('games, fetched_at')
-        .order('fetched_at', { ascending: false })
+        .from('game_odds_snapshots')
+        .select('captured_at')
+        .order('captured_at', { ascending: false })
         .limit(1)
         .single()
     );
+    if (latestErr || !latest) return null;
 
-    if (error || !data) return null;
-    return { games: data.games || [], fetchedAt: data.fetched_at };
+    const capturedAt = latest.captured_at;
+
+    // Fetch all rows for that snapshot
+    const { data: rows, error: rowsErr } = await withQueryTimeout(
+      supabase
+        .from('game_odds_snapshots')
+        .select('game_id, home_team, away_team, commence_time, book, market, home_price, away_price, spread, total')
+        .eq('captured_at', capturedAt)
+    );
+    if (rowsErr || !rows?.length) return null;
+
+    // Group by game_id
+    const gameMap = new Map();
+    for (const row of rows) {
+      if (!gameMap.has(row.game_id)) {
+        const homeTeam = ABBR_TO_TEAM[row.home_team] || row.home_team;
+        const awayTeam = ABBR_TO_TEAM[row.away_team] || row.away_team;
+        gameMap.set(row.game_id, {
+          id: row.game_id,
+          home_team: homeTeam,
+          away_team: awayTeam,
+          commence_time: row.commence_time,
+          bookmakers: {},
+        });
+      }
+      const game = gameMap.get(row.game_id);
+      if (!game.bookmakers[row.book]) {
+        game.bookmakers[row.book] = {
+          name:    (BOOK_META[row.book] || {}).name  || row.book,
+          color:   (BOOK_META[row.book] || {}).color || 'text-slate-400',
+          markets: {},
+        };
+      }
+      const bm = game.bookmakers[row.book];
+      if (row.market === 'moneyline') {
+        bm.markets.moneyline = { home: row.home_price, away: row.away_price };
+      } else if (row.market === 'spread') {
+        bm.markets.spread = {
+          home_line:  row.spread != null ? row.spread : null,
+          home_price: row.home_price,
+          away_line:  row.spread != null ? -row.spread : null,
+          away_price: row.away_price,
+        };
+      } else if (row.market === 'total') {
+        bm.markets.total = {
+          line:        row.total,
+          over_price:  row.home_price,
+          under_price: row.away_price,
+        };
+      }
+    }
+
+    return { games: Array.from(gameMap.values()), fetchedAt: capturedAt };
   } catch (e) {
     logger.warn('[supabase] getLatestOddsSnapshot failed:', e.message);
     return null;
