@@ -1,0 +1,10 @@
+# M6-only Python deps (Phase 3 transcription).
+# Install on M6 in a venv separate from the ATLAS venv:
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt -r requirements-m6.txt
+#
+# These pull native CTranslate2 binaries that are not necessary for unit
+# tests on Windows dev (tests use a fake WhisperBackend).
+
+faster-whisper==1.0.3
+ctranslate2==4.4.0

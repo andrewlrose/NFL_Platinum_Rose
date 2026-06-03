@@ -7,9 +7,10 @@ httpx==0.28.1            # Ollama HTTP client; sync + async
 jsonschema==4.23.0       # response validation
 python-dotenv==1.0.1     # env loading parity with the Node service
 
-# Phase 3 — transcription (added in next phase)
-# faster-whisper==1.0.3
-# ctranslate2==4.4.0
+# Phase 3 — transcription (M6-only; heavy native deps).
+# Skip on Windows dev — tests use a fake WhisperBackend.
+# Install with: pip install -r requirements-m6.txt
+# faster-whisper and ctranslate2 are pinned in requirements-m6.txt
 
 # Tests
 pytest==8.3.3

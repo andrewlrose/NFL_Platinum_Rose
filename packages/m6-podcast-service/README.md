@@ -137,3 +137,43 @@ sudo systemctl restart nfl-podcast
 - [x] Invalid HMAC returns 401
 - [ ] **Manual on M6:** service auto-restarts within 15s after `kill -9`
 - [ ] **Manual on M6:** survives reboot (`systemctl is-enabled` = `enabled`)
+
+## Phase 3 — Transcription (Python)
+
+The Python extractor + transcriber lives in [python/](python/). It is portable so unit tests run on Windows dev with a fake Whisper backend; M6 production uses `faster-whisper` (CTranslate2).
+
+### M6 setup
+
+```bash
+cd /home/andrewlrose/projects/NFL_Dashboard/packages/m6-podcast-service/python
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt -r requirements-m6.txt
+
+# Pre-download Whisper models (one time)
+sudo mkdir -p /var/lib/nfl/models /var/lib/nfl/audio /var/lib/nfl/transcripts /var/lib/nfl/digest
+sudo chown -R andrewlrose:andrewlrose /var/lib/nfl
+# faster-whisper auto-downloads on first use; or pre-pull e.g.:
+# huggingface-cli download Systran/faster-whisper-large-v3-turbo --local-dir /var/lib/nfl/models/large-v3-turbo
+```
+
+### Run a transcription
+
+```bash
+.venv/bin/python -m nfl_podcast.transcribe \`n  --audio /var/lib/nfl/audio/<id>.mp3 \`n  --episode-id <id> \`n  --model large-v3-turbo
+```
+
+### Run the model bench (one time, picks daily driver)
+
+```bash
+.venv/bin/python -m nfl_podcast.bin.bench_whisper \`n  --audio /var/lib/nfl/audio/<sample>.mp3 \`n  --reference /var/lib/nfl/transcripts/<sample>.reference.txt \`n  --out /var/lib/nfl/bench/<sample>.json
+```
+
+Recommends `large-v3-turbo` unless WER delta vs `large-v3` exceeds 2 percentage points (per spec §3 Phase 3).
+
+### Tests (Windows-friendly)
+
+```bash
+cd python && python -m pytest tests/ -v
+```
+
+All 36 tests run offline with mocked ffmpeg + mocked Whisper backend.
