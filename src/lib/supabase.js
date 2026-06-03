@@ -529,6 +529,244 @@ export async function getPodcastEpisodes(limit = 30) {
   }
 }
 
+// ─── Phase 6: Podcast intel queries (BETTING + FUTURES agent tools) ──────────
+//
+// These queries fan out from `podcast_transcripts.picks` (JSONB array).
+// Each pick conforms to the v2 shape enforced by migration 023:
+//   { category, subject, subject_market?, selection, team1, team2?, line?,
+//     odds_american?, summary, units?, confidence, season?, week?, game_date?,
+//     quality_score, needs_review, source_chunk_idx?, source_timestamp_secs? }
+//
+// Filtering/flattening happens client-side because the data volume is bounded
+// (≤ ~1 episode/day × ~10 picks). When picks volume grows past ~10k, move
+// these to a server-side RPC. All callers MUST exclude needs_review picks
+// before surfacing to agents (acceptance §A5).
+
+const POD_LOOKBACK_DEFAULT_HOURS = 14 * 24;
+const POD_NEEDS_REVIEW_FILTER = (p) => p && p.needs_review !== true;
+
+/**
+ * Fetch recent episodes joined with feed + transcript, flattening each pick
+ * into a row carrying its episode/expert context. Internal helper.
+ * @param {{ hours?: number, limit?: number }} opts
+ * @returns {Promise<Array<{episode_id, episode_title, pub_date, expert, feed_name, processed_at, pick}>>}
+ */
+async function _flattenPodcastPicks({ hours = POD_LOOKBACK_DEFAULT_HOURS, limit = 200 } = {}) {
+  if (!isAvailable()) return [];
+  const since = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+  try {
+    const { data, error } = await withQueryTimeout(
+      supabase
+        .from('podcast_episodes')
+        .select(`
+          id, title, pub_date,
+          podcast_feeds ( name, expert ),
+          podcast_transcripts ( picks, processed_at )
+        `)
+        .eq('status', 'done')
+        .gte('pub_date', since)
+        .order('pub_date', { ascending: false })
+        .limit(limit)
+    );
+    if (error || !Array.isArray(data)) return [];
+    const rows = [];
+    for (const ep of data) {
+      const transcript = Array.isArray(ep.podcast_transcripts)
+        ? ep.podcast_transcripts[0]
+        : ep.podcast_transcripts;
+      const picks = transcript?.picks;
+      if (!Array.isArray(picks)) continue;
+      const feed = Array.isArray(ep.podcast_feeds) ? ep.podcast_feeds[0] : ep.podcast_feeds;
+      for (const pick of picks) {
+        if (!POD_NEEDS_REVIEW_FILTER(pick)) continue;
+        rows.push({
+          episode_id: ep.id,
+          episode_title: ep.title,
+          pub_date: ep.pub_date,
+          expert: feed?.expert || null,
+          feed_name: feed?.name || null,
+          processed_at: transcript?.processed_at || null,
+          pick,
+        });
+      }
+    }
+    return rows;
+  } catch (e) {
+    logger.warn('[supabase] _flattenPodcastPicks failed:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Search recent podcast picks by team / expert / category / week.
+ * Tool: `search_podcast_picks`.
+ * @param {{ team?: string, expert?: string, category?: string, week?: number, season?: number, limit?: number }} opts
+ */
+export async function searchPodcastPicks({ team, expert, category, week, season, limit = 25 } = {}) {
+  const rows = await _flattenPodcastPicks({ limit: 200 });
+  const teamU = team ? String(team).toUpperCase() : null;
+  const expertL = expert ? String(expert).toLowerCase() : null;
+  const filtered = rows.filter(({ pick, expert: ex }) => {
+    if (category && pick.category !== category) return false;
+    if (week != null && pick.week !== week) return false;
+    if (season != null && pick.season !== season) return false;
+    if (expertL && !(ex && ex.toLowerCase().includes(expertL))) return false;
+    if (teamU) {
+      const subj = String(pick.subject || '').toUpperCase();
+      const t1 = String(pick.team1 || '').toUpperCase();
+      const t2 = String(pick.team2 || '').toUpperCase();
+      if (subj !== teamU && t1 !== teamU && t2 !== teamU) return false;
+    }
+    return true;
+  });
+  return filtered.slice(0, limit);
+}
+
+/**
+ * Per-expert ledger of recent picks with category breakdown.
+ * Tool: `get_expert_history`. Grading (W/L/units) is composed in agentTools
+ * by joining with game_results — this function returns the raw pick log.
+ * @param {{ expert: string, weeksBack?: number, limit?: number }} opts
+ */
+export async function getExpertHistory({ expert, weeksBack = 8, limit = 100 } = {}) {
+  if (!expert) return { expert: null, total: 0, picks: [], by_category: {} };
+  const rows = await _flattenPodcastPicks({ hours: weeksBack * 7 * 24, limit: 300 });
+  const expertL = String(expert).toLowerCase();
+  const matches = rows.filter(r => r.expert && r.expert.toLowerCase().includes(expertL));
+  const byCategory = {};
+  for (const r of matches) {
+    const cat = r.pick.category || 'unknown';
+    byCategory[cat] = (byCategory[cat] || 0) + 1;
+  }
+  return {
+    expert,
+    total: matches.length,
+    by_category: byCategory,
+    picks: matches.slice(0, limit),
+  };
+}
+
+/**
+ * Picks for and against a given team across recent episodes.
+ * Tool: `get_team_podcast_intel`.
+ * @param {{ team: string, weeksBack?: number, limit?: number }} opts
+ */
+export async function getTeamPodcastIntel({ team, weeksBack = 4, limit = 50 } = {}) {
+  if (!team) return { team: null, for: [], against: [], by_expert: {} };
+  const teamU = String(team).toUpperCase();
+  const rows = await _flattenPodcastPicks({ hours: weeksBack * 7 * 24, limit: 300 });
+  const forPicks = [];
+  const againstPicks = [];
+  const byExpert = {};
+  for (const r of rows) {
+    const { pick, expert } = r;
+    const subj = String(pick.subject || '').toUpperCase();
+    const t1 = String(pick.team1 || '').toUpperCase();
+    const t2 = String(pick.team2 || '').toUpperCase();
+    if (subj !== teamU && t1 !== teamU && t2 !== teamU) continue;
+    const sel = String(pick.selection || '').toUpperCase();
+    if (sel === teamU || subj === teamU) forPicks.push(r);
+    else againstPicks.push(r);
+    if (expert) byExpert[expert] = (byExpert[expert] || 0) + 1;
+  }
+  return {
+    team: teamU,
+    for: forPicks.slice(0, limit),
+    against: againstPicks.slice(0, limit),
+    by_expert: byExpert,
+  };
+}
+
+/**
+ * Cross-expert consensus board for a given week. Groups picks by matchup
+ * (team1+team2) and counts sides taken.
+ * Tool: `get_weekly_consensus`.
+ * @param {{ week: number, season?: number }} opts
+ */
+export async function getWeeklyConsensus({ week, season } = {}) {
+  if (week == null) return { week: null, season: season || null, games: [] };
+  const rows = await _flattenPodcastPicks({ limit: 400 });
+  const games = new Map();
+  for (const r of rows) {
+    const { pick } = r;
+    if (pick.week !== week) continue;
+    if (season != null && pick.season !== season) continue;
+    if (pick.category !== 'spread' && pick.category !== 'moneyline' && pick.category !== 'total') continue;
+    const t1 = String(pick.team1 || '').toUpperCase();
+    const t2 = String(pick.team2 || '').toUpperCase();
+    if (!t1 || !t2) continue;
+    const key = [t1, t2].sort().join('@');
+    if (!games.has(key)) {
+      games.set(key, { matchup: key, team1: t1, team2: t2, picks: [], by_selection: {} });
+    }
+    const game = games.get(key);
+    game.picks.push(r);
+    const sel = String(pick.selection || 'unknown').toUpperCase();
+    game.by_selection[sel] = (game.by_selection[sel] || 0) + 1;
+  }
+  return {
+    week,
+    season: season || null,
+    games: Array.from(games.values()).sort((a, b) => b.picks.length - a.picks.length),
+  };
+}
+
+/**
+ * Futures-market line/expert timeline for a single market.
+ * Tool: `get_futures_movement`. Pairs podcast picks with stored futures odds
+ * history when available (caller can layer that join in agentTools).
+ * @param {{ market: string, weeksBack?: number, limit?: number }} opts
+ */
+export async function getFuturesMovement({ market, weeksBack = 12, limit = 100 } = {}) {
+  if (!market) return { market: null, picks: [], by_expert: {} };
+  const rows = await _flattenPodcastPicks({ hours: weeksBack * 7 * 24, limit: 400 });
+  const marketL = String(market).toLowerCase();
+  const matches = rows.filter(r =>
+    r.pick.category === 'future' &&
+    String(r.pick.subject_market || '').toLowerCase() === marketL
+  );
+  matches.sort((a, b) => new Date(a.pub_date) - new Date(b.pub_date));
+  const byExpert = {};
+  for (const r of matches) {
+    if (r.expert) byExpert[r.expert] = (byExpert[r.expert] || 0) + 1;
+  }
+  return {
+    market,
+    picks: matches.slice(0, limit),
+    by_expert: byExpert,
+  };
+}
+
+/**
+ * Player-prop pick context: recent expert picks for a single player+prop.
+ * Tool: `get_player_prop_context`.
+ * @param {{ player: string, propType: string, weeksBack?: number, limit?: number }} opts
+ */
+export async function getPlayerPropContext({ player, propType, weeksBack = 6, limit = 30 } = {}) {
+  if (!player || !propType) return { player: null, prop_type: null, picks: [], trend: {} };
+  const rows = await _flattenPodcastPicks({ hours: weeksBack * 7 * 24, limit: 400 });
+  const playerL = String(player).toLowerCase();
+  const propL = String(propType).toLowerCase();
+  const matches = rows.filter(r =>
+    r.pick.category === 'prop' &&
+    String(r.pick.subject || '').toLowerCase().includes(playerL) &&
+    String(r.pick.subject_market || '').toLowerCase() === propL
+  );
+  const trend = { OVER: 0, UNDER: 0, OTHER: 0 };
+  for (const r of matches) {
+    const sel = String(r.pick.selection || '').toUpperCase();
+    if (sel === 'OVER') trend.OVER += 1;
+    else if (sel === 'UNDER') trend.UNDER += 1;
+    else trend.OTHER += 1;
+  }
+  return {
+    player,
+    prop_type: propType,
+    picks: matches.slice(0, limit),
+    trend,
+  };
+}
+
 // ─── User Picks Sync ──────────────────────────────────────────────────────────
 // localStorage is the primary store. These functions provide fire-and-forget
 // cloud sync so data survives a browser cache clear and is accessible on
