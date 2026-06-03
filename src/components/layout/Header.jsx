@@ -132,6 +132,7 @@ export default function Header({
             <NavTab id="standings" label="Standings" icon={Trophy} />
             <NavTab id="picks" label="Picks" icon={Target} />
             <NavTab id="futures" label="Futures" icon={Briefcase} />
+            <NavTab id="futures-agent" label="Futures AI" icon={Trophy} />
             <NavTab id="devlab" label="Dev Lab" icon={Mic2} />
             <NavTab id="agent" label="Agent" icon={MessageSquare} />
             <NavTab id="props" label="Props" icon={Zap} />
