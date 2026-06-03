@@ -12,6 +12,13 @@ vi.mock('../../src/lib/supabase.js', () => ({
   getLineMovementsDB: vi.fn(async () => []),
   searchResearchIntel: vi.fn(async () => ({ notes: [], signals: [] })),
   searchSharpTweets: vi.fn(async () => []),
+  getGameSplitsForWeek: vi.fn(async () => []),
+  searchPodcastPicks: vi.fn(async () => []),
+  getExpertHistory: vi.fn(async () => ({ expert: null, total: 0, picks: [], by_category: {} })),
+  getTeamPodcastIntel: vi.fn(async () => ({ team: null, for: [], against: [], by_expert: {} })),
+  getWeeklyConsensus: vi.fn(async () => ({ week: null, season: null, games: [] })),
+  getFuturesMovement: vi.fn(async () => ({ market: null, picks: [], by_expert: {} })),
+  getPlayerPropContext: vi.fn(async () => ({ player: null, prop_type: null, picks: [], trend: {} })),
   supabase: null,
 }));
 
@@ -59,14 +66,15 @@ vi.mock('../../src/lib/apiConfig.js', () => ({
 
 import {
   BETTING_TOOLS,
+  PODCAST_INTEL_TOOLS,
   OPENAI_BETTING_TOOLS,
   executeTool,
 } from '../../src/lib/agentTools.js';
 
 describe('agentTools', () => {
   describe('BETTING_TOOLS', () => {
-    it('exports exactly 13 tools', () => {
-      expect(BETTING_TOOLS).toHaveLength(13);
+    it('exports exactly 19 tools (13 base + 6 podcast intel)', () => {
+      expect(BETTING_TOOLS).toHaveLength(19);
     });
 
     it('each tool has name, description, and input_schema', () => {
@@ -85,15 +93,33 @@ describe('agentTools', () => {
         'calculate_hedge',
         'calculate_teaser',
         'get_betting_splits',
+        'get_expert_history',
+        'get_futures_movement',
         'get_injury_report',
         'get_line_movement',
         'get_odds',
         'get_performance_stats',
+        'get_player_prop_context',
+        'get_team_podcast_intel',
+        'get_weekly_consensus',
         'log_pick',
         'read_vault_note',
         'search_intel',
+        'search_podcast_picks',
         'search_sharp_tweets',
         'write_vault_note',
+      ]);
+    });
+
+    it('PODCAST_INTEL_TOOLS contains the 6 phase-6 tools', () => {
+      const names = PODCAST_INTEL_TOOLS.map(t => t.name).sort();
+      expect(names).toEqual([
+        'get_expert_history',
+        'get_futures_movement',
+        'get_player_prop_context',
+        'get_team_podcast_intel',
+        'get_weekly_consensus',
+        'search_podcast_picks',
       ]);
     });
 
@@ -356,6 +382,106 @@ describe('agentTools', () => {
         content: '# Session',
       });
       expect(result.status).toBe('error');
+    });
+
+    // ── Phase 6 podcast intel tool tests ────────────────────────────────────
+
+    it('search_podcast_picks returns no_data when mock is empty', async () => {
+      const result = await executeTool('search_podcast_picks', { team: 'KC' });
+      expect(result.status).toBe('no_data');
+      expect(result.picks).toEqual([]);
+    });
+
+    it('search_podcast_picks formats picks with episode + expert context', async () => {
+      const { searchPodcastPicks } = await import('../../src/lib/supabase.js');
+      searchPodcastPicks.mockResolvedValueOnce([{
+        episode_id: 'e1',
+        episode_title: 'Sharp Podcast Wk 5',
+        pub_date: '2026-09-04',
+        expert: 'Warren Sharp',
+        feed_name: 'Sharp Football Analysis',
+        processed_at: '2026-09-04',
+        pick: {
+          category: 'spread', subject: 'KC', selection: 'KC',
+          team1: 'KC', team2: 'BUF', line: -3.5, units: 1, confidence: 0.7,
+          season: 2026, week: 5, summary: 'Lay it', quality_score: 0.8, needs_review: false,
+        },
+      }]);
+      const result = await executeTool('search_podcast_picks', { team: 'KC' });
+      expect(result.status).toBe('ok');
+      expect(result.count).toBe(1);
+      expect(result.picks[0].expert).toBe('Warren Sharp');
+      expect(result.picks[0].selection).toBe('KC');
+    });
+
+    it('get_expert_history requires expert', async () => {
+      const result = await executeTool('get_expert_history', {});
+      expect(result.status).toBe('invalid');
+    });
+
+    it('get_expert_history returns category breakdown', async () => {
+      const { getExpertHistory } = await import('../../src/lib/supabase.js');
+      getExpertHistory.mockResolvedValueOnce({
+        expert: 'Warren Sharp',
+        total: 3,
+        by_category: { spread: 2, total: 1 },
+        picks: [],
+      });
+      const result = await executeTool('get_expert_history', { expert: 'Warren Sharp' });
+      expect(result.status).toBe('ok');
+      expect(result.total_picks).toBe(3);
+      expect(result.by_category).toEqual({ spread: 2, total: 1 });
+    });
+
+    it('get_team_podcast_intel requires team', async () => {
+      const result = await executeTool('get_team_podcast_intel', {});
+      expect(result.status).toBe('invalid');
+    });
+
+    it('get_weekly_consensus requires week', async () => {
+      const result = await executeTool('get_weekly_consensus', {});
+      expect(result.status).toBe('invalid');
+    });
+
+    it('get_weekly_consensus returns game count from mock', async () => {
+      const { getWeeklyConsensus } = await import('../../src/lib/supabase.js');
+      getWeeklyConsensus.mockResolvedValueOnce({
+        week: 5,
+        season: 2026,
+        games: [
+          { matchup: 'BUF@KC', team1: 'KC', team2: 'BUF', picks: [], by_selection: { KC: 2, BUF: 1 } },
+        ],
+      });
+      const result = await executeTool('get_weekly_consensus', { week: 5 });
+      expect(result.status).toBe('ok');
+      expect(result.game_count).toBe(1);
+      expect(result.games[0].by_selection.KC).toBe(2);
+    });
+
+    it('get_futures_movement requires market', async () => {
+      const result = await executeTool('get_futures_movement', {});
+      expect(result.status).toBe('invalid');
+    });
+
+    it('get_player_prop_context requires player and prop_type', async () => {
+      const result = await executeTool('get_player_prop_context', { player: 'Mahomes' });
+      expect(result.status).toBe('invalid');
+    });
+
+    it('get_player_prop_context surfaces OVER/UNDER trend', async () => {
+      const { getPlayerPropContext } = await import('../../src/lib/supabase.js');
+      getPlayerPropContext.mockResolvedValueOnce({
+        player: 'Patrick Mahomes',
+        prop_type: 'pass_yds',
+        picks: [{ episode_id: 'e1', expert: 'X', pick: { selection: 'OVER' } }],
+        trend: { OVER: 1, UNDER: 0, OTHER: 0 },
+      });
+      const result = await executeTool('get_player_prop_context', {
+        player: 'Patrick Mahomes',
+        prop_type: 'pass_yds',
+      });
+      expect(result.status).toBe('ok');
+      expect(result.trend.OVER).toBe(1);
     });
 
   });

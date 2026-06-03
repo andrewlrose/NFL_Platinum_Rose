@@ -9,7 +9,19 @@
 //        read_vault_note · write_vault_note · get_betting_splits
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { getLatestOddsSnapshot, getLineMovementsDB, searchResearchIntel, searchSharpTweets, getGameSplitsForWeek } from './supabase.js';
+import {
+  getLatestOddsSnapshot,
+  getLineMovementsDB,
+  searchResearchIntel,
+  searchSharpTweets,
+  getGameSplitsForWeek,
+  searchPodcastPicks,
+  getExpertHistory,
+  getTeamPodcastIntel,
+  getWeeklyConsensus,
+  getFuturesMovement,
+  getPlayerPropContext,
+} from './supabase.js';
 import { readVaultNote, writeVaultNote, todaySessionPath } from './vaultClient.js';
 import {
   addPick,
@@ -33,6 +45,93 @@ const ESPN_TEAM_IDS = {
 
 // ─── Anthropic Tool Definitions ──────────────────────────────────────────────
 // Format: { name, description, input_schema: { type, properties, required } }
+
+// Tools shared between BETTING and FUTURES agents. Defined first so BETTING_TOOLS
+// can splat them in and the FUTURES manifest can subset them by name without
+// re-declaring schemas.
+export const PODCAST_INTEL_TOOLS = [
+  {
+    name: 'search_podcast_picks',
+    description: 'Search recent picks made by experts on tracked podcasts (e.g. Sharp Football Analysis, BettingPros, VSiN). Use when the Creator asks what an expert said about a team, what experts are taking on a given week, or who is on a specific pick. Excludes picks flagged needs_review.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        team: { type: 'string', description: 'Team abbreviation (KC, BUF, ...) to filter by.' },
+        expert: { type: 'string', description: 'Expert name (partial OK; e.g. "Warren" matches "Warren Sharp").' },
+        category: { type: 'string', enum: ['spread', 'total', 'moneyline', 'future', 'prop'], description: 'Pick category to filter by.' },
+        week: { type: 'number', description: 'NFL week (1-22).' },
+        season: { type: 'number', description: 'NFL season year. Default: current.' },
+        limit: { type: 'number', description: 'Max picks to return. Default: 25.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_expert_history',
+    description: 'Returns the recent pick log for one expert with category breakdown (spread/total/moneyline/future/prop counts). Use to size up an expert\'s recent volume and where they tend to take action. W/L/units grading lives in get_performance_stats; this is the raw pick history from podcasts.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        expert: { type: 'string', description: 'Expert name (partial match).' },
+        weeks_back: { type: 'number', description: 'Look-back window in weeks. Default: 8.' },
+        limit: { type: 'number', description: 'Max picks to return. Default: 100.' },
+      },
+      required: ['expert'],
+    },
+  },
+  {
+    name: 'get_team_podcast_intel',
+    description: 'Returns picks for and against a team across recent podcast episodes, grouped by expert. Use when the Creator wants the podcast-side perspective on a specific team\'s upcoming game or season arc.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        team: { type: 'string', description: 'Team abbreviation (KC, BUF, ...).' },
+        weeks_back: { type: 'number', description: 'Look-back window in weeks. Default: 4.' },
+        limit: { type: 'number', description: 'Max picks per side (for/against). Default: 50.' },
+      },
+      required: ['team'],
+    },
+  },
+  {
+    name: 'get_weekly_consensus',
+    description: 'Cross-expert consensus board for a given week: groups sides/totals/moneyline picks by matchup and counts who is taking which side. Surfaces sharp/contrarian alignment from podcast experts.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        week: { type: 'number', description: 'NFL week (1-22).' },
+        season: { type: 'number', description: 'NFL season year. Default: current.' },
+      },
+      required: ['week'],
+    },
+  },
+  {
+    name: 'get_futures_movement',
+    description: 'Timeline of expert picks for a single futures market (e.g. AFC_North, MVP, NFC_East), ordered oldest-first. Use to see how expert sentiment has shifted on a future across the season.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        market: { type: 'string', description: 'Futures market identifier (e.g. "AFC_North", "MVP", "NFC_East_winner").' },
+        weeks_back: { type: 'number', description: 'Look-back window in weeks. Default: 12.' },
+        limit: { type: 'number', description: 'Max picks to return. Default: 100.' },
+      },
+      required: ['market'],
+    },
+  },
+  {
+    name: 'get_player_prop_context',
+    description: 'Recent expert prop picks for a single player + prop type, with OVER/UNDER trend counts. Use when Creator asks whether anyone has touted a player prop or what the podcast take is.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        player: { type: 'string', description: 'Player full name (partial OK; case-insensitive).' },
+        prop_type: { type: 'string', description: 'Prop market identifier (e.g. "pass_yds", "rush_yds", "receptions").' },
+        weeks_back: { type: 'number', description: 'Look-back window in weeks. Default: 6.' },
+        limit: { type: 'number', description: 'Max picks to return. Default: 30.' },
+      },
+      required: ['player', 'prop_type'],
+    },
+  },
+];
 
 export const BETTING_TOOLS = [
   {
@@ -322,7 +421,8 @@ export const BETTING_TOOLS = [
       },
       required: ['query'],
     },
-  },
+  },  // ─── Phase 6 podcast intel tools (shared with FUTURES agent) ───────────────
+  ...PODCAST_INTEL_TOOLS,
 ];
 
 // ─── Tool Executor ───────────────────────────────────────────────────────────
@@ -350,6 +450,12 @@ export async function executeTool(name, input) {
     case 'read_vault_note':     return toolReadVaultNote(input);
     case 'write_vault_note':    return toolWriteVaultNote(input);
     case 'get_betting_splits': return toolGetBettingSplits(input);
+    case 'search_podcast_picks':    return toolSearchPodcastPicks(input);
+    case 'get_expert_history':      return toolGetExpertHistory(input);
+    case 'get_team_podcast_intel':  return toolGetTeamPodcastIntel(input);
+    case 'get_weekly_consensus':    return toolGetWeeklyConsensus(input);
+    case 'get_futures_movement':    return toolGetFuturesMovement(input);
+    case 'get_player_prop_context': return toolGetPlayerPropContext(input);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -968,5 +1074,121 @@ async function toolGetBettingSplits({ team, week } = {}) {
     count:   formatted.length,
     splits:  formatted,
     note: 'Sharp money divergence signal: when ticket% and money% differ significantly (>15%), the money side represents larger-bet (sharper) action.',
+  };
+}
+
+// ─── Phase 6 — Podcast intel tool implementations ────────────────────────────
+// Thin wrappers around src/lib/supabase.js queries. Shape outputs for the LLM:
+// keep payloads compact and label the source ("podcast" / per-pick episode +
+// expert) so the agent can produce the citation form required by spec §A8.
+
+function _formatPodcastPick(row) {
+  const p = row.pick || {};
+  return {
+    episode_id: row.episode_id,
+    episode_title: row.episode_title,
+    pub_date: row.pub_date,
+    expert: row.expert,
+    feed: row.feed_name,
+    category: p.category,
+    subject: p.subject,
+    subject_market: p.subject_market || null,
+    selection: p.selection,
+    line: p.line ?? null,
+    odds_american: p.odds_american ?? null,
+    units: p.units ?? null,
+    confidence: p.confidence ?? null,
+    season: p.season ?? null,
+    week: p.week ?? null,
+    summary: p.summary || '',
+  };
+}
+
+async function toolSearchPodcastPicks({ team, expert, category, week, season, limit } = {}) {
+  const rows = await searchPodcastPicks({ team, expert, category, week, season, limit });
+  if (!rows || rows.length === 0) {
+    return {
+      status: 'no_data',
+      message: 'No podcast picks matched. Off-season or pipeline has not run for the requested filters.',
+      picks: [],
+    };
+  }
+  return {
+    status: 'ok',
+    count: rows.length,
+    picks: rows.map(_formatPodcastPick),
+  };
+}
+
+async function toolGetExpertHistory({ expert, weeks_back, limit } = {}) {
+  if (!expert) return { status: 'invalid', message: 'expert is required.' };
+  const out = await getExpertHistory({ expert, weeksBack: weeks_back, limit });
+  return {
+    status: out.total > 0 ? 'ok' : 'no_data',
+    expert: out.expert,
+    total_picks: out.total,
+    by_category: out.by_category,
+    picks: (out.picks || []).map(_formatPodcastPick),
+  };
+}
+
+async function toolGetTeamPodcastIntel({ team, weeks_back, limit } = {}) {
+  if (!team) return { status: 'invalid', message: 'team is required.' };
+  const out = await getTeamPodcastIntel({ team, weeksBack: weeks_back, limit });
+  const total = (out.for?.length || 0) + (out.against?.length || 0);
+  return {
+    status: total > 0 ? 'ok' : 'no_data',
+    team: out.team,
+    for_count: out.for?.length || 0,
+    against_count: out.against?.length || 0,
+    by_expert: out.by_expert,
+    for: (out.for || []).map(_formatPodcastPick),
+    against: (out.against || []).map(_formatPodcastPick),
+  };
+}
+
+async function toolGetWeeklyConsensus({ week, season } = {}) {
+  if (week == null) return { status: 'invalid', message: 'week is required.' };
+  const out = await getWeeklyConsensus({ week, season });
+  return {
+    status: out.games.length > 0 ? 'ok' : 'no_data',
+    week: out.week,
+    season: out.season,
+    game_count: out.games.length,
+    games: out.games.map(g => ({
+      matchup: g.matchup,
+      team1: g.team1,
+      team2: g.team2,
+      pick_count: g.picks.length,
+      by_selection: g.by_selection,
+      picks: g.picks.map(_formatPodcastPick),
+    })),
+  };
+}
+
+async function toolGetFuturesMovement({ market, weeks_back, limit } = {}) {
+  if (!market) return { status: 'invalid', message: 'market is required.' };
+  const out = await getFuturesMovement({ market, weeksBack: weeks_back, limit });
+  return {
+    status: out.picks.length > 0 ? 'ok' : 'no_data',
+    market: out.market,
+    pick_count: out.picks.length,
+    by_expert: out.by_expert,
+    picks: out.picks.map(_formatPodcastPick),
+  };
+}
+
+async function toolGetPlayerPropContext({ player, prop_type, weeks_back, limit } = {}) {
+  if (!player || !prop_type) {
+    return { status: 'invalid', message: 'player and prop_type are required.' };
+  }
+  const out = await getPlayerPropContext({ player, propType: prop_type, weeksBack: weeks_back, limit });
+  return {
+    status: out.picks.length > 0 ? 'ok' : 'no_data',
+    player: out.player,
+    prop_type: out.prop_type,
+    pick_count: out.picks.length,
+    trend: out.trend,
+    picks: out.picks.map(_formatPodcastPick),
   };
 }
