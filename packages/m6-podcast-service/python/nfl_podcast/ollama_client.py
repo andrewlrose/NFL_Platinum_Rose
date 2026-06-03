@@ -12,9 +12,15 @@ hitting a real server.
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from typing import Callable, Protocol
+
+
+# Cold-loading qwen3:8b on M6 CPU can take 90-180s on first call.
+# Override with OLLAMA_TIMEOUT env var (seconds) for slower hosts.
+_DEFAULT_OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT", "600"))
 
 from .schema import EXTRACTION_RESPONSE_SCHEMA
 
@@ -70,7 +76,7 @@ def call_ollama_chat(
     user_prompt: str,
     post_json: PostJSON,
     max_retries: int = 3,
-    timeout: float = 120.0,
+    timeout: float = _DEFAULT_OLLAMA_TIMEOUT,
 ) -> OllamaResult:
     """Run a single chunk through Ollama. Raises on terminal failure."""
     body = {
@@ -121,7 +127,7 @@ def httpx_post_json_factory() -> Callable[[str, dict], dict]:
     """Build a ``post_json`` backed by httpx. Imported lazily so tests stay offline."""
     import httpx  # noqa: WPS433
 
-    client = httpx.Client(timeout=120.0)
+    client = httpx.Client(timeout=_DEFAULT_OLLAMA_TIMEOUT)
 
     def post_json(url: str, body: dict, *, timeout: float) -> dict:
         r = client.post(url, json=body, timeout=timeout)
