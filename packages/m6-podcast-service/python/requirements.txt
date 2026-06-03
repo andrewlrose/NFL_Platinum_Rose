@@ -1,0 +1,16 @@
+# Python deps for M6 podcast pipeline (Phase 3 transcribe + Phase 4 extract).
+# Install on M6 with: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# Pinned conservatively; bump intentionally.
+
+# Phase 4 — extraction
+httpx==0.28.1            # Ollama HTTP client; sync + async
+jsonschema==4.23.0       # response validation
+python-dotenv==1.0.1     # env loading parity with the Node service
+
+# Phase 3 — transcription (added in next phase)
+# faster-whisper==1.0.3
+# ctranslate2==4.4.0
+
+# Tests
+pytest==8.3.3
+pytest-mock==3.14.0
