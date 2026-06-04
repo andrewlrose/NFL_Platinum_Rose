@@ -205,10 +205,9 @@ describe('GET /ingest/status/:run_id', () => {
   });
 });
 
-describe('Phase 7/8/3 stubs return 501', () => {
+describe('Phase 8/3 stubs return 501', () => {
+  // /digest/* routes now serve real files (Phase 7) -- not stubs.
   it.each([
-    '/digest/episodes/abc.html',
-    '/digest/experts/sharp.html',
     '/share/episodes/abc',
     '/api/transcript/abc',
   ])('%s -> 501', async (url) => {

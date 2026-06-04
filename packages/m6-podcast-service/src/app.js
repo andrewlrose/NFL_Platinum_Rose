@@ -8,6 +8,7 @@ import {
   getQueueDepth,
 } from './runRegistry.js';
 import { buildPipelineWorker, parsePipelineInput } from './pipelineWorker.js';
+import { registerDigestRoutes } from './digest.js';
 
 /**
  * Build a configured Fastify instance. Exposed as a function so tests can
@@ -17,6 +18,7 @@ import { buildPipelineWorker, parsePipelineInput } from './pipelineWorker.js';
  * @param {string} [opts.hmacSecret]    override secret (for tests)
  * @param {object} [opts.logger]        Fastify logger config
  * @param {Function} [opts.worker]      inject a fake worker (for tests)
+ * @param {object} [opts.cfg]           config override (e.g. { digestDir: tmpdir } for tests)
  * @param {Function} [opts.onRunComplete]
  *   Optional Phase 7a hook: called after a run reaches 'done'. Fail-soft --
  *   errors are logged but never flip the run to 'error'. Injected from
@@ -25,15 +27,13 @@ import { buildPipelineWorker, parsePipelineInput } from './pipelineWorker.js';
  */
 export function buildServer(opts = {}) {
   const hmacSecret = opts.hmacSecret ?? config.hmacSecret;
-  // Worker can be injected by tests to skip spawning Python. Default routes
-  // by input.mode (extract / transcribe / full).
   const worker = opts.worker ?? buildPipelineWorker();
-  // Phase 7a re-render hook -- undefined in tests; wired by server.js in prod.
   const onRunComplete = opts.onRunComplete;
+  const cfg = opts.cfg ?? config;
 
   const app = Fastify({
     logger: opts.logger ?? { level: config.nodeEnv === 'test' ? 'silent' : 'info' },
-    bodyLimit: 1 * 1024 * 1024, // 1 MB; ingest payloads are tiny
+    bodyLimit: 1 * 1024 * 1024,
   });
 
   // Capture raw body so HMAC can verify the original bytes the cron signed.
@@ -91,21 +91,16 @@ export function buildServer(opts = {}) {
     return run;
   });
 
-  for (const digestPath of [
-    '/digest/episodes/:id.html',
-    '/digest/experts/:slug.html',
-    '/digest/experts/:slug/:weekTag.html',
-    '/digest/weekly/:weekTag.html',
-  ]) {
-    app.get(digestPath, async (_req, reply) =>
-      reply.code(501).send({ error: 'not_implemented', phase: 7 }),
-    );
-  }
+  // Phase 7 -- Tailscale-only digest routes (no auth; network is the gate).
+  // /digest/* must NOT be added to tailscale funnel -- only /share/* is public.
+  registerDigestRoutes(app, { cfg });
 
+  // Phase 8 stub -- /share/* (Funnel + signed token).
   app.get('/share/*', async (_req, reply) =>
     reply.code(501).send({ error: 'not_implemented', phase: 8 }),
   );
 
+  // Phase 3 stub -- transcript stream.
   app.get('/api/transcript/:id', async (_req, reply) =>
     reply.code(501).send({ error: 'not_implemented', phase: 3 }),
   );
