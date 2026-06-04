@@ -14,14 +14,23 @@ import { buildPipelineWorker, parsePipelineInput } from './pipelineWorker.js';
  * spin up an isolated app per test.
  *
  * @param {object} [opts]
- * @param {string} [opts.hmacSecret]  override secret (for tests)
- * @param {object} [opts.logger]      Fastify logger config
+ * @param {string} [opts.hmacSecret]    override secret (for tests)
+ * @param {object} [opts.logger]        Fastify logger config
+ * @param {Function} [opts.worker]      inject a fake worker (for tests)
+ * @param {Function} [opts.onRunComplete]
+ *   Optional Phase 7a hook: called after a run reaches 'done'. Fail-soft --
+ *   errors are logged but never flip the run to 'error'. Injected from
+ *   server.js (real Supabase renderer) so this function stays sync and
+ *   test-friendly.
  */
 export function buildServer(opts = {}) {
   const hmacSecret = opts.hmacSecret ?? config.hmacSecret;
   // Worker can be injected by tests to skip spawning Python. Default routes
   // by input.mode (extract / transcribe / full).
   const worker = opts.worker ?? buildPipelineWorker();
+  // Phase 7a re-render hook -- undefined in tests; wired by server.js in prod.
+  const onRunComplete = opts.onRunComplete;
+
   const app = Fastify({
     logger: opts.logger ?? { level: config.nodeEnv === 'test' ? 'silent' : 'info' },
     bodyLimit: 1 * 1024 * 1024, // 1 MB; ingest payloads are tiny
@@ -46,7 +55,6 @@ export function buildServer(opts = {}) {
     },
   );
 
-  // ── Public ────────────────────────────────────────────────────────────────
   app.get('/health', async () => {
     const last = getLastRunSummary();
     return {
@@ -59,7 +67,6 @@ export function buildServer(opts = {}) {
     };
   });
 
-  // ── Ingest (HMAC-gated) ───────────────────────────────────────────────────
   const hmac = { preHandler: hmacGuard({ secret: hmacSecret }) };
 
   app.post('/ingest/run', hmac, async (request, reply) => {
@@ -71,7 +78,7 @@ export function buildServer(opts = {}) {
         .code(err.statusCode ?? 400)
         .send({ error: 'bad_request', message: err.message });
     }
-    const runId = startRun({ worker, input });
+    const runId = startRun({ worker, input, onRunComplete });
     reply.code(202);
     return { run_id: runId, status: 'queued' };
   });
@@ -84,26 +91,21 @@ export function buildServer(opts = {}) {
     return run;
   });
 
-  // ── Digest (Tailscale-only — Phase 7) ─────────────────────────────────────
-  // Stubs return 501 until the renderer lands. The systemd unit binds to
-  // 127.0.0.1, so external exposure is gated by Tailscale serve/funnel.
-  for (const path of [
+  for (const digestPath of [
     '/digest/episodes/:id.html',
     '/digest/experts/:slug.html',
     '/digest/experts/:slug/:weekTag.html',
     '/digest/weekly/:weekTag.html',
   ]) {
-    app.get(path, async (_req, reply) =>
+    app.get(digestPath, async (_req, reply) =>
       reply.code(501).send({ error: 'not_implemented', phase: 7 }),
     );
   }
 
-  // ── Share (Funnel + signed token — Phase 8) ───────────────────────────────
   app.get('/share/*', async (_req, reply) =>
     reply.code(501).send({ error: 'not_implemented', phase: 8 }),
   );
 
-  // ── Transcript stream (Tailscale-only — Phase 3) ──────────────────────────
   app.get('/api/transcript/:id', async (_req, reply) =>
     reply.code(501).send({ error: 'not_implemented', phase: 3 }),
   );

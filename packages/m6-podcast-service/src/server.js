@@ -1,24 +1,14 @@
 // Entry point for `node src/server.js` and the systemd unit.
 import { buildServer } from './app.js';
 import { config } from './config.js';
+import { buildRenderer } from '../render/index.js';
 
-const app = buildServer();
-
-const closeOnSignal = async (signal) => {
-  app.log.info({ signal }, 'shutting down');
+// Phase 7a: build an incremental re-render hook when Supabase creds are
+// available. Skip when creds are absent (dev / Windows) so the service boots
+// for /health without credentials.
+let onRunComplete;
+if (config.supabaseUrl && config.supabaseServiceRoleKey) {
   try {
-    await app.close();
-    process.exit(0);
-  } catch (err) {
-    app.log.error(err, 'error during shutdown');
-    process.exit(1);
-  }
-};
-
-process.on('SIGTERM', () => closeOnSignal('SIGTERM'));
-process.on('SIGINT', () => closeOnSignal('SIGINT'));
-
-app.listen({ host: config.host, port: config.port }).catch((err) => {
-  app.log.error(err);
-  process.exit(1);
-});
+    const { createClient } = await import('@supabase/supabase-js');
+    const supa = createClient(config.supabaseUrl, config.supabaseServiceRoleKey);
+    const renderer = buildRenderer({

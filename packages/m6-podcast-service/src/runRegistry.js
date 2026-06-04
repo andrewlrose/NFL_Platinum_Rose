@@ -1,6 +1,6 @@
 // In-memory run registry. Phase 2 stub: gives /ingest/run a real run_id and
 // /ingest/status/:id real state, without yet doing the actual ingest work.
-// Phase 3 will swap the worker stub for the real transcribe→extract pipeline.
+// Phase 3 will swap the worker stub for the real transcribe->extract pipeline.
 
 import crypto from 'node:crypto';
 
@@ -45,9 +45,13 @@ export function getRun(id) {
  * @param {object} opts
  * @param {(run: Run, input: object) => Promise<void>} [opts.worker]
  * @param {object} [opts.input]   passed through to the worker
+ * @param {(run: Run, input: object) => Promise<void>} [opts.onRunComplete]
+ *   Optional hook fired after a run reaches 'done'. Used by Phase 7a to
+ *   trigger an incremental digest re-render. Must be fail-soft -- errors are
+ *   logged but must never flip the run to 'error'.
  * @returns {string} run_id
  */
-export function startRun({ worker, input } = {}) {
+export function startRun({ worker, input, onRunComplete } = {}) {
   const id = crypto.randomUUID();
   const run = {
     id,
@@ -71,6 +75,13 @@ export function startRun({ worker, input } = {}) {
       run.finished_at = new Date().toISOString();
       lastRunAt = run.finished_at;
       lastRunStatus = 'done';
+      // Phase 7a: incremental digest re-render after each successful ingest.
+      // Fire-and-forget; a render failure must never affect run status.
+      if (onRunComplete) {
+        Promise.resolve()
+          .then(() => onRunComplete(run, input ?? {}))
+          .catch((err) => console.error('[runRegistry] digest re-render failed:', err?.message ?? err));
+      }
     })
     .catch((err) => {
       run.status = 'error';
