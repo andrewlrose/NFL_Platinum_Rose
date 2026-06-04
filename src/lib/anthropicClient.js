@@ -15,7 +15,23 @@
 
 import { ANTHROPIC_API, AI_PROXY_URL, SUPABASE_ANON_KEY } from './apiConfig.js';
 
-const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
+const OPENAI_DEFAULT_MODEL  = 'gpt-4o-mini';
+// Model used when falling back from Anthropic due to credit exhaustion.
+// gpt-4o (not mini) for quality parity with claude-sonnet on tool-heavy NFL analysis.
+const OPENAI_FALLBACK_MODEL = 'gpt-4o';
+
+// ─── Credit / quota error detection ──────────────────────────────────────────
+
+function isCreditError(err) {
+  const msg = (err?.message || '').toLowerCase();
+  return (
+    msg.includes('credit') ||
+    msg.includes('quota') ||
+    msg.includes('insufficient') ||
+    msg.includes('billing') ||
+    msg.includes('402')
+  );
+}
 
 // ─── Message Sanitizer ───────────────────────────────────────────────────────
 
@@ -272,6 +288,7 @@ export async function runOpenAIAgentTurn({
 export async function runAgentTurn({
   apiKey, systemPrompt, messages, tools, model,
   executeToolFn, onStep, signal,
+  _usingFallback = false,   // internal: prevents infinite retry loops
 }) {
   const allMessages = [...messages];
   let iterations = 0;
@@ -290,6 +307,27 @@ export async function runAgentTurn({
         signal,
       });
     } catch (err) {
+      // Auto-fallback to OpenAI when Anthropic credits are exhausted.
+      // Only attempt once (_usingFallback guard prevents loops).
+      if (isCreditError(err) && !_usingFallback) {
+        if (onStep) onStep({
+          type: 'provider_fallback',
+          from: 'anthropic',
+          to: 'openai',
+          model: OPENAI_FALLBACK_MODEL,
+          reason: err.message,
+        });
+        return runOpenAIAgentTurn({
+          apiKey,
+          systemPrompt,
+          messages: allMessages,   // pass accumulated state, not original messages
+          tools,
+          model: OPENAI_FALLBACK_MODEL,
+          executeToolFn,
+          onStep,
+          signal,
+        });
+      }
       if (onStep) onStep({ type: 'error', error: err });
       throw err;
     }

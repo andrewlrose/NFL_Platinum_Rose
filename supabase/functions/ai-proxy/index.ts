@@ -10,8 +10,7 @@
 //
 // Auth: Supabase anon key (standard Authorization: Bearer header).
 // =============================================================================
-// @ts-nocheck — Deno imports; no tsconfig in functions dir
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+// @ts-nocheck — Deno runtime; no tsconfig in functions dir
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +25,7 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Pre-flight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: CORS_HEADERS });
@@ -86,6 +85,27 @@ serve(async (req: Request) => {
       },
     );
 
+    const data = await upstream.json();
+    return json(data, upstream.status);
+  }
+
+  // ── Google Gemini ──────────────────────────────────────────────────────────
+  // payload.model should be e.g. 'gemini-1.5-flash' or 'gemini-1.5-pro'
+  // payload.contents is the Gemini messages array (already in Gemini format).
+  if (provider === 'gemini') {
+    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!apiKey) {
+      return json({ error: 'GEMINI_API_KEY not configured in Supabase secrets' }, 500);
+    }
+    const model = (payload['model'] as string) || 'gemini-1.5-flash';
+    const upstream = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+    );
     const data = await upstream.json();
     return json(data, upstream.status);
   }
