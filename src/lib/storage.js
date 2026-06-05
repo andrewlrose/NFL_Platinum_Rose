@@ -49,6 +49,11 @@ export const PR_STORAGE_KEYS = {
     permanence: 'critical',
     description: 'Futures positions and open parlays',
   },
+  FUTURES_WATCHLIST: {
+    key: 'nfl_futures_watchlist_v1',
+    permanence: 'persistent',
+    description: 'Watch List — tracked teams, markets, and price targets',
+  },
   PLAYOFF_BRACKET: {
     key: 'pr_playoff_bracket_v1',
     permanence: 'persistent',

@@ -49,6 +49,7 @@ const AgentChat = lazy(() => import('./components/agent/AgentChat'));
 const PropsAgentChat = lazy(() => import('./components/agent/PropsAgentChat'));
 const FuturesAgentChat = lazy(() => import('./components/agent/FuturesAgentChat'));
 const DFSOptimizer = lazy(() => import('./components/dfs/DFSOptimizer'));
+const PodcastDigestTab = lazy(() => import('./components/podcasts/PodcastDigestTab'));
 import FuturesEntryModal from './components/modals/FuturesEntryModal';
 import StorageBackupModal from './components/modals/StorageBackupModal';
 import PodcastIngestModal from './components/modals/PodcastIngestModal';
@@ -56,7 +57,7 @@ import AgentStatusModal from './components/modals/AgentStatusModal';
 
 const VALID_TABS = new Set([
   'dashboard','standings','mycard','devlab','bankroll',
-  'analytics','odds','picks','futures','futures-agent','agent','props','dfs',
+  'analytics','odds','picks','futures','futures-agent','agent','props','dfs','podcasts',
 ]);
 
 function App() {
@@ -202,6 +203,7 @@ function App() {
           {activeTab === 'agent' && <div className="animate-in fade-in zoom-in duration-300"><AgentChat /></div>}
           {activeTab === 'props' && <div className="animate-in fade-in zoom-in duration-300"><PropsAgentChat /></div>}
           {activeTab === 'dfs' && <div className="animate-in fade-in zoom-in duration-300"><DFSOptimizer /></div>}
+          {activeTab === 'podcasts' && <div className="animate-in fade-in zoom-in duration-300"><PodcastDigestTab /></div>}
         </Suspense>
       </main>
 

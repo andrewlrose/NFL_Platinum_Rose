@@ -4,11 +4,12 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   Briefcase, Plus, TrendingUp, TrendingDown, DollarSign, Target,
   Shield, Trash2, Edit3, ChevronDown, ChevronUp, AlertTriangle,
-  BarChart3, Layers, Trophy, Award, Calculator, Activity, GitMerge
+  BarChart3, Layers, Trophy, Award, Calculator, Activity, GitMerge, Bell
 } from 'lucide-react';
 import HedgeCalculator from './HedgeCalculator';
 import FuturesOddsMonitor from './FuturesOddsMonitor';
 import FuturesMarketBrowser from './FuturesMarketBrowser';
+import FuturesWatchList from './FuturesWatchList';
 import ParlayTracker from './ParlayTracker';
 import PlayoffBracket from './PlayoffBracket';
 import {
@@ -40,12 +41,13 @@ const statusBg = {
 
 // ── Sub-tab enum ─────────────────────────────────────────────────────────────
 const SUBTABS = [
-  { id: 'positions', label: 'Positions',  icon: Layers },
-  { id: 'market',    label: 'Market',     icon: Trophy },
-  { id: 'exposure',  label: 'Exposure',   icon: BarChart3 },
-  { id: 'hedge',     label: 'Hedge Calc', icon: Calculator },
-  { id: 'monitor',   label: 'Odds Monitor', icon: Activity },
-  { id: 'parlays',   label: 'Parlays',    icon: GitMerge },
+  { id: 'positions', label: 'Positions',       icon: Layers },
+  { id: 'market',    label: 'Market',          icon: Trophy },
+  { id: 'watchlist', label: 'Watch List',      icon: Bell },
+  { id: 'exposure',  label: 'Exposure',        icon: BarChart3 },
+  { id: 'hedge',     label: 'Hedge Calc',      icon: Calculator },
+  { id: 'monitor',   label: 'Odds Monitor',    icon: Activity },
+  { id: 'parlays',   label: 'Parlays',         icon: GitMerge },
   { id: 'bracket',   label: 'Playoff Bracket', icon: Award },
 ];
 
@@ -266,6 +268,7 @@ export default function FuturesPortfolio({ onAddPosition }) {
       {/* Content */}
       {subTab === 'positions' && <PositionsView />}
       {subTab === 'market'    && <FuturesMarketBrowser />}
+      {subTab === 'watchlist' && <FuturesWatchList />}
       {subTab === 'exposure'  && <ExposureView />}
       {subTab === 'hedge'     && (
         <HedgeCalculator

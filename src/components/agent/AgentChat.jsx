@@ -505,10 +505,11 @@ function ApiKeySetup({ onKeySet }) {
 
 // ─── Status Bar ───────────────────────────────────────────────────────────────
 
-function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, phase, isLoading, briefingRunning, provider }) {
-  const modelLabel = provider === 'anthropic'
+function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, phase, isLoading, briefingRunning, provider, activeModelLabel }) {
+  const defaultLabel = provider === 'anthropic'
     ? (ANTHROPIC_API.MODEL_DEFAULT || 'claude-sonnet-4-5')
     : 'gpt-4o-mini';
+  const modelLabel = activeModelLabel || defaultLabel;
   const isOffseason = phase === 'preseason' || phase === 'offseason';
   const phaseColor = isOffseason ? 'text-slate-500' : 'text-emerald-400';
   return (
@@ -531,7 +532,9 @@ function AgentStatusBar({ openPicksCount, bankrollBalance, weekLabel, phase, isL
       )}
       {isLoading && (
         <span className="ml-auto text-amber-400 animate-pulse">
-          {briefingRunning ? 'Briefing in progress…' : 'Thinking…'}
+          {briefingRunning
+            ? 'Briefing in progress…'
+            : `Asking ${activeModelLabel || modelLabel}…`}
         </span>
       )}
     </div>
@@ -561,6 +564,8 @@ export default function AgentChat() {
   // Default to proxy mode (anthropic provider, empty key — key held server-side)
   const [apiKey, setApiKey]     = useState(storedKey || '');
   const [provider, setProvider] = useState(storedProvider || 'anthropic');
+  // Tracks the active model label -- updates when fallback fires mid-conversation.
+  const [activeModelLabel, setActiveModelLabel] = useState(null);
 
   // Conversation state (Anthropic messages format — includes tool_result messages)
   const [messages, setMessages] = useState(() => {
@@ -696,6 +701,8 @@ export default function AgentChat() {
               }
               return [...prev, step.message];
             });
+          } else if (step.type === 'provider_fallback') {
+            setActiveModelLabel(step.model + ' (fallback)');
           }
           // tool_start and tool_result are reflected by subsequent assistant message updates
         },
@@ -754,6 +761,8 @@ export default function AgentChat() {
               }
               return [...prev, step.message];
             });
+          } else if (step.type === 'provider_fallback') {
+            setActiveModelLabel(step.model + ' (fallback)');
           }
         },
       });
@@ -897,6 +906,7 @@ export default function AgentChat() {
         isLoading={isLoading}
         briefingRunning={isProactiveBriefRunning}
         provider={provider}
+        activeModelLabel={activeModelLabel}
       />
 
       {/* Messages */}

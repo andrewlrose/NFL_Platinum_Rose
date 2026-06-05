@@ -75,3 +75,16 @@ export const ANTHROPIC_API = {
   MODEL_DEFAULT: 'claude-sonnet-4-5',
   MODEL_UPGRADE: 'claude-opus-4',
 };
+// --- M6 (podcast digest service on Tailscale) ---
+// VITE_M6_BASE: tailnet host for private /digest/* pages (operator).
+// VITE_M6_FUNNEL_BASE: public Funnel host for /share/* links (Phase 8).
+//   Often the same value as BASE; kept as a separate key because their
+//   reachability and trust differ.
+export const M6 = {
+  BASE: (import.meta.env.VITE_M6_BASE || '').replace(/\/$/, ''),
+  FUNNEL_BASE: (
+    import.meta.env.VITE_M6_FUNNEL_BASE ||
+    import.meta.env.VITE_M6_BASE ||
+    ''
+  ).replace(/\/$/, ''),
+};

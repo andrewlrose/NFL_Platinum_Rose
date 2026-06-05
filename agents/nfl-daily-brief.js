@@ -51,7 +51,8 @@ const DRY_RUN      = process.argv.includes('--dry-run') || process.env.DRY_RUN =
 const TWEET_HOURS    = Number(process.env.TWEET_LOOKBACK_HOURS || 48);
 const INTEL_DAYS     = Number(process.env.INTEL_LOOKBACK_DAYS  || 7);
 const INJURY_DAYS    = Number(process.env.INJURY_LOOKBACK_DAYS || 7);
-const GAMES_DAYS     = Number(process.env.GAMES_LOOKAHEAD_DAYS || 8);
+const GAMES_DAYS          = Number(process.env.GAMES_LOOKAHEAD_DAYS || 8);
+const PODCAST_PICKS_HOURS = Number(process.env.PODCAST_PICKS_LOOKBACK_HOURS || 24);
 const DASHBOARD_BASE = process.env.DASHBOARD_URL || 'https://andrewlrose.github.io/platinum-rose-app/';
 
 function dashLink(tab, label = 'View in Dashboard →') {
@@ -253,6 +254,57 @@ async function fetchPodcastIntel(supabase) {
     const intelText = ep.intel.join(' ');
     return isNFLRelevant(title) || isNFLRelevant(intelText);
   });
+}
+
+async function fetchTopPodcastPicks(supabase) {
+  const since = hoursAgo(PODCAST_PICKS_HOURS);
+  const { data, error } = await supabase
+    .from('podcast_transcripts')
+    .select(`
+      id, picks, processed_at,
+      podcast_episodes (
+        id, title, pub_date, is_nfl_relevant,
+        podcast_feeds ( name, expert )
+      )
+    `)
+    .gte('processed_at', since)
+    .order('processed_at', { ascending: false })
+    .limit(40);
+
+  if (error) {
+    console.warn(`fetchTopPodcastPicks: ${error.message}`);
+    return [];
+  }
+
+  const allPicks = [];
+  for (const row of data || []) {
+    const epInfo = row.podcast_episodes;
+    if (!epInfo) continue;
+    // Episode-level NFL guard (multi-sport feeds can slip through)
+    const epIsNFL = epInfo.is_nfl_relevant !== false &&
+      (epInfo.is_nfl_relevant === true || isNFLRelevant(epInfo.title || ''));
+    if (!epIsNFL) continue;
+
+    const feedName = epInfo.podcast_feeds?.name || 'Podcast';
+    const picks = Array.isArray(row.picks) ? row.picks : [];
+    for (const p of picks) {
+      if (p.needs_review) continue;
+      allPicks.push({
+        ...p,
+        feedName,
+        episodeId: epInfo.id,
+        processedAt: row.processed_at,
+      });
+    }
+  }
+
+  // Sort by confidence desc, quality_score desc; cap at 8
+  return allPicks
+    .sort((a, b) => {
+      const cd = (b.confidence ?? 0) - (a.confidence ?? 0);
+      return cd !== 0 ? cd : (b.quality_score ?? 0) - (a.quality_score ?? 0);
+    })
+    .slice(0, 8);
 }
 
 async function fetchInjuries(supabase) {
@@ -636,6 +688,55 @@ function renderPodcastIntel(episodes) {
   </div>`;
 }
 
+const CATEGORY_LABEL = {
+  spread:  'Spread',
+  total:   'Total',
+  ml:      'Moneyline',
+  prop:    'Prop',
+  futures: 'Futures',
+};
+
+function digestLinkFor(episodeId) {
+  const base = process.env.M6_DIGEST_BASE;
+  if (!base) return '';
+  const url = `${base.replace(/\/$/, '')}/digest/episodes/${episodeId}.html`;
+  return ` <a href="${url}" style="font-size:11px;color:#888;">(digest · tailnet)</a>`;
+}
+
+function renderTopPodcastPicks(picks) {
+  if (!picks.length) return '';
+
+  const items = picks.map(p => {
+    const catLabel = CATEGORY_LABEL[p.category] || (p.category || 'Pick');
+    const selection = escapeHtml(p.selection || p.subject || '—');
+    const line = p.line != null ? ` ${p.line > 0 ? '+' : ''}${p.line}` : '';
+    const conf = p.confidence != null
+      ? `<span class="${confClass(p.confidence)}" style="margin-left:6px;">${Math.round(p.confidence * 100)}%</span>`
+      : '';
+    const units = p.units != null
+      ? `<span style="color:#888;font-size:11px;margin-left:6px;">${p.units}u</span>`
+      : '';
+    const summary = p.summary
+      ? `<div style="color:#555;font-size:12px;margin-top:4px;">${escapeHtml(p.summary)}</div>`
+      : '';
+    const dLink = digestLinkFor(p.episodeId);
+    return `<div class="intel-item">
+      <div class="intel-title">
+        <span style="font-size:11px;background:#1a1a2e;color:#7c83fd;padding:2px 6px;border-radius:3px;margin-right:6px;">${escapeHtml(catLabel)}</span>
+        ${selection}${escapeHtml(line)}${conf}${units}${dLink}
+      </div>
+      ${summary}
+      <div class="intel-meta">🎙 <strong>${escapeHtml(p.feedName)}</strong></div>
+    </div>`;
+  }).join('');
+
+  return `<div class="section">
+    <div class="section-title">🎯 Top Podcast Picks (last ${PODCAST_PICKS_HOURS}h)</div>
+    ${items}
+    ${dashLink('podcasts', 'Podcast Digest Tab →')}
+  </div>`;
+}
+
 function renderInjuries(injuries) {
   if (!injuries.length) return ''; // hidden in offseason
 
@@ -732,7 +833,7 @@ function buildEmail(sections) {
 </html>`;
 }
 
-function buildPlainText(sbTable, tweets, notes, podcastEps, injuries, games) {
+function buildPlainText(sbTable, tweets, notes, podcastEps, topPicks, injuries, games) {
   const lines = [`NFL Daily Brief — ${nowStr()}`, ''];
 
   if (sbTable.length) {
@@ -770,6 +871,16 @@ function buildPlainText(sbTable, tweets, notes, podcastEps, injuries, games) {
       (ep.intel || []).slice(0, 3).forEach(i => lines.push(`  · ${i}`));
       lines.push('');
     });
+  }
+
+  if (topPicks.length) {
+    lines.push(`TOP PODCAST PICKS (last ${PODCAST_PICKS_HOURS}h)`, '─'.repeat(40));
+    topPicks.forEach(p => {
+      const conf = p.confidence != null ? ` (${Math.round(p.confidence * 100)}%)` : '';
+      lines.push(`• [${(p.category || '?').toUpperCase()}] ${p.selection || p.subject}${conf} — ${p.feedName}`);
+      if (p.summary) lines.push(`    ${p.summary}`);
+    });
+    lines.push('');
   }
 
   if (injuries.length) {
@@ -832,12 +943,13 @@ async function main() {
 
   // Fetch all data in parallel
   console.log('Fetching data from Supabase...');
-  const [sbSnaps, sbMovers, tweets, notes, podcastEps, injuries, gameRows] = await Promise.all([
+  const [sbSnaps, sbMovers, tweets, notes, podcastEps, topPicks, injuries, gameRows] = await Promise.all([
     fetchFuturesSnapshot(supabase),
     fetchFuturesMovers(supabase),
     fetchSharpTweets(supabase),
     fetchIntelNotes(supabase),
     fetchPodcastIntel(supabase),
+    fetchTopPodcastPicks(supabase),
     fetchInjuries(supabase),
     fetchUpcomingGames(supabase),
   ]);
@@ -858,6 +970,7 @@ async function main() {
   console.log(`  Sharp tweets:  ${tweets.length} rows`);
   console.log(`  Intel notes:   ${notes.length} rows`);
   console.log(`  Podcast eps:   ${podcastEps.length} rows`);
+  console.log(`  Podcast picks: ${topPicks.length} rows`);
   console.log(`  Injuries:      ${injuries.length} rows (${dedupedInjuries.length} unique players)`);
   console.log(`  Upcoming games:${gameRows.length} rows`);
 
@@ -870,12 +983,13 @@ async function main() {
     renderTweets(tweets),
     renderIntel(notes),
     renderPodcastIntel(podcastEps),
+    renderTopPodcastPicks(topPicks),
     renderInjuries(dedupedInjuries),
     renderGames(gameRows),
   ];
 
   const htmlBody = buildEmail(sections);
-  const textBody = buildPlainText(sbTable, tweets, notes, podcastEps, dedupedInjuries, gameRows);
+  const textBody = buildPlainText(sbTable, tweets, notes, podcastEps, topPicks, dedupedInjuries, gameRows);
 
   const today   = new Date().toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
@@ -909,9 +1023,10 @@ async function main() {
     stats: {
       sb_snapshots: sbSnaps.length,
       sharp_tweets: tweets.length,
-      intel_notes:  notes.length,
-      injuries:     injuries.length,
-      game_rows:    gameRows.length,
+      intel_notes:       notes.length,
+      podcast_picks:     topPicks.length,
+      injuries:          injuries.length,
+      game_rows:         gameRows.length,
     },
     success: true,
   };
@@ -923,7 +1038,12 @@ async function main() {
   console.log(`Receipt: ${receiptFile}`);
 }
 
-main().catch(err => {
-  console.error('FATAL:', err.message);
-  process.exit(1);
-});
+// Guard so the module can be imported for unit tests without firing a live run
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
+  main().catch(err => {
+    console.error('FATAL:', err.message);
+    process.exit(1);
+  });
+}
+
+export { fetchTopPodcastPicks, renderTopPodcastPicks };
