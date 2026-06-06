@@ -432,6 +432,200 @@ _Auto-generated from vault-seed ingestion. Play-level data — no per-team notes
     teamSuffix: 'QBR',
     tags: ['espn', 'qbr', 'analytics', 'nflverse', 'reference'],
   },
+
+  // ── Spreadspoke — game-level historical scores + spreads (1966–present) ──
+  // spreadspoke.com / Kaggle: tobycrabtree/nfl-scores-and-betting-data
+  // Drop spreadspoke_scores.csv (or nfl_2025.csv free sample) into data/vault-seed/ats/
+  //
+  // Key columns: schedule_season, schedule_week, team_home, team_away, score_home,
+  //   score_away, team_favorite_id, spread_favorite (home-team perspective: negative=home favored),
+  //   over_under_line, weather_temperature, weather_wind_mph, weather_detail
+  //
+  // spread_favorite convention: signed from the HOME team's perspective.
+  //   -7.0 = home lays 7 (home favored)   +3.5 = away lays 3.5 (away favored)
+  // Home covers if: (score_home - score_away) > spread_favorite
+  spreadspoke: {
+    detect: (headers) =>
+      headers.includes('schedule_season') &&
+      headers.includes('team_home') &&
+      headers.includes('team_away') &&
+      (headers.includes('spread_favorite') || headers.includes('score_home')),
+    // After aggregateToTeamRows(), each row has 'team' and 'season'
+    teamCol: () => 'team',
+    yearCol: () => 'season',
+    label: 'ATS Records (Spreadspoke)',
+    vaultPrefix: 'NFL/Reference/ATS',
+    teamVaultPrefix: 'NFL/Teams',
+    teamSuffix: 'ATS',
+    tags: ['ats', 'betting', 'spreadspoke', 'historical', 'reference'],
+
+    // ── Game-level → per-team per-season aggregation ──────────────────────
+    aggregateToTeamRows(rows) {
+      const map = new Map();
+
+      function init(season, team) {
+        const key = `${season}|${team}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            team, season: +season, games: 0,
+            ats_w: 0, ats_l: 0, ats_p: 0,
+            home_ats_w: 0, home_ats_l: 0, home_ats_p: 0,
+            away_ats_w: 0, away_ats_l: 0, away_ats_p: 0,
+            fav_w: 0, fav_l: 0, dog_w: 0, dog_l: 0,
+            over: 0, under: 0, ou_push: 0,
+            margin_sum: 0, total_sum: 0,
+            cold_games: 0, cold_under: 0,
+            wind_games: 0, wind_under: 0,
+          });
+        }
+        return map.get(key);
+      }
+
+      for (const row of rows) {
+        const season  = row.schedule_season;
+        const homeAbbr = toAbbr(row.team_home);
+        const awayAbbr = toAbbr(row.team_away);
+        if (!season || !homeAbbr || !awayAbbr) continue;
+
+        const sH = parseFloat(row.score_home);
+        const sA = parseFloat(row.score_away);
+        if (isNaN(sH) || isNaN(sA)) continue; // game not yet played
+
+        const margin   = sH - sA;
+        const total    = sH + sA;
+        const spread   = parseFloat(row.spread_favorite);   // home-team perspective
+        const ou       = parseFloat(row.over_under_line);
+        const temp     = parseFloat(row.weather_temperature);
+        const wind     = parseFloat(row.weather_wind_mph);
+        const wx       = (row.weather_detail || '').toLowerCase();
+        const isDome   = wx.includes('dome') || wx.includes('indoor');
+        const isCold   = !isDome && !isNaN(temp) && temp < 40;
+        const isWindy  = !isDome && !isNaN(wind) && wind > 20;
+        const favAbbr  = toAbbr(row.team_favorite_id);
+
+        // O/U result
+        const ouResult = (!isNaN(ou) && ou > 0)
+          ? (total > ou ? 'over' : total < ou ? 'under' : 'push')
+          : null;
+
+        // ATS result — home-team perspective
+        // spread_favorite is the HOME team's spread (negative = home favored)
+        // Home covers if margin > spread_favorite
+        const homeAts = !isNaN(spread)
+          ? (margin > spread ? 'W' : margin < spread ? 'L' : 'P')
+          : null;
+        const awayAts = homeAts === 'W' ? 'L' : homeAts === 'L' ? 'W' : homeAts;
+
+        const homeIsFav = favAbbr === homeAbbr;
+        const awayIsFav = favAbbr === awayAbbr;
+
+        // ── Home team stats ──
+        const h = init(season, homeAbbr);
+        h.games++;
+        h.margin_sum += margin;
+        h.total_sum  += total;
+        if (homeAts === 'W') { h.ats_w++; h.home_ats_w++; }
+        else if (homeAts === 'L') { h.ats_l++; h.home_ats_l++; }
+        else if (homeAts === 'P') { h.ats_p++; h.home_ats_p++; }
+        if (homeIsFav) { if (homeAts === 'W') h.fav_w++; else if (homeAts === 'L') h.fav_l++; }
+        else if (awayIsFav) { if (homeAts === 'W') h.dog_w++; else if (homeAts === 'L') h.dog_l++; }
+        if (ouResult === 'over') h.over++;
+        else if (ouResult === 'under') h.under++;
+        else if (ouResult === 'push') h.ou_push++;
+        if (isCold) { h.cold_games++; if (ouResult === 'under') h.cold_under++; }
+        if (isWindy) { h.wind_games++; if (ouResult === 'under') h.wind_under++; }
+
+        // ── Away team stats ──
+        const a = init(season, awayAbbr);
+        a.games++;
+        a.margin_sum += -margin; // from away team's perspective
+        a.total_sum  += total;
+        if (awayAts === 'W') { a.ats_w++; a.away_ats_w++; }
+        else if (awayAts === 'L') { a.ats_l++; a.away_ats_l++; }
+        else if (awayAts === 'P') { a.ats_p++; a.away_ats_p++; }
+        if (awayIsFav) { if (awayAts === 'W') a.fav_w++; else if (awayAts === 'L') a.fav_l++; }
+        else if (homeIsFav) { if (awayAts === 'W') a.dog_w++; else if (awayAts === 'L') a.dog_l++; }
+        if (ouResult === 'over') a.over++;
+        else if (ouResult === 'under') a.under++;
+        else if (ouResult === 'push') a.ou_push++;
+        if (isCold) { a.cold_games++; if (ouResult === 'under') a.cold_under++; }
+        if (isWindy) { a.wind_games++; if (ouResult === 'under') a.wind_under++; }
+      }
+
+      const pct = (w, l) => (w + l > 0 ? ((w / (w + l)) * 100).toFixed(1) : '—');
+      const rec = (w, l, p) => `${w}-${l}-${p}`;
+
+      return [...map.values()].map(s => ({
+        team:            s.team,
+        season:          s.season,
+        games:           s.games,
+        ats_wins:        s.ats_w,
+        ats_losses:      s.ats_l,
+        ats_pushes:      s.ats_p,
+        ats_pct:         pct(s.ats_w, s.ats_l),
+        home_ats_record: rec(s.home_ats_w, s.home_ats_l, s.home_ats_p),
+        away_ats_record: rec(s.away_ats_w, s.away_ats_l, s.away_ats_p),
+        fav_ats_record:  s.fav_w + s.fav_l > 0 ? `${s.fav_w}-${s.fav_l}` : '—',
+        dog_ats_record:  s.dog_w + s.dog_l > 0 ? `${s.dog_w}-${s.dog_l}` : '—',
+        over_count:      s.over,
+        under_count:     s.under,
+        avg_margin:      s.games > 0 ? (s.margin_sum / s.games).toFixed(1) : '—',
+        avg_total:       s.games > 0 ? (s.total_sum  / s.games).toFixed(1) : '—',
+        cold_under_pct:  s.cold_games > 0 ? ((s.cold_under / s.cold_games) * 100).toFixed(0) + '%' : '—',
+        wind_under_pct:  s.wind_games > 0 ? ((s.wind_under / s.wind_games) * 100).toFixed(0) + '%' : '—',
+      }));
+    },
+
+    buildLeagueNote(rows, year, _headers) {
+      const byYear = new Map();
+      for (const r of rows) {
+        if (!byYear.has(r.season)) byYear.set(r.season, []);
+        byYear.get(r.season).push(r);
+      }
+      const seasons = [...byYear.keys()].sort((a, b) => b - a);
+      const latestYear = seasons[0];
+      const latest = [...(byYear.get(latestYear) || [])].sort((a, b) => +b.ats_wins - +a.ats_wins);
+
+      const tbl = [
+        '| Team | ATS | ATS% | Home ATS | Away ATS | O | U | Avg Margin | Avg Total |',
+        '|---|---|---|---|---|---|---|---|---|',
+        ...latest.map(r =>
+          `| ${r.team} | ${r.ats_wins}-${r.ats_losses}-${r.ats_pushes} | ${r.ats_pct}% | ${r.home_ats_record} | ${r.away_ats_record} | ${r.over_count} | ${r.under_count} | ${r.avg_margin} | ${r.avg_total} |`
+        ),
+      ].join('\n');
+
+      const seasonRange = seasons.length > 1
+        ? `${seasons[seasons.length - 1]}–${latestYear}`
+        : String(latestYear);
+
+      return `# ATS Records (Spreadspoke) — ${latestYear} Season
+
+_Source: spreadspoke.com | Seasons in file: ${seasonRange} | Updated: ${now()}_
+
+> **Spread convention:** \`spread_favorite\` is signed from the home team's perspective.
+> ATS% excludes pushes. Cold weather = outdoor games below 40°F. Wind = >20 mph outdoor.
+
+${tbl}
+
+_${latest.length} teams. Auto-generated from vault-seed Spreadspoke CSV._
+`;
+    },
+
+    buildTeamNote(teamRows, abbr, _year, _headers) {
+      const seasons = [...teamRows].sort((a, b) => +b.season - +a.season);
+      const sections = seasons.map(r => [
+        `### ${r.season} (${r.games} games)`,
+        `- **ATS:** ${r.ats_wins}-${r.ats_losses}-${r.ats_pushes} (${r.ats_pct}%)`,
+        `- **Home / Away ATS:** ${r.home_ats_record} / ${r.away_ats_record}`,
+        `- **As Favorite:** ${r.fav_ats_record} | **As Underdog:** ${r.dog_ats_record}`,
+        `- **O/U:** ${r.over_count} Over / ${r.under_count} Under`,
+        `- **Avg Margin:** ${r.avg_margin} pts | **Avg Total:** ${r.avg_total} pts`,
+        r.cold_under_pct !== '—' ? `- **Cold Weather Under%:** ${r.cold_under_pct}` : null,
+        r.wind_under_pct !== '—' ? `- **Wind Game Under%:** ${r.wind_under_pct}` : null,
+      ].filter(Boolean).join('\n'));
+      return `## ATS Records (Spreadspoke)\n\n_Updated: ${now()}_\n\n${sections.join('\n\n')}\n`;
+    },
+  },
 };
 
 function detectSchema(headers, dirName, fileName = null) {
@@ -569,20 +763,32 @@ async function processCSV(supabase, filePath, dirName, results) {
     return;
   }
 
-  const teamCol = schema.teamCol(headers);
-  const yearCol = schema.yearCol(headers);
+  // ── Game-level aggregation hook (e.g., Spreadspoke) ──────────────────────
+  // If the schema provides aggregateToTeamRows(), transform raw game rows into
+  // per-team per-season summary rows before all further processing.
+  let finalRows    = rows;
+  let finalHeaders = headers;
+  if (typeof schema.aggregateToTeamRows === 'function') {
+    finalRows = schema.aggregateToTeamRows(rows);
+    finalHeaders = finalRows.length ? Object.keys(finalRows[0]) : headers;
+    console.log(`  Aggregated ${rows.length} game rows → ${finalRows.length} team-season rows`);
+    if (!finalRows.length) { console.warn(`  [SKIP] aggregation produced no rows`); return; }
+  }
+
+  const teamCol = schema.teamCol(finalHeaders);
+  const yearCol = schema.yearCol(finalHeaders);
 
   // Determine year: from data or filename
-  const yearFromData = rows[0]?.[yearCol];
+  const yearFromData = finalRows[0]?.[yearCol];
   const yearFromFile = filePath.match(/20(\d{2})/)?.[0];
   const year = yearFromData || yearFromFile || new Date().getFullYear() - 1;
 
-  console.log(`  Schema: ${schema.label} | year: ${year} | teams: ${rows.length} rows`);
+  console.log(`  Schema: ${schema.label} | year: ${year} | rows: ${finalRows.length}`);
 
   // ── League-wide reference note ──
   const leaguePath = `${schema.vaultPrefix}-${year}.md`;
   if (!ONLY_TEAM) {
-    const leagueContent = buildLeagueNote(schema, rows, year, headers);
+    const leagueContent = buildLeagueNote(schema, finalRows, year, finalHeaders);
     await upsertNote(supabase, {
       path: leaguePath,
       content: leagueContent,
@@ -595,7 +801,7 @@ async function processCSV(supabase, filePath, dirName, results) {
 
   // Group rows by team
   const byTeam = new Map();
-  for (const row of rows) {
+  for (const row of finalRows) {
     const abbr = toAbbr(row[teamCol]);
     if (!abbr) continue;
     if (ONLY_TEAM && abbr !== ONLY_TEAM) continue;
@@ -604,11 +810,11 @@ async function processCSV(supabase, filePath, dirName, results) {
   }
 
   for (const [abbr, teamRows] of byTeam) {
-    const teamPath    = `${schema.teamVaultPrefix}/${abbr}-${schema.teamSuffix}.md`;
+    const teamPath      = `${schema.teamVaultPrefix}/${abbr}-${schema.teamSuffix}.md`;
     const sectionHeader = `${schema.label} — ${year}`;
     const newSection    = typeof schema.buildTeamNote === 'function'
-      ? schema.buildTeamNote(teamRows, abbr, year, headers)
-      : buildTeamNote(schema, teamRows, abbr, year, headers);
+      ? schema.buildTeamNote(teamRows, abbr, year, finalHeaders)
+      : buildTeamNote(schema, teamRows, abbr, year, finalHeaders);
 
     // Read existing note and merge
     let existingContent = null;
@@ -632,7 +838,9 @@ async function processJSON(supabase, filePath, dirName, results) {
     console.warn(`  [SKIP] ${filePath}: invalid JSON`);
     return;
   }
-  const rows = Array.isArray(data) ? data : data.data ?? data.rows ?? [];
+  const rows = Array.isArray(data)
+    ? data
+    : data.data ?? data.rows ?? data.teams ?? data.players ?? data.games ?? [];
   if (!rows.length) { console.warn(`  [SKIP] ${filePath}: no rows`); return; }
 
   // Convert to CSV-like and reuse CSV processor

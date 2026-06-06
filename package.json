@@ -22,7 +22,14 @@
     "test:coverage": "vitest run --coverage",
     "overnight": "node scripts/overnight.js",
     "daily-brief": "node agents/nfl-daily-brief.js",
-    "daily-brief:dry": "node agents/nfl-daily-brief.js --dry-run"
+    "daily-brief:dry": "node agents/nfl-daily-brief.js --dry-run",
+    "seed:vault": "node agents/vault-seed.js",
+    "seed:vault:dry": "node agents/vault-seed.js --dry-run",
+    "seed:vault:dvoa": "node agents/vault-seed.js --dir dvoa",
+    "seed:vault:ats": "node agents/vault-seed.js --dir ats",
+    "seed:vault:splits": "node agents/vault-seed.js --dir splits",
+    "fetch:nflverse": "python scripts/fetch_nflverse_data.py",
+    "fetch:nflverse:dry": "python scripts/fetch_nflverse_data.py --dry-run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
