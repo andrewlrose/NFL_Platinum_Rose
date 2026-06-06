@@ -7,7 +7,7 @@ Datasets fetched:
   games                  → games.csv       (completed games only — has final scores)
   player_stats_weekly    → player_stats_weekly.csv
   player_stats_seasonal  → player_stats_seasonal.csv
-  team_stats             → team_stats.csv  (team-week aggregates from player_stats)
+  team_stats             → team_stats.csv  (team-week aggregates from nflverse stats_team release)
   ftn_charting           → ftn_charting.csv
   espn_data              → espn_data.csv   (ESPN QBR via import_qbr, weekly)
 
@@ -41,27 +41,14 @@ DEFAULT_YEARS: list[int] = [2022, 2023, 2024, 2025]
 FRESHNESS_DAYS: int = 7  # skip re-download if file modified within this many days
 
 # ---------------------------------------------------------------------------
-# Optional rich console — graceful degradation if not installed
+# Console output — plain print(), no rich dependency for reliability
 # ---------------------------------------------------------------------------
-try:
-    from rich.console import Console
-    from rich.table import Table
-
-    _console = Console()
-    _HAS_RICH = True
-except ImportError:
-    _console = None  # type: ignore[assignment]
-    _HAS_RICH = False
-
+import re as _re
 
 def _log(msg: str, style: str = "") -> None:
-    if _HAS_RICH:
-        _console.print(f"  {msg}", style=style or "")
-    else:
-        # Strip any Rich markup tags for plain output
-        import re
-        clean = re.sub(r"\[/?[^\]]*\]", "", msg)
-        print(f"  {clean}")
+    """Print a log line, stripping any Rich markup tags."""
+    clean = _re.sub(r"\[/?[^\]]*\]", "", msg)
+    print(f"  {clean}", flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -96,20 +83,37 @@ def _save_csv(df: "pd.DataFrame", path: Path, label: str) -> None:  # noqa: F821
 # Each receives the year list and the shared _Cache; returns a DataFrame.
 # ---------------------------------------------------------------------------
 
+# nfl_data_py 0.3.3 is archived (Sep 2025). The old `player_stats` release tag
+# on nflverse-data is gone (HTTP 404). The successor library nflreadpy uses:
+#   stats_player/stats_player_week_{year}.parquet   — weekly player stats
+#   stats_player/stats_player_reg_{year}.parquet    — regular-season totals
+#   stats_team/stats_team_week_{year}.parquet       — weekly team aggregates
+_NFLVERSE_BASE = (
+    "https://github.com/nflverse/nflverse-data/releases/download"
+)
+
+
+def _read_parquets(url_tmpl: str, years: list[int], label: str) -> "pd.DataFrame":  # noqa: F821
+    """Download one parquet per year and concat; skip years that 404."""
+    import pandas as pd
+    frames = []
+    for yr in years:
+        url = url_tmpl.format(yr)
+        try:
+            frames.append(pd.read_parquet(url))
+        except Exception as exc:
+            _log(f"[yellow]  ↷  {label} {yr} skipped — {str(exc)[:80]}[/yellow]")
+    if not frames:
+        raise RuntimeError(f"No data fetched for {label} — all years failed")
+    return pd.concat(frames, ignore_index=True)
+
+
 class _Cache:
-    """Lazy cache so weekly_data isn't fetched twice."""
+    """Lazy cache for shared downloads (schedules; weekly is now direct-download)."""
 
     def __init__(self, years: list[int]) -> None:
         self._years = years
-        self._weekly: Any = None
         self._schedules: Any = None
-
-    def weekly(self) -> "pd.DataFrame":  # noqa: F821
-        if self._weekly is None:
-            import nfl_data_py as nfl
-            _log("[cyan]  (loading weekly player data — shared by player_stats + team_stats)[/cyan]")
-            self._weekly = nfl.import_weekly_data(self._years)
-        return self._weekly
 
     def schedules(self) -> "pd.DataFrame":  # noqa: F821
         if self._schedules is None:
@@ -128,22 +132,30 @@ def _fetch_games(years: list[int], cache: _Cache) -> "pd.DataFrame":
 
 
 def _fetch_player_stats_weekly(years: list[int], cache: _Cache) -> "pd.DataFrame":
-    return cache.weekly()
+    """Weekly player stats — new stats_player release tag (replaces old player_stats tag)."""
+    return _read_parquets(
+        f"{_NFLVERSE_BASE}/stats_player/stats_player_week_{{0}}.parquet",
+        years,
+        "player_stats_weekly",
+    )
 
 
 def _fetch_player_stats_seasonal(years: list[int], cache: _Cache) -> "pd.DataFrame":
-    import nfl_data_py as nfl
-    return nfl.import_seasonal_data(years)
+    """Regular-season totals — stats_player_reg (replaces import_seasonal_data)."""
+    return _read_parquets(
+        f"{_NFLVERSE_BASE}/stats_player/stats_player_reg_{{0}}.parquet",
+        years,
+        "player_stats_seasonal",
+    )
 
 
 def _fetch_team_stats(years: list[int], cache: _Cache) -> "pd.DataFrame":
-    """Aggregate weekly player stats to team-week level (sum of numeric cols)."""
-    df = cache.weekly()
-    group_cols = [c for c in ["season", "season_type", "week", "recent_team"] if c in df.columns]
-    if not group_cols:
-        return df
-    numeric_cols = df.select_dtypes("number").columns.tolist()
-    return df.groupby(group_cols, as_index=False)[numeric_cols].sum()
+    """Weekly team aggregates — dedicated stats_team release (no longer derived from player_stats)."""
+    return _read_parquets(
+        f"{_NFLVERSE_BASE}/stats_team/stats_team_week_{{0}}.parquet",
+        years,
+        "team_stats",
+    )
 
 
 def _fetch_ftn_charting(years: list[int], cache: _Cache) -> "pd.DataFrame":
@@ -191,7 +203,7 @@ DATASETS: list[dict] = [
         "name": "team_stats",
         "file": "team_stats.csv",
         "fetch": _fetch_team_stats,
-        "desc": "Team-week aggregates (numeric sums from player_stats_weekly)",
+        "desc": "Team-week aggregates (nflverse stats_team release)",
     },
     {
         "name": "ftn_charting",
@@ -238,10 +250,7 @@ def run(
 
     selected = [d for d in DATASETS if not selected_names or d["name"] in selected_names]
 
-    if _HAS_RICH:
-        _console.rule("[bold cyan]nflverse data fetch[/bold cyan]")
-    else:
-        print("\n=== nflverse data fetch ===")
+    print("\n=== nflverse data fetch ===", flush=True)
 
     _log(f"Years:       {years}")
     _log(f"Output dir:  {OUTPUT_DIR}")
@@ -282,21 +291,10 @@ def run(
 
     # Summary
     print()
-    if _HAS_RICH:
-        tbl = Table(title="Fetch summary", show_header=True, header_style="bold magenta")
-        tbl.add_column("Dataset", style="cyan", min_width=26)
-        tbl.add_column("Status", min_width=10)
-        tbl.add_column("Detail")
-        _style_map = {"ok": "green", "skipped": "dim", "error": "red bold", "dry-run": "yellow"}
-        for n, status, detail in results:
-            s = _style_map.get(status, "white")
-            tbl.add_row(n, f"[{s}]{status}[/{s}]", detail)
-        _console.print(tbl)
-    else:
-        print(f"{'Dataset':<28} {'Status':<12} Detail")
-        print("-" * 72)
-        for n, status, detail in results:
-            print(f"{n:<28} {status:<12} {detail}")
+    print(f"{'Dataset':<28} {'Status':<12} Detail", flush=True)
+    print("-" * 72, flush=True)
+    for n, status, detail in results:
+        print(f"{n:<28} {status:<12} {detail}", flush=True)
 
     ok_count = sum(1 for _, s, _ in results if s == "ok")
     skip_count = sum(1 for _, s, _ in results if s == "skipped")
@@ -364,4 +362,10 @@ def main() -> None:
     # Validate --datasets
     invalid = [n for n in args.datasets if n not in DATASET_NAMES]
     if invalid:
-        parser.err
+        parser.error(f"Unknown dataset(s): {invalid}. Choose from: {DATASET_NAMES}")
+
+    sys.exit(run(args.years, args.force, args.dry_run, args.datasets, args.freshness_days))
+
+
+if __name__ == "__main__":
+    main()
