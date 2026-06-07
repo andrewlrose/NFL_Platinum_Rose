@@ -1,37 +1,62 @@
 # WORKING-CONTEXT.md — NFL Platinum Rose
 > **Live operational state. Update this file at every session close.**
 > **Read this at session start before touching any file.**
-> Last updated: 2026-05-08 | Branch: `main` | HEAD: _(run `git log -1 --oneline`)_
+> Last updated: 2026-06-06 | Branch: `main` | HEAD: `e0b94a8`
 
 ---
 
 ## Current Mode
 
 ```
-MODE: Offseason Architecture Build (Week 1 target)
-Active: May 8, 2026
-Context: Governance migration done. F-6 BETTING, F-7 DFS, F-8 PROPS agents all live.
-         Futures ingest confirmed live (96 SB rows, 2026-05-08). ODDS_API_KEY rotated.
-         Creator Q&A session completed 2026-05-08 — full offseason architecture direction locked.
-         Python scripts (scripts/*.py) intentionally still SEASON = 2025 — deferred to Aug 2026.
-Reference: TASK_BOARD.md, ## Offseason Architecture Vision below
+MODE: Offseason Architecture Build
+Active: June 6, 2026
+Context: Vault seeding pipeline live end-to-end. DVOA + 2025 ATS (Spreadspoke) seeded
+         to Supabase vault_notes. game_splits_history append table live (migration 024).
+         bookmaker + betonline added to game-odds-ingest. 607/607 tests passing.
+         x-sharp-ingest built (F-13) but real X/Twitter accounts not yet live —
+         active accounts are all RSS-backed. research-intel-ingest (DS-4) built and
+         migration 009 applied; live ingest validation pending.
+Reference: TASK_BOARD.md (stale — see ## Next Session Priority below)
 ```
 
 ---
 
-## Active Sprint
+## Active Sprint — S165 State
 
 | ID | Task | Status | Notes |
 |----|------|--------|-------|
-| **Phase 1** | Governance Foundation | ✅ Done | SOUL.md, RULES.md, WORKING-CONTEXT.md, TASK_BOARD.md, AGENTS.md |
-| **Phase 2** | Contexts + Hooks + Rules | ✅ Done | contexts/ (5), hooks/hooks.json, rules/ (4) |
-| **Phase 3** | Dev Agent Architecture | ✅ Done | agents/dev/ — 15 adapted YAML-frontmatter agent prompts |
-| **Phase 4** | Product Agent Layer | ✅ Done | BETTING.md, INTEL.md, PROPS.md (tier1), betting/props manifests |
-| **Phase 5** | CLAUDE.md Consolidation | ✅ Done | Orchestration Directives, Session Protocols, Custom Commands, Prompting Discipline |
-| **Phase 6** | NFL-Specific Additions | ✅ Done | ANTI_PATTERNS.md, HANDOFF_PROMPT.md, AGENT_LOCK.json, GOTCHAS.md, gen_resume.js |
-| **F-6** | BETTING Agent Chat | ✅ Done | Agent tab live (7 tools) |
-| **F-7** | DFS Lineup Optimizer | ✅ Done | DFS tab live (DK/FD, greedy optimizer) |
-| **F-8** | PROPS Agent Chat | ✅ Done | Props tab live (7 tools; prop lines stubbed) |
+| **DS-2** | Season schedule spine | ✅ Done | `games` table + schedule-ingest.js |
+| **DS-3** | Futures breadth expansion | ✅ Done | migration 008; market availability receipts |
+| **DS-4** | Research intel ingest v1 | 🔄 Built, pending live validation | migration 009 applied; dry-run needed |
+| **F-13** | X/Twitter sharp-account ingest | ⚠️ Partial | x-sharp-ingest.js built; only RSS-backed accounts active; real X handles disabled |
+| **F-14** | Vault pre-load (reference data) | ✅ Done | DVOA + ATS (Spreadspoke) seeded; nflverse pipeline end-to-end (100 vault notes) |
+| **Vault-seed** | vault-seed.js agent | ✅ Done | auto-detects CSV schemas; Spreadspoke/DVOA/nflverse all live |
+| **game_splits_history** | Append table for splits | ✅ Done | migration 024; betting-splits-ingest dual-writes |
+| **Sharp books ingest** | bookmaker + betonline in odds ingest | ✅ Done | added to SPORTSBOOKS constant in game-odds-ingest.js |
+
+---
+
+## Migration State (All Applied)
+
+| # | File | Purpose |
+|---|------|---------|
+| 001–009 | init through research_intel | Core schema including `research_intel_notes` + `research_pick_signals` |
+| 010–013 | odds snapshots, FTS, vault_notes, x_sharp_tweets | Odds + vault + X ingest tables |
+| 014–018 | historical_stats, pbp_tendencies, player_injuries, RLS | Analytics + injury pipeline |
+| 019–024 | RLS, audit, pick IDs, odds upsert keys, podcast v2, splits history | Latest — migration 024 is most recent |
+
+---
+
+## Vault-Seed Drop Dirs
+
+| Dir | Status | Notes |
+|-----|--------|-------|
+| `data/vault-seed/ats/` | ✅ Seeded | `nfl_2025.csv` (Spreadspoke 2025 ATS records) |
+| `data/vault-seed/dvoa/` | ✅ Seeded | `dvoa-2025.json` |
+| `data/vault-seed/nflverse/` | ✅ Present | `ftn_charting.csv`, `games.csv`, `player_stats_*.csv`, `espn_data.csv` |
+| `data/vault-seed/pff/` | ⏳ Empty | Drop PFF grade exports here when available |
+| `data/vault-seed/splits/` | ⏳ Empty | Drop Action Network splits history here when available |
+| `data/vault-seed/manual/` | ⏳ Empty | Drop any manual reference CSVs here |
 
 ---
 
@@ -39,151 +64,46 @@ Reference: TASK_BOARD.md, ## Offseason Architecture Vision below
 
 | Source | Status | Last Refreshed | Notes |
 |--------|--------|---------------|-------|
-| TheOddsAPI | ⏸️ Offseason | — | 500 req/month free plan; manual fetch only; props NOT available on free tier |
+| TheOddsAPI | ⏸️ Offseason | — | 500 req/month free plan; manual fetch only; bookmaker + betonline now included |
 | ESPN Scoreboard | ✅ Available | — | NFL offseason — no active games |
-| ESPN Injuries | ✅ Available | — | Endpoints now `seasons/2026` primary, `seasons/2025` fallback |
-| Supabase | ✅ Connected | — | odds_snapshots, line_movements, game_results, futures, podcasts, user_picks |
+| ESPN Injuries | ✅ Available | — | `seasons/2026` primary, `seasons/2025` fallback |
+| Supabase | ✅ Connected | — | 24 migrations applied; all core tables live |
 | Schedule.json | ✅ Local | — | `public/schedule.json` |
-| Weekly Stats | ✅ Local | — | `public/weekly_stats.json` — still 2025 data until Python scripts re-bumped (late Aug 2026) |
-| Podcast Pipeline | ✅ Built | — | Groq → AssemblyAI → OpenAI Whisper fallback chain |
+| Weekly Stats | ✅ Local | — | Still 2025 data — Python scripts intentionally still SEASON=2025 (defer to Aug 2026) |
+| Podcast Pipeline | ✅ Built | — | Groq → AssemblyAI → OpenAI Whisper fallback chain; Tailscale serve live on M6 |
+| RSS/Intel feeds | ✅ Built | — | research-intel-ingest.js — 7 feeds; live validation pending |
+| X/Sharp accounts | ⚠️ Partial | — | x-sharp-ingest.js — 6 RSS-backed accounts active; real X handles disabled (no RSS) |
+| nflverse data | ✅ Seeded | S161 | 100 vault notes (FTN, GameResults, Schedules, ESPN, per-team QBR/Schedule) |
+| DVOA | ✅ Seeded | S164 | dvoa-2025.json → Supabase vault_notes |
+| ATS (Spreadspoke) | ✅ Seeded | S164 | nfl_2025.csv → Supabase vault_notes |
+| game_splits_history | ✅ Live | S164 | migration 024 applied; dual-write from betting-splits-ingest |
 
 ---
 
 ## Offseason Architecture Vision (Locked 2026-05-08)
 
-> Sourced from Creator Q&A session. This is the authoritative direction for all offseason build work.
-> PM Agent: all new task scoping must align with these four pillars.
+Four pillars — see full spec in WORKING-CONTEXT.md revision from 2026-05-08:
 
-### Pillar 1 — NFL Betting Vault
-- A **dedicated NFL betting vault** (separate from personal Obsidian second brain) that evolves into a betting brain.
-- **Writes to vault** (after every BETTING session): angles played, outcomes, lessons learned, sharp signals noted.
-- **Reads from vault** (at BETTING agent conversation start): coach historical play-calling tendencies, game theory notes,
-  statistical patterns, player season stats, DVOA, EPA, reference material ingested by the Creator.
-- Vault to be pre-loaded this offseason with: historical stats, team rosters, coaching data, game strategy reference books.
-- Integration mechanism: **F-12 delivered** — `vaultClient.js` dual-backend (Obsidian REST API + Supabase `vault_notes`);
-  BETTING agent tools `read_vault_note` / `write_vault_note` scoped to `NFL/` prefix.
-- Reference data architecture: **agentskills.io skill documents** in `skills/` directory (not a seed script).
-  Seed skills: `nfl-coaching-tendencies/SKILL.md`, `nfl-analytical-reference/SKILL.md`.
-  Expand `skills/*/references/` subdirs as 2026 season data accumulates.
-
-### Pillar 2 — Expanded Data Ingestion
-Trusted sources by priority (Creator-confirmed 2026-05-08):
-1. **Sharp money % + public bet %** — Action Network is primary source
-2. **Podcast experts** — already in pipeline (Sharp or Square, Even Money, Action Network, Warren Sharp)
-3. **Action Network articles** — RSS or scrape; same trust level as podcasts
-4. **BettingPros articles** — scrape or RSS
-5. **VSiN articles** — scrape or RSS
-6. **Twitter/X sharp accounts** — Creator has a dedicated X account used solely for Platinum Rose NFL/NCAA;
-   list of sharp accounts to follow is maintained separately. X API access status: TBD (see open questions).
-
-All article/written ingestion follows the same pattern as podcast pipeline:
-→ ingest → extract picks + angles → promote to `user_picks` (source='EXPERT') or new `intel_notes` table.
-
-### Pillar 3 — BETTING Agent Game-Day Proactive Mode
-- By Sunday morning most bets are already placed.
-- Use case: BETTING agent for **afternoon slate + MNF** — last-minute intel, line moves, injury news.
-- Agent must **proactively open with its best plays** (not wait to be asked), then let Creator drill down.
-- This implies a "Sunday Slate Briefing" entry mode — a specific prompt/command that triggers proactive output.
-- No parlay/total separation in bankroll — everything is one bankroll, **fixed unit size**.
-- ROI tracking by bet type (straights / parlays / futures) is required for post-season analysis.
-
-### Pillar 4 — Performance Feedback Loop
-- Track ROI by: bet type, team, situation (home/away, spread range, dome/outdoor, etc.).
-- Surface calibration signals back to BETTING agent: "You're 2-8 on road underdog parlays — flag these."
-- Requires: pick history already in Supabase ✅; need analytics aggregation layer + BETTING agent context injection.
+1. **NFL Betting Vault** — vault notes read/write from BETTING agent; F-12 delivered (`vaultClient.js`)
+2. **Expanded Data Ingestion** — research-intel pipeline + vault-seed agent + x-sharp-ingest
+3. **BETTING Agent Game-Day Proactive Mode** — F-9 Sunday Slate Briefing (not yet built)
+4. **Performance Feedback Loop** — analytics aggregation layer + BETTING context injection (not yet built)
 
 ---
 
-## Data Sprint Kickoff (Locked 2026-05-17)
+## npm Scripts (Key)
 
-Execution order is fixed for this sprint:
-
-1. DS-2 — season schedule spine
-2. DS-3 — futures breadth expansion
-3. DS-4 — research intel ingest v1
-
-### In-Flight Changes Folded Into This Plan
-
-- `agents/futures-odds-ingest.js` dotenv import is now the baseline server-agent env pattern for DS-3.
-- `package.json` + `package-lock.json` dotenv dependency updates are accepted as DS-3 prerequisites.
-- `skills/team-normalization.md` is promoted as a hard requirement for DS-2 joins across ESPN/TheOddsAPI/user data.
-- `.atlas-bridge/tasks.jsonl` queued futures refresh task (`c65590da-1b4e-4401-8198-2d8cc661e2e2`) is treated as seed execution for DS-3.
-
-### In-Flight Changes Explicitly Not In Scope for Data Sprint
-
-- `.atlas-bridge/sync.json` (bridge metadata)
-- `skills/deployment-flow/SKILL.md` (useful operational guidance, but not DS-2/DS-3/DS-4 scope)
-- `supabase/.temp/` artifacts (local tooling cache)
-
-### DS-2 — Season Schedule Spine (P0)
-
-Objective:
-
-- Create canonical `games` schedule backbone for all joins (odds, results, picks, intel).
-
-Primary sources:
-
-- ESPN schedule endpoints (2026 season)
-- Existing local fallback: `public/schedule.json`
-
-Schema target (`games`):
-
-- `game_id` (text, deterministic)
-- `season` (int)
-- `week` (int)
-- `kickoff_utc` (timestamptz)
-- `home_team` (text)
-- `away_team` (text)
-- `status` (text: scheduled/live/final/postponed)
-- `espn_event_id` (text)
-- `updated_at` (timestamptz)
-
-Success criteria:
-
-- 2026 full schedule loaded with stable `game_id` and no duplicate game rows.
-- Weekly queryability validated (`week = N` returns complete slate).
-
-### DS-3 — Futures Breadth Expansion (P0)
-
-Objective:
-
-- Extend futures coverage beyond Super Bowl into conference, division, and awards where available.
-
-Primary source:
-
-- TheOddsAPI futures markets
-
-Schema target (`futures_odds_snapshots`):
-
-- existing fields retained
-- add/verify dimensions: `market_type`, `book`, `selection`, `price`, `captured_at`, `season`
-- explicit market availability status (`available` / `unavailable`) in run report
-
-Success criteria:
-
-- `agents/futures-odds-ingest.js` writes deterministic snapshots for all available market groups.
-- Unavailable market groups are logged as expected offseason gaps, not silent failures.
-
-### DS-4 — Research Intel Ingest v1 (P1)
-
-Objective:
-
-- Normalize written + podcast research into structured tables used by BETTING agent preloads.
-
-Primary sources:
-
-- Action Network / BettingPros / VSiN written content
-- existing podcast extraction outputs
-
-Schema targets:
-
-- `research_intel_notes`: `source`, `url`, `published_at`, `title`, `summary`, `confidence`, `captured_at`
-- `research_pick_signals`: `source`, `team_or_market`, `bet_type`, `lean`, `rationale`, `event_ref`, `captured_at`
-
-Success criteria:
-
-- BETTING context can query the last 72h of source-attributed research signals.
-- Duplicate URL/content ingestion prevented by content hash or canonical URL key.
+```bash
+npm run seed:vault            # Run vault-seed agent (all dirs)
+npm run seed:vault:dvoa       # Seed dvoa/ dir only
+npm run seed:vault:ats        # Seed ats/ dir only
+npm run ingest-research-intel # DS-4 live ingest
+npm run ingest-research-intel:dry  # DS-4 dry-run
+npm run ingest-schedule       # 2026 season schedule
+npm run ingest-futures        # Futures odds
+npm run daily-brief           # NFL daily brief agent
+npm run test                  # vitest (607 tests)
+```
 
 ---
 
@@ -191,23 +111,31 @@ Success criteria:
 
 None.
 
-## Open Questions (2026-05-08 — STATUS NOTES)
+---
 
-1. ~~**Hermes/Obsidian**~~: **RESOLVED (2026-05-20)** — F-12 delivered `vaultClient.js` with
-   Obsidian REST API + Supabase `vault_notes` backends. No Hermes MCP server needed.
-   Reference data lives in `skills/` as agentskills.io skill documents.
-2. **Twitter/X**: Does Creator have X API access (Basic/Premium tier)? Or is sharp-account ingestion
-   a manual curation workflow via the dedicated account?
-3. **Article ingestion**: Action Network / BettingPros / VSiN — do any of these have usable RSS feeds,
-   or is this web scraping territory (Playwright / Firecrawl)?
-4. **Reference data on hand**: Does Creator have any existing DVOA CSVs, PFF grade exports, roster files,
-   or game strategy PDFs ready to load into the vault now?
+## Open Questions
 
-## Deferred (known, non-blocking)
+1. **x-sharp-ingest real X access**: RSSHub Twitter scraper is broken on rsshub.app. Self-host RSSHub, or accept that x-sharp-ingest is an RSS agent only. Sharp X-only accounts (VSiN, Action Network analysts) remain unreachable without this.
+2. **x-sharp vs research-intel overlap**: SharpFootball, PFF, PFT, ESPN NFL appear in both agents' feed lists → data duplication across `x_sharp_tweets` and `research_intel_notes`. Recommend consolidation or clear table ownership separation.
+3. **Article ingestion (Action Network, BettingPros, VSiN)**: research-intel-ingest has these feeds; validate whether they're returning usable RSS content in live run.
+4. **PFF grades export**: `data/vault-seed/pff/` empty — when does Creator have grade files to drop?
+5. **F-9 Sunday Slate Briefing**: Not started. Proactive BETTING agent entry point (Pillar 3).
 
-- **Python scripts season bump** (`scripts/*.py`): intentionally still `SEASON = 2025`. 2026 regular-season stats data doesn't exist until Sep 2026; premature bump would wipe `weekly_stats.json`. Revisit late-August 2026.
-- **Props auto-grade pipeline agent**: no GHA agent yet grades `nfl_props_picks_v1`. Candidate future feature (parallel to `agents/nfl-auto-grade.js`).
-- **TheOddsAPI props tier**: PROPS agent fully built; prop lines require paid tier. Revisit pre-season.
+## Deferred
+
+- **Python scripts season bump** (`scripts/*.py`): SEASON=2025 intentional — revisit late-August 2026.
+- **Props auto-grade pipeline**: No GHA agent yet for `nfl_props_picks_v1`.
+- **TheOddsAPI props tier**: PROPS agent built; prop lines require paid tier — revisit pre-season.
+- **F-9 Sunday Slate Briefing**: Pillar 3 feature, not yet started.
+- **Performance feedback loop** (Pillar 4): Analytics aggregation + BETTING context injection, not yet started.
+
+---
+
+## Next Session Priority
+
+1. **DS-4 live validation** — run `npm run ingest-research-intel:dry` then live; confirm rows in `research_intel_notes` + `research_pick_signals`
+2. **x-sharp-ingest disposition** — merge into research-intel-ingest, repurpose for real X, or document scope separation
+3. **F-9 Sunday Slate Briefing** — proactive BETTING agent entry point (Pillar 3)
 
 ---
 
@@ -215,21 +143,7 @@ None.
 
 ```text
 Branch: main
-Commit: (run `git log -1 --oneline` — latest is the F-8 PROPS agent + season bump)
+Commit: e0b94a8 — S165: sharp books ingest + splits history + vault-seed Spreadspoke/DVOA
 Remote: origin/main synced
+Tests: 607/607 passing
 ```
-
----
-
-## Next Session Priority
-
-**Vision locked (2026-05-08). Offseason build sequence targets Week 1 readiness.**
-Four open architecture questions must be answered before full task breakdown (see ## Open Questions above).
-
-Pending answers to open questions 2–4, work continues on:
-
-1. **F-9 Sunday Slate Briefing mode** — proactive BETTING agent entry point (Pillar 3)
-2. **F-14 Reference data expansion** — add `references/` subdir data to existing seed skills as 2026
-   season data accumulates (Pillar 1)
-
-Run `npm run resume` to generate canonical resume command at session start.

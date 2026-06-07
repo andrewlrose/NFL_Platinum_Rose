@@ -1,5 +1,6 @@
 {
-  "_comment": "NFL intel sources for x-sharp-ingest.js. rss_url = direct RSS feed (preferred). Accounts without rss_url fall back to RSSHub Twitter scraper (currently broken on rsshub.app — self-host or add rss_url instead).",
+  "_comment": "NFL intel sources for x-sharp-ingest.js. AGENT IS DORMANT — see _status. RSS-backed accounts have been consolidated into research-intel-ingest.js to avoid duplication. X-only accounts are stubs, ready to re-enable once RSSHub is self-hosted on M6.",
+  "_status": "DORMANT — awaiting self-hosted RSSHub on M6. See docs/NFL_BACKLOG.md for implementation plan.",
   "rsshub_base_url_default": "https://rsshub.app",
   "accounts": [
     {
@@ -8,7 +9,8 @@
       "rss_url": "https://sharpfootballanalysis.com/feed/",
       "tier": "analyst",
       "tags": ["analytics", "trends", "ATS", "situational"],
-      "active": true
+      "active": false,
+      "_note": "Moved to research-intel-ingest.js as a proper RSS/article feed. Do not re-enable here — would create duplicate data in x_sharp_tweets."
     },
     {
       "handle": "PFF",
@@ -16,7 +18,8 @@
       "rss_url": "https://www.pff.com/feed",
       "tier": "analyst",
       "tags": ["grades", "advanced-stats", "matchup", "snap-counts"],
-      "active": true
+      "active": false,
+      "_note": "Moved to research-intel-ingest.js. Do not re-enable here."
     },
     {
       "handle": "ProFootballTalk",
@@ -24,7 +27,8 @@
       "rss_url": "https://profootballtalk.nbcsports.com/feed/",
       "tier": "analyst",
       "tags": ["transactions", "injuries", "news", "rumor"],
-      "active": true
+      "active": false,
+      "_note": "Moved to research-intel-ingest.js. Do not re-enable here."
     },
     {
       "handle": "RotowireNFL",
@@ -32,7 +36,8 @@
       "rss_url": "https://www.rotowire.com/rss/news.php?sport=NFL",
       "tier": "analyst",
       "tags": ["injuries", "lineup", "depth-chart"],
-      "active": true
+      "active": false,
+      "_note": "Moved to research-intel-ingest.js. Do not re-enable here."
     },
     {
       "handle": "FootballOutsiders",
@@ -40,7 +45,8 @@
       "rss_url": "https://www.footballoutsiders.com/rss.xml",
       "tier": "analyst",
       "tags": ["analytics", "DVOA", "efficiency"],
-      "active": true
+      "active": false,
+      "_note": "Moved to research-intel-ingest.js. Do not re-enable here."
     },
     {
       "handle": "ESPNNfl",
@@ -48,16 +54,17 @@
       "rss_url": "https://www.espn.com/espn/rss/nfl/news",
       "tier": "analyst",
       "tags": ["news", "injuries", "transactions"],
-      "active": true
+      "active": false,
+      "_note": "Moved to research-intel-ingest.js. Do not re-enable here."
     },
     {
       "handle": "ActionNetworkHQ",
       "display_name": "Action Network",
       "rss_url": null,
-      "tier": "analyst",
+      "tier": "sharp",
       "tags": ["picks", "betting", "public-money", "steam"],
       "active": false,
-      "_note": "No public RSS feed. Re-enable if rss_url found."
+      "_note": "X-only. Re-enable once RSSHub is self-hosted on M6. See docs/NFL_BACKLOG.md."
     },
     {
       "handle": "VSiN",
@@ -66,7 +73,7 @@
       "tier": "sharp",
       "tags": ["sharp-money", "line-movement", "bookmaker-intel"],
       "active": false,
-      "_note": "No public RSS feed. Re-enable if rss_url found."
+      "_note": "X-only. Re-enable once RSSHub is self-hosted on M6. See docs/NFL_BACKLOG.md."
     },
     {
       "handle": "bettingpros",
@@ -75,7 +82,7 @@
       "tier": "analyst",
       "tags": ["consensus", "best-bets", "injury-news"],
       "active": false,
-      "_note": "No public RSS feed. Re-enable if rss_url found."
+      "_note": "X-only. Re-enable once RSSHub is self-hosted on M6. See docs/NFL_BACKLOG.md."
     },
     {
       "handle": "FantasyDouche",
@@ -84,7 +91,7 @@
       "tier": "analyst",
       "tags": ["DFS", "props", "targets", "air-yards"],
       "active": false,
-      "_note": "Twitter-only analyst. Re-enable with rss_url if available."
+      "_note": "X-only. Re-enable once RSSHub is self-hosted on M6. See docs/NFL_BACKLOG.md."
     },
     {
       "handle": "MattEchols",
@@ -93,7 +100,7 @@
       "tier": "analyst",
       "tags": ["analytics", "EPA", "situational", "run-pass"],
       "active": false,
-      "_note": "Twitter-only analyst. Re-enable with rss_url if available."
+      "_note": "X-only. Re-enable once RSSHub is self-hosted on M6. See docs/NFL_BACKLOG.md."
     },
     {
       "handle": "PlatinumRoseNFL",
@@ -102,7 +109,7 @@
       "tier": "creator",
       "tags": ["picks", "session-notes", "own-account"],
       "active": false,
-      "_note": "Creator's own account — no automated RSS needed."
+      "_note": "Creator's own dedicated NFL X account. Bookmarks ingestion is a future option (X API Basic tier, $100/mo, OAuth 2.0 user-context required). Manual fallback: paste bookmarked tweets into data/vault-seed/manual/ as markdown. See docs/NFL_BACKLOG.md."
     }
   ]
 }

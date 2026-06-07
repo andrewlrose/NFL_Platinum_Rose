@@ -76,6 +76,22 @@ const FEEDS = [
     confidence: 0.67,
     source_type: 'analytical',
   },
+  {
+    // Rotowire NFL: injuries, lineup news, depth-chart changes
+    // Migrated from x-sharp-ingest (was RSS-backed account, not X content)
+    source: 'Rotowire NFL',
+    url: 'https://www.rotowire.com/rss/news.php?sport=NFL',
+    confidence: 0.65,
+    source_type: 'analytical',
+  },
+  {
+    // Football Outsiders: DVOA, efficiency metrics, situational analytics
+    // Migrated from x-sharp-ingest (was RSS-backed account, not X content)
+    source: 'Football Outsiders',
+    url: 'https://www.footballoutsiders.com/rss.xml',
+    confidence: 0.68,
+    source_type: 'analytical',
+  },
 ];
 
 const NFL_KEYWORDS = [
