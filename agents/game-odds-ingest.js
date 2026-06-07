@@ -53,7 +53,7 @@ const SEASON        = Number(
 );
 const SNAPSHOT_TTL_DAYS = Number(process.env.SNAPSHOT_TTL_DAYS || 90);
 const SPORT_KEY         = 'americanfootball_nfl';
-const SPORTSBOOKS       = 'draftkings,fanduel,betmgm,caesars,pointsbet';
+const SPORTSBOOKS       = 'draftkings,fanduel,betmgm,caesars,pointsbet,bookmaker,betonline';
 const MARKETS           = 'spreads,h2h,totals';
 const MAX_RUNTIME_MS    = 90_000;
 const MAX_RETRIES       = 2;
