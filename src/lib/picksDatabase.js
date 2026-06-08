@@ -523,3 +523,281 @@ export const addExpertPick = (expertPick) => {
 // calculateStandings, statsByConfidence, statsByEdge
 // validatePick, healthCheck
 // CONFIDENCE_BUCKETS, EDGE_BUCKETS
+
+// ── Multi-leg pick types ──────────────────────────────────────
+
+/** All valid pick types across straight bets and multi-leg tickets. */
+export const ALL_PICK_TYPES = ['spread', 'total', 'moneyline', 'parlay', 'round_robin'];
+
+/**
+ * Binomial coefficient C(n, r) — used for RR combination counts.
+ * e.g. C(8, 4) = 70 sub-parlays in an 8-pick/4-team RR.
+ */
+const nCr = (n, r) => {
+  if (r > n || r < 0) return 0;
+  if (r === 0 || r === n) return 1;
+  let result = 1;
+  for (let i = 0; i < r; i++) result = result * (n - i) / (i + 1);
+  return Math.round(result);
+};
+
+// ── Validation ────────────────────────────────────────────────
+
+/**
+ * Validate a parlay before saving.
+ * Each leg needs at minimum: team (selection) + game (description) + line.
+ */
+export const validateParlay = (data) => {
+  const errors = [];
+  if (!Array.isArray(data.legs) || data.legs.length < 2)
+    errors.push('Parlay requires at least 2 legs');
+  if (data.legs?.some(l => !l.team || !l.game))
+    errors.push('Each leg requires team and game');
+  if (typeof data.combinedOdds !== 'number')
+    errors.push('combinedOdds must be a number (American odds, e.g. +600)');
+  if (typeof data.stake !== 'number' || data.stake <= 0)
+    errors.push('stake must be a positive number of units');
+  if (!data.gameDate)
+    errors.push('Missing gameDate (use date of last leg)');
+  return errors.length ? { valid: false, errors } : { valid: true };
+};
+
+/**
+ * Validate a round-robin before saving.
+ * parlaySize must be < totalLegs; minimum 5 total legs.
+ */
+export const validateRoundRobin = (data) => {
+  const errors = [];
+  if (!Array.isArray(data.legs) || data.legs.length < 5)
+    errors.push('Round robin requires at least 5 legs');
+  if (typeof data.totalLegs !== 'number' || data.totalLegs < 5)
+    errors.push('totalLegs must be >= 5');
+  if (typeof data.parlaySize !== 'number' || data.parlaySize < 2)
+    errors.push('parlaySize must be >= 2');
+  if (data.parlaySize >= data.totalLegs)
+    errors.push('parlaySize must be less than totalLegs');
+  if (typeof data.stakePer !== 'number' || data.stakePer <= 0)
+    errors.push('stakePer must be a positive number of units');
+  if (!data.gameDate)
+    errors.push('Missing gameDate (use date of latest leg)');
+  return errors.length ? { valid: false, errors } : { valid: true };
+};
+
+// ── CRUD ──────────────────────────────────────────────────────
+
+/**
+ * Log a parlay. Stored as a single pick entry with legs embedded.
+ * Grade later with setPickResult() once all legs resolve.
+ *
+ * push rule: if a leg pushes, decrement effectiveTeamCount and pass via
+ * setPickResult(id, result, { effectiveTeamCount: N, payout: X }).
+ *
+ * @param {object} data
+ *   legs         -- [{ team, game, line?, result? }]  min 2 items
+ *   combinedOdds -- American odds for the full ticket (e.g. +600)
+ *   stake        -- units wagered
+ *   gameDate     -- 'YYYY-MM-DD' of last leg
+ *   contestName  -- optional ('Super Contest')
+ *   contestWeek  -- optional (NFL week number)
+ *   rationale    -- optional notes
+ *   source       -- optional, defaults to 'AI_LAB'
+ */
+export const addParlay = (data) => {
+  const check = validateParlay(data);
+  if (!check.valid) {
+    logger.error('Parlay validation failed:', check.errors);
+    return { success: false, errors: check.errors };
+  }
+
+  const teamCount = data.legs.length;
+  const id = 'parlay-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  const pick = {
+    id,
+    pickType:           'parlay',
+    source:             data.source || 'AI_LAB',
+    teamCount,
+    effectiveTeamCount: teamCount,
+    legs:               data.legs.map(l => ({ team: l.team, game: l.game, line: l.line ?? null, result: l.result || 'PENDING' })),
+    combinedOdds:       data.combinedOdds,
+    stake:              data.stake,
+    payout:             null,
+    gameDate:           data.gameDate,
+    contestName:        data.contestName || null,
+    contestWeek:        data.contestWeek || null,
+    result:             'PENDING',
+    rationale:          data.rationale || '',
+    createdAt:          new Date().toISOString(),
+    gradedAt:           null,
+  };
+
+  const picks = readPicks();
+  picks.push(pick);
+  writePicks(picks);
+  fireSync(pick);
+  const oddsStr = (data.combinedOdds > 0 ? '+' : '') + data.combinedOdds;
+  logger.log('Parlay saved: ' + teamCount + '-teamer @ ' + oddsStr + ' ' + data.stake + 'u (' + id + ')');
+  return { success: true, pick };
+};
+
+/**
+ * Log a round-robin.
+ * Combination count is computed automatically: C(totalLegs, parlaySize).
+ * Total stake = stakePer x combinations.
+ *
+ * @param {object} data
+ *   legs          -- [{ team, game, line? }]  min 5 items
+ *   totalLegs     -- total picks in the RR (must match legs.length)
+ *   parlaySize    -- legs per sub-parlay (e.g. 4 for a 4-team RR)
+ *   stakePer      -- units wagered per sub-parlay
+ *   gameDate      -- 'YYYY-MM-DD' of latest leg
+ *   rationale     -- optional notes
+ *   source        -- optional, defaults to 'AI_LAB'
+ */
+export const addRoundRobin = (data) => {
+  const check = validateRoundRobin(data);
+  if (!check.valid) {
+    logger.error('Round-robin validation failed:', check.errors);
+    return { success: false, errors: check.errors };
+  }
+
+  const totalCombinations = nCr(data.totalLegs, data.parlaySize);
+  const totalStake        = +(data.stakePer * totalCombinations).toFixed(2);
+  const id = 'rr-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+
+  const pick = {
+    id,
+    pickType:          'round_robin',
+    source:            data.source || 'AI_LAB',
+    totalLegs:         data.totalLegs,
+    parlaySize:        data.parlaySize,
+    totalCombinations,
+    legs:              data.legs.map(l => ({ team: l.team, game: l.game, line: l.line ?? null, result: l.result || 'PENDING' })),
+    stakePer:          data.stakePer,
+    totalStake,
+    wonCombinations:   null,
+    totalPayout:       null,
+    netUnits:          null,
+    gameDate:          data.gameDate,
+    result:            'PENDING',
+    rationale:         data.rationale || '',
+    createdAt:         new Date().toISOString(),
+    gradedAt:          null,
+  };
+
+  const picks = readPicks();
+  picks.push(pick);
+  writePicks(picks);
+  fireSync(pick);
+  logger.log('RR saved: ' + data.totalLegs + '-pick/' + data.parlaySize + '-team ' + totalCombinations + ' combos ' + totalStake + 'u total (' + id + ')');
+  return { success: true, pick };
+};
+
+/**
+ * Directly set a pick result -- for manual grading of parlays, RRs, futures,
+ * and any bet that cannot be auto-graded by final score.
+ *
+ * For parlays:  pass extra = { payout, effectiveTeamCount }
+ * For RRs:      pass extra = { wonCombinations, totalPayout, netUnits }
+ *
+ * @param {string} pickId
+ * @param {'WIN'|'LOSS'|'PUSH'} result
+ * @param {object} [extra]  optional additional fields to merge onto the pick
+ */
+export const setPickResult = (pickId, result, extra) => {
+  if (!VALID_RESULTS.includes(result)) {
+    logger.error('setPickResult: invalid result "' + result + '"');
+    return null;
+  }
+  const picks = readPicks();
+  const idx = picks.findIndex(p => p.id === pickId);
+  if (idx === -1) {
+    logger.error('setPickResult: pick not found: ' + pickId);
+    return null;
+  }
+  picks[idx] = Object.assign({}, picks[idx], { result, gradedAt: new Date().toISOString() }, extra || {});
+  writePicks(picks);
+  fireSync(picks[idx]);
+  logger.log('setPickResult: ' + pickId + ' -> ' + result);
+  return picks[idx];
+};
+
+// ── Analytics ─────────────────────────────────────────────────
+
+/**
+ * Performance breakdown by pick type.
+ * Returns a record keyed by type with W-L-P, win rate, and units.
+ *
+ * parlay entry  -> byTeamCount sub-breakdown (e.g. { '3-team': { wins:4, losses:2, ... } })
+ * round_robin   -> byConfig sub-breakdown  (e.g. { '8-pick/4-team': { wins:1, netUnits:-8 } })
+ *
+ * Unit accounting:
+ *   straight bets -- WIN +1u, LOSS -JUICE (-1.1u at standard -110)
+ *   parlays       -- WIN uses stored payout; LOSS uses stored stake
+ *   RRs           -- WIN/LOSS use stored netUnits when available, else +/-totalStake
+ */
+export const statsByPickType = () => {
+  const graded   = readPicks().filter(p => p.result !== 'PENDING');
+  const allTypes = ['spread', 'total', 'moneyline', 'parlay', 'round_robin'];
+
+  const result = {};
+  allTypes.forEach(type => {
+    const inType  = graded.filter(p => p.pickType === type);
+    const wins    = inType.filter(p => p.result === 'WIN').length;
+    const losses  = inType.filter(p => p.result === 'LOSS').length;
+    const pushes  = inType.filter(p => p.result === 'PUSH').length;
+    const decided = wins + losses;
+
+    const units = inType.reduce((acc, p) => {
+      if (p.result === 'WIN') {
+        if (p.pickType === 'round_robin') return acc + (p.netUnits != null ? p.netUnits : (p.totalPayout != null ? p.totalPayout : 1));
+        if (p.pickType === 'parlay')      return acc + (p.payout != null ? p.payout : 1);
+        return acc + 1;
+      }
+      if (p.result === 'LOSS') {
+        if (p.pickType === 'round_robin') return acc - (p.totalStake != null ? p.totalStake : JUICE);
+        if (p.pickType === 'parlay')      return acc - (p.stake != null ? p.stake : JUICE);
+        return acc - JUICE;
+      }
+      return acc;
+    }, 0);
+
+    result[type] = {
+      total:   inType.length,
+      wins,
+      losses,
+      pushes,
+      winRate: decided > 0 ? +(wins / decided * 100).toFixed(1) : 0,
+      units:   +units.toFixed(2),
+    };
+  });
+
+  // Parlay sub-breakdown by effective team count
+  const byTeamCount = {};
+  graded.filter(p => p.pickType === 'parlay').forEach(p => {
+    const key = (p.effectiveTeamCount != null ? p.effectiveTeamCount : p.teamCount) + '-team';
+    if (!byTeamCount[key]) byTeamCount[key] = { wins: 0, losses: 0, pushes: 0, total: 0, winRate: 0 };
+    byTeamCount[key].total++;
+    if (p.result === 'WIN')       byTeamCount[key].wins++;
+    else if (p.result === 'LOSS') byTeamCount[key].losses++;
+    else if (p.result === 'PUSH') byTeamCount[key].pushes++;
+  });
+  Object.values(byTeamCount).forEach(b => {
+    const d = b.wins + b.losses;
+    b.winRate = d > 0 ? +(b.wins / d * 100).toFixed(1) : 0;
+  });
+  result.parlay.byTeamCount = byTeamCount;
+
+  // RR sub-breakdown by config string
+  const byConfig = {};
+  graded.filter(p => p.pickType === 'round_robin').forEach(p => {
+    const key = p.totalLegs + '-pick/' + p.parlaySize + '-team';
+    if (!byConfig[key]) byConfig[key] = { wins: 0, losses: 0, total: 0, netUnits: 0 };
+    byConfig[key].total++;
+    if (p.result === 'WIN')       byConfig[key].wins++;
+    else if (p.result === 'LOSS') byConfig[key].losses++;
+    byConfig[key].netUnits = +(byConfig[key].netUnits + (p.netUnits != null ? p.netUnits : 0)).toFixed(2);
+  });
+  result.round_robin.byConfig = byConfig;
+
+  return result;
+};

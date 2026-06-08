@@ -47,6 +47,17 @@ vi.mock('../../src/lib/picksDatabase.js', () => ({
     medium: { label: '1.5–3pt', total: 9, wins: 6, losses: 3, winRate: 66.7 },
     large:  { label: '3pt+',   total: 2, wins: 2, losses: 0, winRate: 100.0 },
   })),
+  statsByPickType: vi.fn(() => ({
+    spread:      { total: 10, wins: 7, losses: 3, pushes: 0, winRate: 70.0, units: 3.7, byTeamCount: {} },
+    total:       { total: 5,  wins: 2, losses: 3, pushes: 0, winRate: 40.0, units: -1.3, byTeamCount: {} },
+    moneyline:   { total: 2,  wins: 1, losses: 1, pushes: 0, winRate: 50.0, units: -0.1, byTeamCount: {} },
+    parlay:      { total: 3,  wins: 1, losses: 2, pushes: 0, winRate: 33.3, units: -0.2,
+                   byTeamCount: { '3-team': { wins: 1, losses: 2, pushes: 0, total: 3, winRate: 33.3 } } },
+    round_robin: { total: 1,  wins: 0, losses: 1, pushes: 0, winRate: 0,   units: -35,
+                   byConfig: { '8-pick/4-team': { wins: 0, losses: 1, total: 1, netUnits: -35 } } },
+  })),
+  addParlay: vi.fn(() => ({ success: true, pick: { id: 'parlay-test-1', teamCount: 3 } })),
+  addRoundRobin: vi.fn(() => ({ success: true, pick: { id: 'rr-test-1', totalCombinations: 70, totalStake: 35 } })),
   loadPicks: vi.fn(() => [
     { source: 'AI_LAB', result: 'WIN',     selection: 'KC',  pickType: 'spread', confidence: 62, edge: 2.5 },
     { source: 'AI_LAB', result: 'LOSS',    selection: 'BUF', pickType: 'total',  confidence: 55, edge: 1.0 },

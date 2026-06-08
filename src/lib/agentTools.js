@@ -30,9 +30,12 @@ import {
 import { readVaultNote, writeVaultNote, todaySessionPath } from './vaultClient.js';
 import {
   addPick,
+  addParlay,
+  addRoundRobin,
   calculateStandings,
   statsByConfidence,
   statsByEdge,
+  statsByPickType,
   loadPicks,
 } from './picksDatabase.js';
 import { PR_STORAGE_KEYS } from './storage.js';
@@ -263,50 +266,80 @@ export const BETTING_TOOLS = [
   },
   {
     name: 'log_pick',
-    description: 'Records a pick or bet to the Creator\'s Picks Tracker. CRITICAL: The system prompt instructs you to ALWAYS ask for explicit user confirmation before calling this tool. Never auto-log without a clear "log it", "record that", or "add the bet" instruction from the Creator.',
+    description: 'Records a pick or bet to the Creator\'s Picks Tracker. CRITICAL: The system prompt instructs you to ALWAYS ask for explicit user confirmation before calling this tool. Never auto-log without a clear "log it", "record that", or "add the bet" instruction from the Creator. Supports straight bets (spread/total/moneyline), parlays, and round-robins.',
     input_schema: {
       type: 'object',
       properties: {
         team: {
           type: 'string',
-          description: 'Team abbreviation or "OVER"/"UNDER" for totals',
+          description: 'Team abbreviation or "OVER"/"UNDER" for totals. Omit for parlays and round-robins (use legs instead).',
         },
         pick_type: {
           type: 'string',
-          enum: ['spread', 'total', 'moneyline'],
-          description: 'Type of bet',
+          enum: ['spread', 'total', 'moneyline', 'parlay', 'round_robin'],
+          description: 'Type of bet. Use parlay for multi-game tickets (2-teamers, 3-teamers, Super Contest cards). Use round_robin for RR tickets.',
         },
         line: {
           type: 'number',
-          description: 'Spread or total line (e.g. -3.5, 47.5)',
+          description: 'Spread or total line (e.g. -3.5, 47.5). Omit for parlays and round-robins.',
         },
         odds: {
           type: 'number',
-          description: 'American odds (e.g. -110, +130)',
+          description: 'American odds (e.g. -110, +130). For parlays, this is the combined parlay odds (e.g. +600).',
         },
         amount_units: {
           type: 'number',
-          description: 'Wager size in units (e.g. 1, 2, 3)',
+          description: 'Wager size in units. For round-robins, this is the stake PER sub-parlay (e.g. 0.5u per combo).',
         },
         game_context: {
           type: 'string',
-          description: 'Game description (e.g. "KC @ BUF" or "Chiefs vs Bills")',
+          description: 'Game description for straight bets (e.g. "KC @ BUF"). Omit for parlays/RRs (use legs instead).',
         },
         notes: {
           type: 'string',
-          description: 'Rationale or context for the pick',
+          description: 'Rationale or context for the pick.',
         },
         book: {
           type: 'string',
-          description: 'Sportsbook name (e.g. "DraftKings", "FanDuel")',
+          description: 'Sportsbook name (e.g. "DraftKings", "FanDuel").',
+        },
+        // Parlay / Round-robin fields
+        legs: {
+          type: 'array',
+          description: 'Required for parlays and round-robins. Each leg: { team, game, line }. e.g. [{ "team": "KC", "game": "KC @ BUF", "line": -3.5 }]',
+          items: {
+            type: 'object',
+            properties: {
+              team: { type: 'string', description: 'Team abbreviation or OVER/UNDER' },
+              game: { type: 'string', description: 'Matchup description (e.g. "KC @ BUF")' },
+              line: { type: 'number', description: 'Spread or total line for this leg' },
+            },
+            required: ['team', 'game'],
+          },
+        },
+        parlay_size: {
+          type: 'number',
+          description: 'Round-robins only: number of legs per sub-parlay (e.g. 4 for a "4-team RR").',
+        },
+        contest_name: {
+          type: 'string',
+          description: 'Optional: contest name for parlays (e.g. "Super Contest").',
+        },
+        contest_week: {
+          type: 'number',
+          description: 'Optional: NFL week number for contest parlays.',
+        },
+        game_date: {
+          type: 'string',
+          description: 'Optional for parlays/RRs: date of last leg in YYYY-MM-DD format. Defaults to today.',
         },
       },
-      required: ['team', 'pick_type', 'line', 'odds', 'amount_units'],
+      required: ['pick_type'],
     },
   },
   {
     name: 'get_performance_stats',
-    description: 'Returns the Creator\'s historical pick performance — overall record, units, ROI, breakdown by confidence tier, edge size, and team. Use this to calibrate bet sizing recommendations and to answer questions about past performance (e.g. "how have I done on totals?", "what\'s my record on high-confidence plays?"). No inputs required.',
+    description: 'Returns the Creator\'s historical pick performance — overall record, units, ROI, breakdown by confidence tier, edge size, team, and pick type (spread/total/moneyline/parlay/round_robin). Parlay breakdown includes by_team_count (e.g. 3-teamers vs 5-teamers); RR breakdown includes by_config. Use to calibrate sizing and answer questions like "how have I done on totals?", "what\'s my 3-teamer record?", "how did my RRs do?". No inputs required.',
     input_schema: {
       type: 'object',
       properties: {
@@ -858,8 +891,67 @@ function toolCalculateTeaser({ legs, teaser_odds = -120 }) {
   };
 }
 
-async function toolLogPick({ team, pick_type, line, odds, amount_units, game_context, notes, book }) {
-  // Map to picksDatabase.addPick schema
+async function toolLogPick({ team, pick_type, line, odds, amount_units, game_context, notes, book, legs, parlay_size, contest_name, contest_week, game_date }) {
+  const today = new Date().toISOString().split('T')[0];
+  const rationale = notes || `Logged by BETTING agent${book ? ` · Book: ${book}` : ''}`;
+
+  // ── Parlay ──────────────────────────────────────────────────────────────────
+  if (pick_type === 'parlay') {
+    if (!legs?.length) {
+      return { status: 'error', message: 'Parlay requires legs array: [{ team, game, line }]' };
+    }
+    const result = addParlay({
+      legs,
+      combinedOdds: typeof odds === 'number' ? odds : parseFloat(odds) || 600,
+      stake: amount_units || 1,
+      gameDate: game_date || today,
+      contestName: contest_name || null,
+      contestWeek: contest_week || null,
+      rationale,
+    });
+    if (!result.success) {
+      return { status: 'error', message: 'Parlay validation failed', validation_errors: result.errors };
+    }
+    const t = result.pick.teamCount;
+    return {
+      status: 'logged',
+      pick_id: result.pick.id,
+      summary: `✅ Logged: ${t}-team parlay @ ${odds > 0 ? '+' : ''}${odds} · ${amount_units || 1}u${contest_name ? ` · ${contest_name}` : ''}`,
+      combination_count: null,
+      total_stake: amount_units || 1,
+    };
+  }
+
+  // ── Round Robin ─────────────────────────────────────────────────────────────
+  if (pick_type === 'round_robin') {
+    if (!legs?.length) {
+      return { status: 'error', message: 'Round-robin requires legs array: [{ team, game, line }]' };
+    }
+    if (!parlay_size) {
+      return { status: 'error', message: 'Round-robin requires parlay_size (e.g. 4 for a 4-team RR)' };
+    }
+    const result = addRoundRobin({
+      legs,
+      totalLegs: legs.length,
+      parlaySize: parlay_size,
+      stakePer: amount_units || 0.5,
+      gameDate: game_date || today,
+      rationale,
+    });
+    if (!result.success) {
+      return { status: 'error', message: 'Round-robin validation failed', validation_errors: result.errors };
+    }
+    const { totalCombinations, totalStake } = result.pick;
+    return {
+      status: 'logged',
+      pick_id: result.pick.id,
+      summary: `✅ Logged: ${legs.length}-pick/${parlay_size}-team RR · ${totalCombinations} combos · ${totalStake}u total (${amount_units || 0.5}u/ea)`,
+      combination_count: totalCombinations,
+      total_stake: totalStake,
+    };
+  }
+
+  // ── Straight bet (spread / total / moneyline) ────────────────────────────────
   const gameId = `agent-${game_context?.replace(/\s+/g, '-').toLowerCase() || team}-${Date.now()}`;
   const result = addPick({
     gameId,
@@ -869,10 +961,10 @@ async function toolLogPick({ team, pick_type, line, odds, amount_units, game_con
     line: parseFloat(line),
     confidence: 60,
     edge: 0,
-    rationale: notes || `Logged by BETTING agent${book ? ` · Book: ${book}` : ''}`,
+    rationale,
     expert: 'BETTING Agent',
     units: amount_units || 1,
-    gameDate: new Date().toISOString().split('T')[0],
+    gameDate: game_date || today,
     gameTime: '00:00',
     commenceTimeISO: null,
     odds: odds || -110,
@@ -933,6 +1025,8 @@ function toolGetPerformanceStats({ source } = {}) {
     return acc;
   }, 0);
 
+  const pickTypeBreakdown = statsByPickType();
+
   return {
     total_graded: graded.length,
     total_pending: pending,
@@ -945,6 +1039,7 @@ function toolGetPerformanceStats({ source } = {}) {
     by_confidence: confBreakdown,
     by_edge: edgeBreakdown,
     by_team: byTeam,
+    by_pick_type: pickTypeBreakdown,
   };
 }
 

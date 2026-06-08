@@ -25,6 +25,7 @@ import {
   calculateStandings,
   statsByConfidence,
   statsByEdge,
+  statsByPickType,
 } from '../../lib/picksDatabase.js';
 import { getNFLWeekInfo } from '../../lib/constants.js';
 import { ANTHROPIC_API, AI_PROXY_URL } from '../../lib/apiConfig.js';
@@ -94,6 +95,7 @@ function buildCalibrationSummary(picks) {
   const graded = (picks || []).filter(p => p.result !== 'PENDING');
   if (graded.length === 0) return '  No graded picks yet.';
 
+  // ── Overall record ────────────────────────────────────────────────────────
   const wins = graded.filter(p => p.result === 'WIN').length;
   const losses = graded.filter(p => p.result === 'LOSS').length;
   const pushes = graded.filter(p => p.result === 'PUSH').length;
@@ -122,6 +124,57 @@ function buildCalibrationSummary(picks) {
     `  Last 10: ${l10W}-${l10L}`,
   ];
   if (aiConfLine) lines.push(aiConfLine);
+
+  // ── Pick-type breakdown (Pillar 4) ────────────────────────────────────────
+  // Only show types with >= 3 graded picks to avoid noise
+  try {
+    const typeStats = statsByPickType();
+    const STRAIGHT = ['spread', 'total', 'moneyline'];
+    const MULTI    = ['parlay', 'round_robin'];
+
+    // Straight bet type line
+    const straightParts = STRAIGHT
+      .filter(t => (typeStats[t]?.total ?? 0) >= 3)
+      .map(t => {
+        const s = typeStats[t];
+        const label = t.charAt(0).toUpperCase() + t.slice(1);
+        return `${label}: ${s.wins}-${s.losses} (${s.winRate}%)`;
+      });
+    if (straightParts.length > 0) lines.push(`  By type: ${straightParts.join(' | ')}`);
+
+    // Parlay summary + team-count breakdown
+    const ps = typeStats.parlay;
+    if (ps.total >= 1) {
+      const parlayLine = `  Parlays: ${ps.wins}-${ps.losses} (${ps.winRate}%)`;
+      const tcParts = Object.entries(ps.byTeamCount || {})
+        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+        .map(([key, b]) => `${key}: ${b.wins}-${b.losses}`);
+      lines.push(parlayLine + (tcParts.length ? ' · ' + tcParts.join(', ') : ''));
+    }
+
+    // Round-robin summary + config breakdown
+    const rs = typeStats.round_robin;
+    if (rs.total >= 1) {
+      const rrLine = `  Round-robins: ${rs.wins}-${rs.losses}`;
+      const cfgParts = Object.entries(rs.byConfig || {})
+        .map(([key, b]) => `${key}: ${b.wins}-${b.losses} (${b.netUnits >= 0 ? '+' : ''}${b.netUnits}u)`);
+      lines.push(rrLine + (cfgParts.length ? ' · ' + cfgParts.join(', ') : ''));
+    }
+
+    // Edge signal: flag best and worst straight-bet type when spread >= 10pp
+    const rankedStraight = STRAIGHT
+      .filter(t => (typeStats[t]?.total ?? 0) >= 5)
+      .sort((a, b) => typeStats[b].winRate - typeStats[a].winRate);
+    if (rankedStraight.length >= 2) {
+      const best  = rankedStraight[0];
+      const worst = rankedStraight[rankedStraight.length - 1];
+      if (typeStats[best].winRate - typeStats[worst].winRate >= 10) {
+        const bl = best === 'moneyline' ? 'MLs' : best + 's';
+        const wl = worst === 'moneyline' ? 'MLs' : worst + 's';
+        lines.push(`  Edge signal: ${bl} profitable (${typeStats[best].winRate}% win), ${wl} cold (${typeStats[worst].winRate}%) — size accordingly.`);
+      }
+    }
+  } catch { /* statsByPickType unavailable — skip */ }
 
   return lines.join('\n');
 }

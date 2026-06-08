@@ -1,7 +1,7 @@
 # WORKING-CONTEXT.md — NFL Platinum Rose
 > **Live operational state. Update this file at every session close.**
 > **Read this at session start before touching any file.**
-> Last updated: 2026-06-07 | Branch: `main` | HEAD: `e0fb78c`
+> Last updated: 2026-06-07 | Branch: `main` | HEAD: S169 (pending commit from Windows)
 
 ---
 
@@ -10,10 +10,10 @@
 ```
 MODE: Offseason Architecture Build
 Active: June 7, 2026
-Context: DS-4 research intel pipeline live and validated. Tweet-ingest agent built
-         (Claude/Gemini/OpenAI vision fallback). x-sharp-ingest DORMANT — X API
-         costs $100/mo, not worth it offseason. Manual tweet drop workflow live.
-         607/607 tests passing.
+Context: Pillar 4 complete. Parlay + round-robin pick types added (validateParlay,
+         validateRoundRobin, addParlay, addRoundRobin, setPickResult, statsByPickType).
+         buildCalibrationSummary enriched with pick-type breakdown + edge signal.
+         log_pick tool extended for parlay/RR. 632/632 tests passing.
 Reference: docs/NFL_BACKLOG.md (1 open item: X ingestion, medium priority)
 ```
 
@@ -32,6 +32,8 @@ Reference: docs/NFL_BACKLOG.md (1 open item: X ingestion, medium priority)
 | **Vault-seed** | vault-seed.js agent | ✅ Done | auto-detects CSV schemas; manual/ dir supported |
 | **game_splits_history** | Append table for splits | ✅ Done | migration 024; dual-write |
 | **Sharp books ingest** | bookmaker + betonline in odds | ✅ Done | added to SPORTSBOOKS constant |
+| **Pillar 4** | Performance Feedback Loop | ✅ Done | statsByPickType + richer calibration signal in system prompt |
+| **Parlay/RR types** | Multi-leg bet tracking | ✅ Done | addParlay, addRoundRobin, setPickResult, validateParlay, validateRoundRobin |
 
 ---
 
@@ -81,8 +83,8 @@ Reference: docs/NFL_BACKLOG.md (1 open item: X ingestion, medium priority)
 
 1. **NFL Betting Vault** — ✅ Done (F-12 `vaultClient.js`)
 2. **Expanded Data Ingestion** — ✅ Done (research-intel + vault-seed + tweet-ingest)
-3. **BETTING Agent Game-Day Proactive Mode** — 🔲 F-9 Sunday Slate Briefing (not yet built)
-4. **Performance Feedback Loop** — 🔲 Analytics aggregation + BETTING context injection (not yet built)
+3. **BETTING Agent Game-Day Proactive Mode** — ✅ Done (F-9, S118 — auto-inject Sunday brief + "best plays" shortcut; season-aware offseason branching)
+4. **Performance Feedback Loop** — ✅ Done (S169 — statsByPickType, parlay/RR types, richer buildCalibrationSummary, 632 tests)
 
 ---
 
@@ -118,24 +120,16 @@ None.
 - **Python scripts season bump** (`scripts/*.py`): SEASON=2025 intentional — revisit Aug 2026.
 - **Props auto-grade pipeline**: No GHA agent yet.
 - **TheOddsAPI props tier**: PROPS agent built; prop lines require paid tier — revisit pre-season.
-- **F-9 Sunday Slate Briefing**: Pillar 3, not yet started. Top priority next session.
-- **Performance feedback loop** (Pillar 4): Not yet started.
+
 
 ---
 
 ## Next Session Priority
 
-1. **F-9 Sunday Slate Briefing** — proactive BETTING agent entry point (Pillar 3)
-2. **PFF grades** — drop CSVs in `data/vault-seed/pff/` when available
-3. **Props auto-grade** — GHA pipeline for `nfl_props_picks_v1`
+1. **Props auto-grade pipeline** — GHA agent to auto-grade `nfl_props_picks_v1` entries (needs player stats source)
+2. **PFF grades** — drop CSVs in `data/vault-seed/pff/` when available (waiting on data)
+3. **Parlay/RR grading UI** — PicksTracker UI support for grading multi-leg tickets
 
 ---
 
-## Head Commit
-
-```text
-Branch: main
-Commit: e0fb78c — S168: tweet-ingest agent (Claude/Gemini/OpenAI vision fallback) + manual drop workflow
-Remote: origin/main synced
-Tests: 607/607 passing
-```
+## 

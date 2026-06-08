@@ -14,56 +14,67 @@
 
 - Date: 2026-06-07
 - Branch: main
-- HEAD: e0fb78c — "S168: tweet-ingest agent (Claude/Gemini/OpenAI vision fallback) + manual drop workflow"
-- Tests: 607/607 passing
+- HEAD: S169 (pending Windows commit — see git command below)
+- Previous HEAD: 42aac2b — S168 update session handoff + working context
+- Tests: 632/632 passing
 
-## What Was Done (S168)
+## What Was Done (S169)
 
-**DS-4 live validation** — `research-intel-ingest.js` confirmed healthy. 44 candidate notes,
-42 already in DB (dedup working), 2 new inserts. Pipeline is live and idempotent.
+**Doc fix** — WORKING-CONTEXT.md corrected: F-9 Sunday Slate Briefing was already done in S118;
+stale 🔲 updated to ✅. Pillar 4 scoped.
 
-**RSSHub self-hosting attempted on M6** — `docker run diygod/rsshub` succeeded but the Twitter
-route requires real Twitter API credentials even self-hosted. X API Basic = $100/mo → rejected.
-x-sharp-ingest remains DORMANT. All RSS-backed accounts already in research-intel-ingest.
+**Parlay + round-robin pick types** added to `src/lib/picksDatabase.js`:
+- `validateParlay` / `validateRoundRobin` — schema validation
+- `addParlay` — single entry with embedded legs, combinedOdds, stake, contestName/Week
+- `addRoundRobin` — auto-computes C(n,r) combinations + totalStake from stakePer
+- `setPickResult(id, result, extra)` — manual grading; extra carries payout/effectiveTeamCount
+  (parlays) or wonCombinations/totalPayout/netUnits (RRs)
+- `statsByPickType()` — breakdown by all 5 types; parlay.byTeamCount (3-teamers, 5-teamers);
+  round_robin.byConfig ('8-pick/4-team')
+- `ALL_PICK_TYPES` constant
 
-**Manual tweet drop workflow built:**
-- `data/tweet-drops/` drop folder with `HOWTO.md`
-- `data/vault-seed/manual/TEMPLATE.md` for markdown drops
-- `npm run seed:vault:manual` — seeds manual/ markdown into vault_notes
-- `npm run ingest-tweets` / `npm run ingest-tweets:dry` — processes tweet-drops/
+**`src/lib/agentTools.js`** updated:
+- `log_pick` now accepts pick_type: 'parlay' | 'round_robin' with legs, parlay_size,
+  contest_name, contest_week fields
+- `toolLogPick` branches on parlay/RR, calling addParlay/addRoundRobin
+- `get_performance_stats` returns `by_pick_type` in every response
 
-**`agents/tweet-ingest.js` built** — supports:
-- `.png/.jpg/.webp` — vision AI extracts tweet handle, text, URL, date (charts/stats too)
-- `.txt` — paste format, multiple tweets separated by `---`
-- `.json` — `[{handle, text, url, date}]` array for bulk drops
-- Vision provider fallback chain: Claude → Gemini 2.0 Flash → GPT-4o (first available key wins)
-- Writes to `research_intel_notes` (source_type: 'tweet', confidence: 0.75)
-- Archives processed files to `data/tweet-drops/processed/YYYY-MM-DD/`
-- All 3 API keys confirmed present in .env
+**`src/components/agent/AgentChat.jsx`** — `buildCalibrationSummary` extended:
+- Shows spread/total/ML breakdown (>= 3 graded picks threshold)
+- Shows parlay record with byTeamCount sub-line
+- Shows RR record with byConfig sub-line
+- Auto-generates edge signal when best/worst type diverge by >= 10pp
 
-**`docs/NFL_BACKLOG.md` updated** — RSSHub/X API paths closed; manual drop workflow documented
-as the chosen path. 1 open item remains (X ingestion, medium priority, pre-season).
+**25 new tests** in `tests/unit/picksDatabase.test.js` (607 → 632).
+`tests/unit/agentTools.test.js` mock updated with statsByPickType/addParlay/addRoundRobin.
+
+**All 4 Offseason Architecture Pillars now complete.**
 
 ## Critical Status
 
-- DS-4 (`research-intel-ingest.js`) — **LIVE AND VALIDATED** ✅
-- `x-sharp-ingest.js` — DORMANT (X API required, not worth $100/mo offseason)
-- Tweet ingest agent — built, tested, committed. Ready to use in-season.
-- 607/607 tests passing
+- All 4 Offseason Architecture Pillars — ✅ COMPLETE
+- 632/632 tests passing
+- Parlay/RR types ready to use via BETTING agent `log_pick` tool
+- Grade parlays/RRs via `setPickResult(id, result, { payout, effectiveTeamCount })` etc.
+
+## Git Command (run from Windows in E:\dev\projects\NFL_Dashboard)
+
+```
+git add src/lib/picksDatabase.js src/lib/agentTools.js src/components/agent/AgentChat.jsx tests/unit/picksDatabase.test.js tests/unit/agentTools.test.js WORKING-CONTEXT.md HANDOFF_PROMPT.md && git commit -m "S169: parlay/RR pick types + Pillar 4 complete (statsByPickType, buildCalibrationSummary, 632 tests)" && git push
+```
 
 ## What To Do Next
 
-1. **F-9 Sunday Slate Briefing** — proactive BETTING agent entry point (Pillar 3, not yet built)
-2. **x-sharp disposition** — already resolved; only revisit if free X access becomes available
-3. **PFF grades** — `data/vault-seed/pff/` still empty; drop grade export CSVs when available
-4. **Performance feedback loop** (Pillar 4) — analytics aggregation + BETTING context injection
+1. **Props auto-grade pipeline** — GHA agent to auto-grade `nfl_props_picks_v1` (needs player stats source)
+2. **PFF grades** — drop CSVs in `data/vault-seed/pff/` when available
+3. **Parlay/RR grading UI** — PicksTracker UI support for grading multi-leg tickets
 
 ## Resume Command
 
 ```text
-Resume Platinum Rose NFL. HEAD = e0fb78c (main). Suite: 607/607. DS-4 live and validated.
-Tweet-ingest agent built (vision fallback: Claude→Gemini→OpenAI). x-sharp DORMANT (X API
-too expensive). Next: F-9 Sunday Slate Briefing (Pillar 3). Read HANDOFF_PROMPT.md first.
+Resume Platinum Rose NFL. HEAD = 42aac2b (main, S169 pending Windows commit). Suite: 632/632.
+All 4 Offseason Architecture Pillars complete. Parlay + round-robin pick types shipped.
+Next: props auto-grade pipeline (GHA). Read HANDOFF_PROMPT.md first.
 ```
 
 ## Notes
@@ -73,3 +84,5 @@ too expensive). Next: F-9 Sunday Slate Briefing (Pillar 3). Read HANDOFF_PROMPT.
 - `data/vault-seed/{pff,splits,manual}/` — drop CSVs/MDs here, run `npm run seed:vault`
 - Python scripts (`scripts/*.py`) are intentionally SEASON=2025 — defer to Aug 2026
 - Podcast pipeline is live on M6 at Tailscale `atlas.tail1e459d.ts.net`
+- Parlay grading: `setPickResult(id, 'WIN', { payout: X, effectiveTeamCount: N })`
+- RR grading: `setPickResult(id, 'WIN'/'LOSS', { wonCombinations, totalPayout, netUnits })`

@@ -40,10 +40,15 @@ vi.mock('../../src/lib/syncQueue.js', () => ({
 import {
     CONFIDENCE_BUCKETS,
     EDGE_BUCKETS,
+    ALL_PICK_TYPES,
     validatePick,
+    validateParlay,
+    validateRoundRobin,
     gradeSpread,
     gradeTotal,
     gradeMoneyline,
+    statsByPickType,
+    setPickResult,
 } from '../../src/lib/picksDatabase.js';
 
 // ── CONFIDENCE_BUCKETS ────────────────────────────────────────────────────────
@@ -253,5 +258,201 @@ describe('gradeMoneyline', () => {
     it('PUSH on exact tie', () => {
         expect(gradeMoneyline({ isHomeTeam: true }, 21, 21)).toBe('PUSH');
         expect(gradeMoneyline({ isHomeTeam: false }, 21, 21)).toBe('PUSH');
+    });
+});
+
+// ── ALL_PICK_TYPES ────────────────────────────────────────────────────────────
+
+describe('ALL_PICK_TYPES', () => {
+    it('includes spread, total, moneyline', () => {
+        expect(ALL_PICK_TYPES).toContain('spread');
+        expect(ALL_PICK_TYPES).toContain('total');
+        expect(ALL_PICK_TYPES).toContain('moneyline');
+    });
+
+    it('includes parlay and round_robin', () => {
+        expect(ALL_PICK_TYPES).toContain('parlay');
+        expect(ALL_PICK_TYPES).toContain('round_robin');
+    });
+});
+
+// ── validateParlay ────────────────────────────────────────────────────────────
+
+const BASE_PARLAY = {
+    legs: [
+        { team: 'KC', game: 'KC @ BUF', line: -3.5 },
+        { team: 'PHI', game: 'PHI @ DAL', line: 1.5 },
+        { team: 'DET', game: 'DET @ GB', line: -2.5 },
+    ],
+    combinedOdds: 600,
+    stake: 1,
+    gameDate: '2026-09-14',
+};
+
+describe('validateParlay', () => {
+    it('returns valid for a complete 3-leg parlay', () => {
+        expect(validateParlay(BASE_PARLAY)).toEqual({ valid: true });
+    });
+
+    it('fails with fewer than 2 legs', () => {
+        const { valid, errors } = validateParlay({ ...BASE_PARLAY, legs: [BASE_PARLAY.legs[0]] });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/at least 2 legs/i);
+    });
+
+    it('fails when legs array is missing', () => {
+        const { valid, errors } = validateParlay({ ...BASE_PARLAY, legs: undefined });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/legs/i);
+    });
+
+    it('fails when a leg is missing team', () => {
+        const badLegs = [{ game: 'KC @ BUF', line: -3.5 }, BASE_PARLAY.legs[1]];
+        const { valid, errors } = validateParlay({ ...BASE_PARLAY, legs: badLegs });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/team.*game|game.*team/i);
+    });
+
+    it('fails when combinedOdds is not a number', () => {
+        const { valid, errors } = validateParlay({ ...BASE_PARLAY, combinedOdds: '+600' });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/combinedOdds/i);
+    });
+
+    it('fails when stake is zero', () => {
+        const { valid, errors } = validateParlay({ ...BASE_PARLAY, stake: 0 });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/stake/i);
+    });
+
+    it('fails when gameDate is missing', () => {
+        const { valid, errors } = validateParlay({ ...BASE_PARLAY, gameDate: '' });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/gameDate/i);
+    });
+
+    it('accepts negative combinedOdds (heavy-favourite parlay)', () => {
+        expect(validateParlay({ ...BASE_PARLAY, combinedOdds: -150 })).toEqual({ valid: true });
+    });
+});
+
+// ── validateRoundRobin ────────────────────────────────────────────────────────
+
+const EIGHT_LEGS = Array.from({ length: 8 }, (_, i) => ({
+    team: 'T' + i,
+    game: 'T' + i + ' @ T' + (i + 1),
+    line: -3,
+}));
+
+const BASE_RR = {
+    legs: EIGHT_LEGS,
+    totalLegs: 8,
+    parlaySize: 4,
+    stakePer: 0.5,
+    gameDate: '2026-09-14',
+};
+
+describe('validateRoundRobin', () => {
+    it('returns valid for a complete 8-pick/4-team RR', () => {
+        expect(validateRoundRobin(BASE_RR)).toEqual({ valid: true });
+    });
+
+    it('fails with fewer than 5 legs', () => {
+        const shortLegs = EIGHT_LEGS.slice(0, 4);
+        const { valid, errors } = validateRoundRobin({ ...BASE_RR, legs: shortLegs, totalLegs: 4 });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/5/);
+    });
+
+    it('fails when parlaySize >= totalLegs', () => {
+        const { valid, errors } = validateRoundRobin({ ...BASE_RR, parlaySize: 8 });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/parlaySize.*less|less.*parlaySize/i);
+    });
+
+    it('fails when parlaySize is 1', () => {
+        const { valid, errors } = validateRoundRobin({ ...BASE_RR, parlaySize: 1 });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/parlaySize.*2/i);
+    });
+
+    it('fails when stakePer is zero', () => {
+        const { valid, errors } = validateRoundRobin({ ...BASE_RR, stakePer: 0 });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/stakePer/i);
+    });
+
+    it('fails when gameDate is missing', () => {
+        const { valid, errors } = validateRoundRobin({ ...BASE_RR, gameDate: '' });
+        expect(valid).toBe(false);
+        expect(errors.join(' ')).toMatch(/gameDate/i);
+    });
+
+    it('accepts a 5-pick/2-team RR (minimum valid)', () => {
+        const fiveLegs = EIGHT_LEGS.slice(0, 5);
+        expect(validateRoundRobin({ legs: fiveLegs, totalLegs: 5, parlaySize: 2, stakePer: 1, gameDate: '2026-09-14' }))
+            .toEqual({ valid: true });
+    });
+});
+
+// ── statsByPickType ───────────────────────────────────────────────────────────
+// Storage mock returns [] so all types have 0 picks — tests cover shape + zero-state.
+
+describe('statsByPickType', () => {
+    it('returns an entry for each of the 5 pick types', () => {
+        const stats = statsByPickType();
+        ['spread', 'total', 'moneyline', 'parlay', 'round_robin'].forEach(t => {
+            expect(stats).toHaveProperty(t);
+        });
+    });
+
+    it('each type entry has required numeric fields', () => {
+        const stats = statsByPickType();
+        ['spread', 'total', 'moneyline', 'parlay', 'round_robin'].forEach(type => {
+            expect(stats[type]).toMatchObject({
+                wins:    expect.any(Number),
+                losses:  expect.any(Number),
+                pushes:  expect.any(Number),
+                winRate: expect.any(Number),
+                units:   expect.any(Number),
+                total:   expect.any(Number),
+            });
+        });
+    });
+
+    it('parlay entry has byTeamCount sub-breakdown', () => {
+        const stats = statsByPickType();
+        expect(stats.parlay).toHaveProperty('byTeamCount');
+        expect(typeof stats.parlay.byTeamCount).toBe('object');
+    });
+
+    it('round_robin entry has byConfig sub-breakdown', () => {
+        const stats = statsByPickType();
+        expect(stats.round_robin).toHaveProperty('byConfig');
+        expect(typeof stats.round_robin.byConfig).toBe('object');
+    });
+
+    it('winRate is 0 when no graded picks exist', () => {
+        const stats = statsByPickType();
+        expect(stats.spread.winRate).toBe(0);
+        expect(stats.parlay.winRate).toBe(0);
+    });
+});
+
+// ── setPickResult ─────────────────────────────────────────────────────────────
+
+describe('setPickResult', () => {
+    it('returns null when pick is not found', () => {
+        expect(setPickResult('nonexistent-id', 'WIN')).toBeNull();
+    });
+
+    it('returns null for invalid result value', () => {
+        expect(setPickResult('any-id', 'INVALID')).toBeNull();
+    });
+
+    it('does not throw on valid result values', () => {
+        expect(() => setPickResult('x', 'WIN')).not.toThrow();
+        expect(() => setPickResult('x', 'LOSS')).not.toThrow();
+        expect(() => setPickResult('x', 'PUSH')).not.toThrow();
     });
 });
