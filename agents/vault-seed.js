@@ -223,7 +223,7 @@ const SCHEMAS = {
       const weeks   = [...new Set(rows.map(r => r.week).filter(Boolean))].sort((a,b)=>+a-+b);
       const metrics = headers.filter(h => !['ftn_game_id','nflverse_game_id','season','week',
         'ftn_play_id','nflverse_play_id','date_pulled'].includes(h));
-      const passPlays  = rows.filter(r => r.is_screen_pass === '0' || r.n_pass_rushers).length;
+      const _passPlays  = rows.filter(r => r.is_screen_pass === '0' || r.n_pass_rushers).length;
       const blitzPlays = rows.filter(r => +r.n_blitzers > 0).length;
       const motionPlays = rows.filter(r => r.is_motion === '1' || r.is_motion === 'True').length;
       return `# FTN Charting — ${seasons[0]}–${seasons[seasons.length-1]}
@@ -295,7 +295,7 @@ _Auto-generated from vault-seed ingestion. Play-level data — no per-team notes
         `\n_Raw CSV: data/vault-seed/nflverse/player_stats_weekly.csv | Auto-generated._`,
       ].join('\n');
     },
-    buildTeamNote(teamRows, abbr, _year, _headers) {
+    buildTeamNote(teamRows, _abbr, _year, _headers) {
       const seasons = [...new Set(teamRows.map(r => r.season).filter(Boolean))].sort();
       const sections = seasons.map(szn => {
         const reg = teamRows.filter(r => String(r.season) === String(szn) && r.season_type === 'REG');
@@ -353,7 +353,7 @@ _Auto-generated from vault-seed ingestion. Play-level data — no per-team notes
         `\n_Raw CSV: data/vault-seed/nflverse/player_stats_seasonal.csv | Auto-generated._`,
       ].join('\n');
     },
-    buildTeamNote(teamRows, abbr, _year, _headers) {
+    buildTeamNote(teamRows, _abbr, _year, _headers) {
       const seasons = [...new Set(teamRows.map(r => r.season).filter(Boolean))].sort();
       const sections = seasons.map(szn => {
         const reg = teamRows.filter(r => String(r.season) === String(szn) && r.season_type === 'REG');
@@ -404,7 +404,7 @@ _Auto-generated from vault-seed ingestion. Play-level data — no per-team notes
         `\n## ${latest} Season Totals (REG, by passing EPA)`, tbl,
         `\n_Raw CSV: data/vault-seed/nflverse/team_stats.csv | Auto-generated._`].join('\n');
     },
-    buildTeamNote(teamRows, abbr, _year, _headers) {
+    buildTeamNote(teamRows, _abbr, _year, _headers) {
       const seasons = [...new Set(teamRows.map(r => r.season).filter(Boolean))].sort();
       const lines = seasons.map(szn => {
         const reg = teamRows.filter(r => String(r.season) === String(szn) && r.season_type === 'REG');
@@ -576,7 +576,7 @@ _Auto-generated from vault-seed ingestion. Play-level data — no per-team notes
       }));
     },
 
-    buildLeagueNote(rows, year, _headers) {
+    buildLeagueNote(rows, _year, _headers) {
       const byYear = new Map();
       for (const r of rows) {
         if (!byYear.has(r.season)) byYear.set(r.season, []);
@@ -611,7 +611,7 @@ _${latest.length} teams. Auto-generated from vault-seed Spreadspoke CSV._
 `;
     },
 
-    buildTeamNote(teamRows, abbr, _year, _headers) {
+    buildTeamNote(teamRows, _abbr, _year, _headers) {
       const seasons = [...teamRows].sort((a, b) => +b.season - +a.season);
       const sections = seasons.map(r => [
         `### ${r.season} (${r.games} games)`,
@@ -649,7 +649,7 @@ function detectSchema(headers, dirName, fileName = null) {
 // ─── Note Formatters ──────────────────────────────────────────────────────────
 
 function now() { return new Date().toISOString().slice(0, 10); }
-function sha8(v) { return createHash('sha256').update(String(v)).digest('hex').slice(0, 8); }
+function _sha8(v) { return createHash('sha256').update(String(v)).digest('hex').slice(0, 8); }
 function fmtNum(v) { return (v == null || v === '') ? '—' : (isNaN(+v) ? v : (+v).toFixed(2)); }
 
 /** Build a Markdown table from an array of objects */
@@ -834,7 +834,7 @@ async function processCSV(supabase, filePath, dirName, results) {
 async function processJSON(supabase, filePath, dirName, results) {
   const text = await readFile(filePath, 'utf-8');
   let data;
-  try { data = JSON.parse(text); } catch (e) {
+  try { data = JSON.parse(text); } catch {
     console.warn(`  [SKIP] ${filePath}: invalid JSON`);
     return;
   }

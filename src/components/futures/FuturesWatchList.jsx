@@ -650,7 +650,7 @@ export default function FuturesWatchList() {
   const removeTeam = useCallback((team) => {
     setWatchlist(w => {
       const targets = { ...w.targets };
-      MARKET_IDS.forEach(m => delete targets[`${team}|${m}`]);
+      MARKET_SLOTS.map(s => s.slot).forEach(m => delete targets[`${team}|${m}`]);
       return { ...w, teams: w.teams.filter(t => t !== team), targets };
     });
   }, []);

@@ -105,7 +105,7 @@ function EpisodeCard({ episode, onImport }) {
       await navigator.clipboard.writeText(shareLnk);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch { /* no-op */ }
   };
 
   const handleImport = async (e) => {

@@ -276,7 +276,7 @@ async function main() {
 
   const BATCH = 200;
   let written = 0;
-  let skipped = 0;
+  let _skipped = 0;
 
   for (let i = 0; i < ALL_ROWS.length; i += BATCH) {
     const batch = ALL_ROWS.slice(i, i + BATCH).map(r => {

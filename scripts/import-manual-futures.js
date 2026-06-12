@@ -428,7 +428,7 @@ async function writeRows(rows) {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   // Check for useEnhancedColumns (same guard as the existing agent)
-  const { data: colCheck, error: colErr } = await supabase
+  const { data: _colCheck, error: colErr } = await supabase
     .from('futures_odds_snapshots')
     .select('selection')
     .limit(1);
